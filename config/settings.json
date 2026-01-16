@@ -12,5 +12,10 @@
   "api": {
     "base_url": "https://meusisu.com/api",
     "timeout_seconds": 30
+  },
+  "supabase": {
+    "enabled": true,
+    "url": "https://sisymqzxvuktdcbsbpbp.supabase.co",
+    "service_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODYwNTk0MSwiZXhwIjoyMDg0MTgxOTQxfQ.yDWKET6qMOKukkFrRGL8UW4C4qK4BtcVmoJQpI2lG9o"
   }
 }

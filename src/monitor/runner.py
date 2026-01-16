@@ -12,7 +12,7 @@ from .fetcher import CourseFetcher
 from .tracker import ScoreTracker
 from ..decoder import Course
 from ..notifications import NotificationManager
-from ..storage import HistoryManager
+from ..storage import HistoryManager, SupabaseClient
 from ..utils.config import Config
 
 logger = logging.getLogger(__name__)
@@ -31,6 +31,23 @@ class SISUMonitor:
         self.notifications = NotificationManager(config.notifications)
         self.history = HistoryManager(config.data_dir)
         self.iteration = 0
+
+        # Initialize Supabase client if enabled
+        self.supabase: Optional[SupabaseClient] = None
+        if config.supabase_enabled and config.supabase_url and config.supabase_service_key:
+            try:
+                self.supabase = SupabaseClient(
+                    url=config.supabase_url,
+                    service_key=config.supabase_service_key
+                )
+                if self.supabase.test_connection():
+                    logger.info("Supabase connected successfully")
+                else:
+                    logger.warning("Supabase connection test failed")
+                    self.supabase = None
+            except Exception as e:
+                logger.error(f"Failed to initialize Supabase: {e}")
+                self.supabase = None
 
     def get_poll_interval(self) -> int:
         """Get current poll interval based on time of day"""
@@ -79,9 +96,13 @@ class SISUMonitor:
         # Compare with previous scores
         changes = self.tracker.compare_scores(course_id, scores)
 
-        # Save data
+        # Save data locally
         self.history.save_raw(course_id, raw_data)
         self.history.save_processed(course_id, course.to_dict())
+
+        # Save to Supabase
+        if self.supabase:
+            self._save_to_supabase(course_id, course, scores, is_new)
 
         # Update tracker
         self.tracker.update_scores(course_id, scores)
@@ -93,6 +114,60 @@ class SISUMonitor:
             self._handle_score_changes(course_id, course_name, course, scores, changes)
 
         return course
+
+    def _save_to_supabase(self, course_id: int, course: Course, scores: dict, is_new: bool):
+        """Save course data and cut scores to Supabase"""
+        try:
+            # Upsert course info
+            course_data = {
+                "code": course_id,
+                "name": course.course_name or "",
+                "university": course.university,
+                "campus": course.campus,
+                "city": course.city,
+                "state": course.state,
+                "degree": course.degree,
+                "schedule": course.schedule,
+                "latitude": course.latitude,
+                "longitude": course.longitude,
+            }
+            db_course = self.supabase.upsert_course(course_data)
+            db_course_id = db_course["id"]
+
+            # Get current year from latest year data
+            year = datetime.now().year
+            if course.years:
+                year = course.years[-1].year if hasattr(course.years[-1], 'year') else year
+
+            # Save weights if available
+            if course.years:
+                latest_year = course.years[-1]
+                if hasattr(latest_year, 'weights') and hasattr(latest_year, 'minimums'):
+                    weights = latest_year.weights or {}
+                    minimums = latest_year.minimums or {}
+                    if weights or minimums:
+                        self.supabase.upsert_weights(db_course_id, year, weights, minimums)
+
+            # Save current cut scores
+            for modality, data in scores.items():
+                cut_score = data.get('cut_score')
+                if cut_score is not None and cut_score != 'null':
+                    self.supabase.insert_cut_score(
+                        course_id=db_course_id,
+                        year=year,
+                        modality={
+                            "code": data.get('code'),
+                            "name": modality,
+                            "cut_score": cut_score,
+                            "applicants": data.get('applicants'),
+                            "vacancies": data.get('vacancies'),
+                        }
+                    )
+
+            logger.debug(f"Saved course {course_id} to Supabase (db_id={db_course_id})")
+
+        except Exception as e:
+            logger.error(f"Failed to save to Supabase: {e}")
 
     def _handle_new_course(self, course_id: int, course_name: str, course: Course, scores: dict):
         """Handle a newly monitored course"""
@@ -191,6 +266,10 @@ class SISUMonitor:
             print(f"Intervalo critico ({self.config.critical_hours_start}h-{self.config.critical_hours_end}h): "
                   f"{self.config.critical_poll_interval}s")
         print(f"Diretorio de dados: {self.config.data_dir}")
+        print("-" * 60)
+        print("Armazenamento:")
+        print(f"  Local:    Sim ({self.config.data_dir})")
+        print(f"  Supabase: {'Sim' if self.supabase else 'Nao'}")
         print("-" * 60)
         print("Notificacoes:")
         notif = self.config.notifications

@@ -1,0 +1,89 @@
+{
+  "state": "Distrito Federal",
+  "city": "Brasília",
+  "university": "Universidade de Brasília",
+  "campus": "Campus Universitário Darcy Ribeiro",
+  "latitude": "-15.7934036",
+  "longitude": "-47.8823172",
+  "course_name": "Geologia",
+  "degree": "Bacharelado",
+  "schedule": "Integral",
+  "years": [
+    {
+      "year": 2019,
+      "modalities": [
+        {
+          "name": "Ampla concorrência",
+          "code": 41,
+          "cut_score": 702.63,
+          "applicants": 75,
+          "vacancies": null
+        },
+        {
+          "name": "Candidato (s) preto ou pardo.",
+          "code": 111,
+          "cut_score": 679.66,
+          "applicants": 11,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos autodeclarados pretos, pardos ou indígenas que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 220,
+          "cut_score": 636.98,
+          "applicants": 24,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos autodeclarados pretos, pardos ou indígenas, com renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 221,
+          "cut_score": 640.83,
+          "applicants": 23,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência autodeclarados pretos, pardos ou indígenas que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 233,
+          "cut_score": 0.0,
+          "applicants": 1,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência autodeclarados pretos, pardos ou indígenas, que tenham renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012)",
+          "code": 234,
+          "cut_score": 0.0,
+          "applicants": 0,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 249,
+          "cut_score": 676.4,
+          "applicants": 30,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 289,
+          "cut_score": 714.75,
+          "applicants": 3,
+          "vacancies": null
+        }
+      ],
+      "weights": {
+        "pesoRed": 1.0,
+        "pesoLing": 2.0,
+        "pesoMat": 4.0,
+        "pesoCh": 2.0,
+        "pesoCn": 4.0
+      },
+      "minimums": {
+        "minRed": 400.0,
+        "minLing": 350.0,
+        "minMat": 350.0,
+        "minCh": 350.0,
+        "minCn": 350.0,
+        "minEnem": 360.0
+      }
+    }
+  ]
+}

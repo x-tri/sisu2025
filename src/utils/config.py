@@ -38,6 +38,11 @@ class Config:
     # Notifications (raw dict for flexibility)
     notifications: dict = field(default_factory=dict)
 
+    # Supabase
+    supabase_enabled: bool = False
+    supabase_url: str = ""
+    supabase_service_key: str = ""
+
 
 def load_config(config_dir: Optional[Path] = None) -> Config:
     """Load configuration from JSON files.
@@ -95,6 +100,12 @@ def load_config(config_dir: Optional[Path] = None) -> Config:
         config.api_timeout = api.get('timeout_seconds', config.api_timeout)
 
         config.log_level = data.get('log_level', 'INFO')
+
+        # Supabase settings
+        supabase = data.get('supabase', {})
+        config.supabase_enabled = supabase.get('enabled', False)
+        config.supabase_url = supabase.get('url', '')
+        config.supabase_service_key = supabase.get('service_key', '')
 
     # Load notifications
     notif_file = config_dir / "notifications.json"
