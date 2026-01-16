@@ -1,0 +1,20 @@
+{
+  "desktop": {
+    "enabled": true,
+    "sound_name": "Glass"
+  },
+  "sound": {
+    "enabled": true
+  },
+  "webhook": {
+    "enabled": false,
+    "url": "",
+    "_comment": "Discord/Slack webhook URL"
+  },
+  "telegram": {
+    "enabled": false,
+    "bot_token": "",
+    "chat_id": "",
+    "_comment": "Crie um bot via @BotFather no Telegram"
+  }
+}

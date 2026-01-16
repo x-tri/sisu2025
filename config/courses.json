@@ -1,0 +1,35 @@
+{
+  "courses": [
+    {
+      "code": 37,
+      "name": "Medicina - UnB",
+      "modality": "ampla",
+      "priority": "high",
+      "alert_threshold": 750.0,
+      "notes": "Geologia - Campus Darcy Ribeiro"
+    },
+    {
+      "code": 1,
+      "name": "Administracao - UFMT",
+      "modality": "ampla",
+      "priority": "normal",
+      "alert_threshold": null,
+      "notes": "Campus Cuiaba"
+    },
+    {
+      "code": 4371,
+      "name": "Ciencia e Economia - UNIFAL",
+      "modality": "ampla",
+      "priority": "normal",
+      "alert_threshold": 650.0,
+      "notes": "Campus Varginha - BI/LI"
+    }
+  ],
+  "_schema": {
+    "code": "ID do curso em meusisu.com/curso/{code}",
+    "name": "Nome para exibicao",
+    "modality": "ampla | ppi | pcd | renda",
+    "priority": "low | normal | high",
+    "alert_threshold": "Alerta se nota de corte passar desse valor (null = desativado)"
+  }
+}

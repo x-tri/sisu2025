@@ -1,0 +1,559 @@
+{
+  "state": "Mato Grosso",
+  "city": "Cuiabá",
+  "university": "Universidade Federal de Mato Grosso",
+  "campus": "Campus Universitário de Cuiabá",
+  "latitude": "-15.5986686",
+  "longitude": "-56.0991301",
+  "course_name": "Direito",
+  "degree": "Bacharelado",
+  "schedule": "Noturno",
+  "years": [
+    {
+      "year": 2019,
+      "modalities": [
+        {
+          "name": "Ampla concorrência",
+          "code": 41,
+          "cut_score": 735.48,
+          "applicants": 661,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos autodeclarados pretos, pardos ou indígenas que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 220,
+          "cut_score": 697.28,
+          "applicants": 222,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos autodeclarados pretos, pardos ou indígenas, com renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 221,
+          "cut_score": 678.12,
+          "applicants": 375,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência autodeclarados pretos, pardos ou indígenas, que tenham renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012)",
+          "code": 234,
+          "cut_score": 588.12,
+          "applicants": 14,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 249,
+          "cut_score": 692.46,
+          "applicants": 143,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 289,
+          "cut_score": 699.04,
+          "applicants": 148,
+          "vacancies": null
+        }
+      ],
+      "weights": {
+        "pesoRed": 1.0,
+        "pesoLing": 1.0,
+        "pesoMat": 1.0,
+        "pesoCh": 1.0,
+        "pesoCn": 1.0
+      },
+      "minimums": {
+        "minRed": 0.01,
+        "minLing": null,
+        "minMat": null,
+        "minCh": null,
+        "minCn": null,
+        "minEnem": 0.01
+      }
+    },
+    {
+      "year": 2020,
+      "modalities": [
+        {
+          "name": "Ampla concorrência",
+          "code": 41,
+          "cut_score": 717.4,
+          "applicants": 616,
+          "vacancies": 25
+        },
+        {
+          "name": "Candidatos autodeclarados pretos, pardos ou indígenas que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 220,
+          "cut_score": 677.02,
+          "applicants": 208,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos autodeclarados pretos, pardos ou indígenas, com renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 221,
+          "cut_score": 651.4,
+          "applicants": 389,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência autodeclarados pretos, pardos ou indígenas que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 233,
+          "cut_score": 577.16,
+          "applicants": 6,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência autodeclarados pretos, pardos ou indígenas, que tenham renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012)",
+          "code": 234,
+          "cut_score": 544.96,
+          "applicants": 9,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência que tenham renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 242,
+          "cut_score": 602.0,
+          "applicants": 14,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 249,
+          "cut_score": 671.78,
+          "applicants": 160,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 289,
+          "cut_score": 706.44,
+          "applicants": 131,
+          "vacancies": null
+        }
+      ],
+      "weights": {
+        "pesoRed": 1.0,
+        "pesoLing": 1.0,
+        "pesoMat": 1.0,
+        "pesoCh": 1.0,
+        "pesoCn": 1.0
+      },
+      "minimums": {
+        "minRed": 0.01,
+        "minLing": null,
+        "minMat": null,
+        "minCh": null,
+        "minCn": null,
+        "minEnem": 0.01
+      }
+    },
+    {
+      "year": 2021,
+      "modalities": [
+        {
+          "name": "Ampla concorrência",
+          "code": 41,
+          "cut_score": 718.18,
+          "applicants": 489,
+          "vacancies": 25
+        },
+        {
+          "name": "Candidatos autodeclarados pretos, pardos ou indígenas que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 220,
+          "cut_score": 671.76,
+          "applicants": 170,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos autodeclarados pretos, pardos ou indígenas, com renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 221,
+          "cut_score": 650.1,
+          "applicants": 237,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência autodeclarados pretos, pardos ou indígenas que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 233,
+          "cut_score": 619.08,
+          "applicants": 4,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência autodeclarados pretos, pardos ou indígenas, que tenham renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012)",
+          "code": 234,
+          "cut_score": 546.92,
+          "applicants": 8,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência que tenham renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 242,
+          "cut_score": 559.2,
+          "applicants": 7,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 243,
+          "cut_score": 593.26,
+          "applicants": 4,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 249,
+          "cut_score": 675.72,
+          "applicants": 81,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 289,
+          "cut_score": 713.28,
+          "applicants": 83,
+          "vacancies": null
+        }
+      ],
+      "weights": {
+        "pesoRed": 1.0,
+        "pesoLing": 1.0,
+        "pesoMat": 1.0,
+        "pesoCh": 1.0,
+        "pesoCn": 1.0
+      },
+      "minimums": {
+        "minRed": 0.01,
+        "minLing": null,
+        "minMat": null,
+        "minCh": null,
+        "minCn": null,
+        "minEnem": 0.01
+      }
+    },
+    {
+      "year": 2022,
+      "modalities": [
+        {
+          "name": "Ampla concorrência",
+          "code": 41,
+          "cut_score": 717.56,
+          "applicants": 443,
+          "vacancies": 25
+        },
+        {
+          "name": "Candidatos autodeclarados pretos, pardos ou indígenas que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 220,
+          "cut_score": 683.12,
+          "applicants": 139,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos autodeclarados pretos, pardos ou indígenas, com renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 221,
+          "cut_score": 647.32,
+          "applicants": 207,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência autodeclarados pretos, pardos ou indígenas que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 233,
+          "cut_score": 533.16,
+          "applicants": 1,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência autodeclarados pretos, pardos ou indígenas, que tenham renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012)",
+          "code": 234,
+          "cut_score": 689.34,
+          "applicants": 7,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência que tenham renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 242,
+          "cut_score": 550.68,
+          "applicants": 5,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 243,
+          "cut_score": 573.04,
+          "applicants": 8,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 249,
+          "cut_score": 672.14,
+          "applicants": 77,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 289,
+          "cut_score": 705.32,
+          "applicants": 103,
+          "vacancies": null
+        }
+      ],
+      "weights": {
+        "pesoRed": 1.0,
+        "pesoLing": 1.0,
+        "pesoMat": 1.0,
+        "pesoCh": 1.0,
+        "pesoCn": 1.0
+      },
+      "minimums": {
+        "minRed": 0.01,
+        "minLing": null,
+        "minMat": null,
+        "minCh": null,
+        "minCn": null,
+        "minEnem": 0.01
+      }
+    },
+    {
+      "year": 2023,
+      "modalities": [
+        {
+          "name": "Ampla concorrência",
+          "code": 41,
+          "cut_score": 713.8,
+          "applicants": 448,
+          "vacancies": 25
+        },
+        {
+          "name": "Candidatos autodeclarados pretos, pardos ou indígenas que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 220,
+          "cut_score": 677.62,
+          "applicants": 143,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos autodeclarados pretos, pardos ou indígenas, com renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 221,
+          "cut_score": 646.28,
+          "applicants": 181,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência autodeclarados pretos, pardos ou indígenas que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 233,
+          "cut_score": 580.7,
+          "applicants": 6,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência autodeclarados pretos, pardos ou indígenas, que tenham renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012)",
+          "code": 234,
+          "cut_score": 599.7,
+          "applicants": 3,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência que tenham renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 242,
+          "cut_score": 600.2,
+          "applicants": 4,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 243,
+          "cut_score": 653.62,
+          "applicants": 6,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com renda familiar bruta per capita igual ou inferior a 1,5 salário mínimo que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 249,
+          "cut_score": 672.96,
+          "applicants": 94,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos que, independentemente da renda (art. 14, II, Portaria Normativa nº 18/2012), tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 289,
+          "cut_score": 700.02,
+          "applicants": 103,
+          "vacancies": null
+        }
+      ],
+      "weights": {
+        "pesoRed": 1.0,
+        "pesoLing": 1.0,
+        "pesoMat": 1.0,
+        "pesoCh": 1.0,
+        "pesoCn": 1.0
+      },
+      "minimums": {
+        "minRed": 0.01,
+        "minLing": null,
+        "minMat": null,
+        "minCh": null,
+        "minCn": null,
+        "minEnem": 0.01
+      }
+    },
+    {
+      "year": 2024,
+      "modalities": [
+        {
+          "name": "Ampla concorrência",
+          "code": 41,
+          "cut_score": 826.53,
+          "applicants": 127,
+          "vacancies": 25
+        },
+        {
+          "name": "Candidatos autodeclarados pretos, pardos ou indígenas, com renda familiar bruta per capita igual ou inferior a 1 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 608,
+          "cut_score": 637.72,
+          "applicants": 234,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos autodeclarados pretos, pardos ou indígenas, independentemente da renda, que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 609,
+          "cut_score": 671.44,
+          "applicants": 181,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência, independentemente da renda, que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 610,
+          "cut_score": 651.18,
+          "applicants": 8,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência, que tenham renda familiar bruta per capita igual ou inferior a 1 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012)",
+          "code": 611,
+          "cut_score": 591.18,
+          "applicants": 7,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com renda familiar bruta per capita igual ou inferior a 1 salário mínimo que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 612,
+          "cut_score": 688.64,
+          "applicants": 90,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos que, independentemente da renda, tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 613,
+          "cut_score": 709.76,
+          "applicants": 91,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos autodeclarados quilombolas, com renda familiar bruta per capita igual ou inferior a 1 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas (Lei nº 12.711/2012).",
+          "code": 615,
+          "cut_score": 617.02,
+          "applicants": 3,
+          "vacancies": null
+        },
+        {
+          "name": "estudantes que cursaram integralmente o ensino médio em instituições de ensino situadas no Estado de Mato Grosso ou em municípios de estados vizinhos ao Mato Grosso, que estejam até, no máximo 100 km rodoviários de campus da UFMT em sedes municipais situadas no limite do estado.",
+          "code": 652,
+          "cut_score": 826.53,
+          "applicants": 547,
+          "vacancies": null
+        }
+      ],
+      "weights": {
+        "pesoRed": 1.0,
+        "pesoLing": 1.0,
+        "pesoMat": 1.0,
+        "pesoCh": 1.0,
+        "pesoCn": 1.0
+      },
+      "minimums": {
+        "minRed": 0.01,
+        "minLing": null,
+        "minMat": null,
+        "minCh": null,
+        "minCn": null,
+        "minEnem": 0.01
+      }
+    },
+    {
+      "year": 2025,
+      "modalities": [
+        {
+          "name": "Ampla concorrência",
+          "code": 41,
+          "cut_score": null,
+          "applicants": null,
+          "vacancies": 25
+        },
+        {
+          "name": "Candidatos autodeclarados pretos, pardos ou indígenas, com renda familiar bruta per capita igual ou inferior a 1 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas ou em escolas comunitárias que atuam no âmbito da educação do campo conveniadas com o poder público (Lei nº 12.711/2012).",
+          "code": 682,
+          "cut_score": null,
+          "applicants": null,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos autodeclarados pretos, pardos ou indígenas, independentemente da renda, que tenham cursado integralmente o ensino médio em escolas públicas ou em escolas comunitárias que atuam no âmbito da educação do campo conveniadas com o poder público (Lei nº 12.711/2012).",
+          "code": 683,
+          "cut_score": null,
+          "applicants": null,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência, independentemente da renda, que tenham cursado integralmente o ensino médio em escolas públicas ou em escolas comunitárias que atuam no âmbito da educação do campo conveniadas com o poder público (Lei nº 12.711/2012).",
+          "code": 684,
+          "cut_score": null,
+          "applicants": null,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com deficiência, que tenham renda familiar bruta per capita igual ou inferior a 1 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas ou em escolas comunitárias que atuam no âmbito da educação do campo conveniadas com o poder público (Lei nº 12.711/2012)",
+          "code": 685,
+          "cut_score": null,
+          "applicants": null,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos com renda familiar bruta per capita igual ou inferior a 1 salário mínimo que tenham cursado integralmente o ensino médio em escolas públicas ou em escolas comunitárias que atuam no âmbito da educação do campo conveniadas com o poder público (Lei nº 12.711/2012).",
+          "code": 686,
+          "cut_score": null,
+          "applicants": null,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos que, independentemente da renda, tenham cursado integralmente o ensino médio em escolas públicas ou em escolas comunitárias que atuam no âmbito da educação do campo conveniadas com o poder público (Lei nº 12.711/2012).",
+          "code": 687,
+          "cut_score": null,
+          "applicants": null,
+          "vacancies": null
+        },
+        {
+          "name": "Candidatos autodeclarados quilombolas, com renda familiar bruta per capita igual ou inferior a 1 salário mínimo e que tenham cursado integralmente o ensino médio em escolas públicas ou em escolas comunitárias que atuam no âmbito da educação do campo conveniadas com o poder público (Lei nº 12.711/2012).",
+          "code": 689,
+          "cut_score": null,
+          "applicants": null,
+          "vacancies": null
+        }
+      ],
+      "weights": {
+        "pesoRed": 1.0,
+        "pesoLing": 1.0,
+        "pesoMat": 1.0,
+        "pesoCh": 1.0,
+        "pesoCn": 1.0
+      },
+      "minimums": {
+        "minRed": 0.01,
+        "minLing": null,
+        "minMat": null,
+        "minCh": null,
+        "minCn": null,
+        "minEnem": 0.01
+      }
+    }
+  ]
+}

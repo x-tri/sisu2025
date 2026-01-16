@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  sisu-monitor:
+    build: .
+    container_name: sisu-monitor
+    restart: unless-stopped
+    volumes:
+      - ./config:/app/config:ro
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - TZ=America/Sao_Paulo
+      - PYTHONUNBUFFERED=1
+    # Uncomment for Telegram notifications via env vars
+    # env_file:
+    #   - .env
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('https://meusisu.com', timeout=5)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Optional: Redis for caching (future enhancement)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: sisu-redis
+  #   restart: unless-stopped
+  #   volumes:
+  #     - redis_data:/data
+
+# volumes:
+#   redis_data:

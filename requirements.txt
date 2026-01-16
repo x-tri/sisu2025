@@ -1,0 +1,2 @@
+# SISU 2025 Monitor - Dependencies
+requests>=2.28.0

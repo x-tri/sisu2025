@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+dist/
+build/
+venv/
+.venv/
+env/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/*.log
+
+# Data (optional - uncomment to ignore data files)
+# data/raw/
+# data/processed/
+# data/history/
+# data/exports/
+
+# Sensitive config (uncomment if you add secrets)
+# config/notifications.json
+
+# Temporary
+*.tmp
+*.bak

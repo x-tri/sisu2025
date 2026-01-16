@@ -1,0 +1,16 @@
+{
+  "poll_interval_seconds": 300,
+  "critical_hours": {
+    "enabled": true,
+    "start": 0,
+    "end": 8,
+    "poll_interval_seconds": 60,
+    "_comment": "Polling mais frequente durante horario de atualizacao do SISU"
+  },
+  "data_retention_days": 30,
+  "log_level": "INFO",
+  "api": {
+    "base_url": "https://meusisu.com/api",
+    "timeout_seconds": 30
+  }
+}
