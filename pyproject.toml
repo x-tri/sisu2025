@@ -3,7 +3,7 @@ name = "sisu2025"
 version = "1.0.0"
 description = "Monitoramento de notas de corte do SISU em tempo real"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
     {name = "SISU Monitor"}
@@ -21,6 +21,12 @@ dev = [
     "pytest-cov>=4.0.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
+]
+database = [
+    "psycopg2-binary>=2.9.0",
+]
+all = [
+    "psycopg2-binary>=2.9.0",
 ]
 
 [project.scripts]

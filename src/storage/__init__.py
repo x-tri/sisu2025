@@ -2,4 +2,9 @@
 from .history import HistoryManager
 from .export import ExportManager
 
-__all__ = ['HistoryManager', 'ExportManager']
+# Database is optional (requires psycopg2)
+try:
+    from .database import DatabaseStorage
+    __all__ = ['HistoryManager', 'ExportManager', 'DatabaseStorage']
+except ImportError:
+    __all__ = ['HistoryManager', 'ExportManager']
