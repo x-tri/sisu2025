@@ -47,13 +47,12 @@ class ScoreChange(BaseModel):
     @property
     def arrow(self) -> str:
         """Get visual indicator for change"""
-        match self.change_type:
-            case ChangeType.INCREASE:
-                return "↑"
-            case ChangeType.DECREASE:
-                return "↓"
-            case ChangeType.NEW:
-                return "🆕"
+        if self.change_type == ChangeType.INCREASE:
+            return "↑"
+        elif self.change_type == ChangeType.DECREASE:
+            return "↓"
+        else:
+            return "🆕"
 
     def format(self) -> str:
         """Format change for display"""
