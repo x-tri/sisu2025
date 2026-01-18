@@ -6,9 +6,12 @@
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://sisymqzxvuktdcbsbpbp.supabase.co'
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || ''
 
-if (!SUPABASE_SERVICE_KEY) {
-  console.warn('SUPABASE_SERVICE_KEY not set - API routes will fail')
-}
+// Log environment status for debugging
+console.log('Supabase Config:', {
+  url: SUPABASE_URL,
+  hasKey: !!SUPABASE_SERVICE_KEY,
+  keyLength: SUPABASE_SERVICE_KEY.length
+})
 
 interface SupabaseResponse<T> {
   data: T | null
