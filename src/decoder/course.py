@@ -15,6 +15,7 @@ class Modality:
     cut_score: Optional[float] = None
     applicants: Optional[int] = None
     vacancies: Optional[int] = None
+    partial_scores: list[dict] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -22,8 +23,34 @@ class Modality:
             'code': self.code,
             'cut_score': self.cut_score,
             'applicants': self.applicants,
-            'vacancies': self.vacancies
+            'vacancies': self.vacancies,
+            'partial_scores': self.partial_scores
         }
+
+
+def _extract_partial_score(msg: dict) -> Optional[dict]:
+    """Extract partial score from parsed message"""
+    score = None
+    day = None
+
+    if 1 in msg:
+        for t, v in msg[1]:
+            if t == 'string':
+                try:
+                    score = float(v)
+                except ValueError:
+                    pass
+                break
+    
+    if 2 in msg:
+        for t, v in msg[2]:
+            if t == 'string':
+                day = v
+                break
+                
+    if score is not None and day:
+        return {'day': day, 'score': score}
+    return None
 
 
 @dataclass
@@ -104,7 +131,8 @@ class Course:
             scores[key] = {
                 'cut_score': mod.cut_score,
                 'applicants': mod.applicants,
-                'vacancies': mod.vacancies
+                'vacancies': mod.vacancies,
+                'partial_scores': mod.partial_scores
             }
 
         return scores
@@ -117,6 +145,7 @@ def _extract_modality(msg: dict) -> Optional[Modality]:
     cut_score = None
     applicants = None
     vacancies = None
+    partial_scores = []
 
     # Field 1: name
     if 1 in msg:
@@ -162,13 +191,26 @@ def _extract_modality(msg: dict) -> Optional[Modality]:
                         break
                 break
 
+    # Field 8: partial scores
+    if 8 in msg:
+        for t, v in msg[8]:
+            if t == 'message' and isinstance(v, dict):
+                ps = _extract_partial_score(v)
+                if ps:
+                    partial_scores.append(ps)
+    
+    # Sort by day
+    partial_scores.sort(key=lambda x: x['day'])
+
     return Modality(
         name=name,
         code=code,
         cut_score=cut_score,
         applicants=applicants,
-        vacancies=vacancies
+        vacancies=vacancies,
+        partial_scores=partial_scores
     )
+
 
 
 def _extract_weight(msg: dict) -> Optional[tuple[str, float]]:
@@ -295,3 +337,103 @@ def decode_course(data: bytes) -> Course:
         schedule=course_data.get('schedule'),
         years=years
     )
+
+
+@dataclass
+class ApprovedStudent:
+    """Represents an approved student in a specific call"""
+    year: int
+    call_number: int  # 1 = Regular, 2 = 2nd call, etc
+    rank: int
+    name: str
+    modality_code: int
+    score: float
+    bonus: float = 0.0
+
+    def to_dict(self) -> dict:
+        return {
+            'year': self.year,
+            'call_number': self.call_number,
+            'rank': self.rank,
+            'name': self.name,
+            'modality_code': self.modality_code,
+            'score': self.score,
+            'bonus': self.bonus
+        }
+
+
+def decode_students(data: bytes) -> list[ApprovedStudent]:
+    """Decode binary protobuf data into list of ApprovedStudent objects.
+    
+    Args:
+        data: Raw binary data from /api/courseDataStudents
+        
+    Returns:
+        List of ApprovedStudent objects
+    """
+    msg = parse_message(data)
+    students = []
+    
+    # The message structure seems to be a list of messages in field 2
+    if 2 in msg:
+        for t, v in msg[2]:
+            if t == 'message' and isinstance(v, dict):
+                # Extract fields
+                year = 0
+                call = 1
+                rank = 0
+                name = ""
+                mod_code = 0
+                score = 0.0
+                bonus = 0.0
+                
+                # 1: Year
+                if 1 in v:
+                    for t2, v2 in v[1]:
+                         if t2 == 'varint': year = v2
+
+                # 2: Call Number
+                if 2 in v:
+                    for t2, v2 in v[2]:
+                        if t2 == 'varint': call = v2
+
+                # 3: Rank
+                if 3 in v:
+                    for t2, v2 in v[3]:
+                        if t2 == 'varint': rank = v2
+                        
+                # 4: Name
+                if 4 in v:
+                    for t2, v2 in v[4]:
+                        if t2 == 'string': name = v2
+                        
+                # 5: Modality Code
+                if 5 in v:
+                    for t2, v2 in v[5]:
+                        if t2 == 'varint': mod_code = v2
+                        
+                # 6: Score
+                if 6 in v:
+                    for t2, v2 in v[6]:
+                        if t2 == 'float': score = v2
+                        elif t2 == 'string':
+                            try: score = float(v2)
+                            except: pass
+                            
+                # 8: Bonus
+                if 8 in v:
+                    for t2, v2 in v[8]:
+                        if t2 == 'float': bonus = v2
+                        
+                if name:
+                    students.append(ApprovedStudent(
+                        year=year,
+                        call_number=call,
+                        rank=rank,
+                        name=name,
+                        modality_code=mod_code,
+                        score=score,
+                        bonus=bonus
+                    ))
+                    
+    return students

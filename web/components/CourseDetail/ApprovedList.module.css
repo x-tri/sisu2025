@@ -1,0 +1,158 @@
+.container {
+    margin-top: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.badgeReference {
+    font-size: 0.7rem;
+    background: #e5e5e5;
+    color: #666;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badgeOfficial {
+    font-size: 0.7rem;
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.summary {
+    display: flex;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+.summary strong {
+    color: #000;
+}
+
+.classification {
+    color: #6b7280;
+}
+
+.tableContainer {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.table th {
+    background-color: #dbeafe;
+    /* Light blue header */
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: #1e3a8a;
+}
+
+.table td {
+    padding: 0.75rem;
+    color: #374151;
+}
+
+.oddRow {
+    background-color: #dbeafe;
+    /* Alternating light blue */
+}
+
+.evenRow {
+    background-color: #ffffff;
+}
+
+.rank {
+    font-weight: 600;
+    text-align: center;
+}
+
+.option {
+    text-align: center;
+}
+
+.name {
+    font-weight: 500;
+}
+
+.scoreRow {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.bonus {
+    font-weight: 400;
+    color: #4b5563;
+    font-size: 0.75rem;
+}
+
+.check {
+    color: #111827;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.pageBtn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid #e5e7eb;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.pageBtn:hover {
+    background-color: #f3f4f6;
+}
+
+.active {
+    background-color: #eeddee;
+    /* Light purple */
+    color: #9333ea;
+    border-color: #e9d5ff;
+}
+
+.footer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+}

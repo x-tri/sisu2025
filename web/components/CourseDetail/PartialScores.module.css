@@ -1,0 +1,38 @@
+.container {
+    margin-top: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 0.75rem;
+}
+
+.grid {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.item {
+    display: flex;
+    flex-direction: column;
+    background-color: #f3f4f6;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    min-width: 80px;
+}
+
+.day {
+    font-size: 0.875rem;
+    color: #374151;
+    margin-bottom: 0.25rem;
+}
+
+.score {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+}

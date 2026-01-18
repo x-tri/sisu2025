@@ -92,6 +92,7 @@ export async function GET(
           applicants: s.applicants,
           vacancies: s.vacancies,
           updated_at: s.captured_at,
+          partial_scores: s.partial_scores || [],
         })),
       })),
       weights_history: course.weights.map(w => ({

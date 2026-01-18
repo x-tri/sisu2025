@@ -29,13 +29,14 @@ class SupabaseServer {
     }
   }
 
-  private async request<T>(
+  public async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<SupabaseResponse<T>> {
     try {
       const response = await fetch(`${this.url}/rest/v1/${endpoint}`, {
         ...options,
+        cache: 'no-store',
         headers: {
           ...this.headers,
           ...options.headers,
@@ -167,6 +168,39 @@ class SupabaseServer {
       error: null,
     }
   }
+
+  /**
+   * Get approved students for a course
+   */
+  async getApprovedStudents(courseId: number, page = 1, limit = 50, year?: number) {
+    const offset = (page - 1) * limit
+
+    // If no year specified, first find the latest year with data
+    if (!year) {
+      const latestYearResult = await this.request<ApprovedStudent[]>(
+        `approved_students?course_id=eq.${courseId}&select=year&order=year.desc&limit=1`
+      )
+      if (latestYearResult.data && latestYearResult.data.length > 0) {
+        year = latestYearResult.data[0].year
+      }
+    }
+
+    const params = new URLSearchParams({
+      course_id: `eq.${courseId}`,
+      order: 'rank.asc',
+      limit: String(limit),
+      offset: String(offset),
+    })
+
+    // Filter by year if we have one
+    if (year) {
+      params.set('year', `eq.${year}`)
+    }
+
+    return this.request<ApprovedStudent[]>(`approved_students?${params}`, {
+      headers: { 'Prefer': 'count=exact' },
+    })
+  }
 }
 
 // Types
@@ -212,11 +246,25 @@ export interface CutScore {
   applicants: number | null
   vacancies: number | null
   captured_at: string
+  partial_scores?: Array<{ day: string; score: number }>
 }
 
 export interface FullCourseData extends Course {
   weights: CourseWeights[]
   cut_scores: CutScore[]
+}
+
+export interface ApprovedStudent {
+  id: number
+  course_id: number
+  year: number
+  modality_code: number
+  rank: number
+  name: string
+  score: number
+  bonus: number
+  call_number: number
+  status: string
 }
 
 // Export singleton instance

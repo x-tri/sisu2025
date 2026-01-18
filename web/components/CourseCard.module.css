@@ -1,0 +1,91 @@
+.card {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border: 1px solid #e5e7eb;
+    transition: box-shadow 0.2s;
+}
+
+.card:hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    border-color: #2563eb;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.courseName {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #2563eb;
+    margin-bottom: 0.25rem;
+}
+
+.degree {
+    font-size: 0.875rem;
+    color: #6b7280;
+    background: #f3f4f6;
+    padding: 0.1rem 0.5rem;
+    border-radius: 99px;
+    margin-left: 0.5rem;
+    display: inline-block;
+}
+
+.university {
+    font-size: 0.95rem;
+    color: #111827;
+    font-weight: 500;
+}
+
+.university span {
+    font-weight: 700;
+    color: #111827;
+}
+
+.metadata {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.tag {
+    font-size: 0.75rem;
+    color: #6b7280;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+}
+
+.highlight {
+    color: #b45309;
+    background: #fffbeb;
+    border-color: #fcd34d;
+}
+
+.footer {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cutLabel {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.cutScore {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+}
