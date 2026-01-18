@@ -4,7 +4,7 @@
 
 **Monitoramento do SISU 2026 em Tempo Real** - Compare suas notas e descubra suas chances de aprovação.
 
-🌐 **Demo**: [sisu2025.vercel.app](https://sisu2025.vercel.app)
+🌐 **Acesse**: [https://xtrisisu.app](https://xtrisisu.app)
 
 ---
 
