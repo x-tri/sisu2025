@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { Analytics } from '@vercel/analytics/next'
 
 import { ScoreProvider } from '../context/ScoreContext'
 
@@ -21,6 +22,7 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body>
         <ScoreProvider>{children}</ScoreProvider>
+        <Analytics />
       </body>
     </html>
   )
