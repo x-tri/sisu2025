@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 import { ScoreProvider } from '../context/ScoreContext'
+import { Analytics } from '@vercel/analytics/next'
 
 export const metadata: Metadata = {
   title: 'XTRI SISU 2026 - Simulador',
@@ -21,6 +22,7 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body>
         <ScoreProvider>{children}</ScoreProvider>
+        <Analytics />
       </body>
     </html>
   )
