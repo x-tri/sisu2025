@@ -1,137 +1,114 @@
-# SISU 2025 Monitor
+# 🎯 XTRI SISU 2026
 
-Monitoramento de notas de corte do SISU em tempo real via API do MeuSISU.
+![XTRI SISU](web/public/xtri-logo.png)
 
-## Instalacao
+**Monitoramento do SISU 2026 em Tempo Real** - Compare suas notas e descubra suas chances de aprovação.
 
-```bash
-# Instalar dependencias
-pip install -r requirements.txt
-```
+🌐 **Demo**: [sisu2025.vercel.app](https://sisu2025.vercel.app)
 
-## Configuracao
+---
 
-### 1. Cursos para monitorar
+## ✨ Features
 
-Edite `config/courses.json`:
+- 📊 **8.500+ cursos** de todo o Brasil
+- 🏛️ **120+ universidades** federais e estaduais
+- 📈 **Cortes diários** atualizados em tempo real
+- 🧮 **Cálculo de média ponderada** por curso
+- 👥 **Lista de aprovados** de anos anteriores
+- 📱 **Interface responsiva** e moderna
 
-```json
-{
-  "courses": [
-    {
-      "id": 37,
-      "name": "Medicina - UnB",
-      "priority": "high"
-    }
-  ]
-}
-```
+## 🚀 Quick Start
 
-Encontre IDs de cursos em: `meusisu.com/curso/{id}`
-
-### 2. Notificacoes
-
-Edite `config/notifications.json`:
-
-```json
-{
-  "desktop": { "enabled": true },
-  "sound": { "enabled": true },
-  "telegram": {
-    "enabled": true,
-    "bot_token": "SEU_TOKEN",
-    "chat_id": "SEU_CHAT_ID"
-  }
-}
-```
-
-### 3. Intervalo de polling
-
-Edite `config/settings.json`:
-
-```json
-{
-  "poll_interval_seconds": 300,
-  "critical_hours": {
-    "enabled": true,
-    "start": 0,
-    "end": 8,
-    "poll_interval_seconds": 60
-  }
-}
-```
-
-## Uso
+### Frontend (Next.js)
 
 ```bash
-# Iniciar monitoramento
-python main.py
-
-# Testar notificacoes
-python main.py --test
-
-# Executar uma vez
-python main.py --once
-
-# Modo debug
-python main.py --debug
+cd web
+npm install
+npm run dev
 ```
 
-## Scripts
+Acesse: http://localhost:3000
+
+### Scripts de Sincronização (Python)
 
 ```bash
-# Testar notificacoes
-python scripts/test_notifications.py
+# Instalar dependências
+pip install requests
 
-# Analisar historico
-python scripts/analyze_history.py
-
-# Decodificar arquivo
-python scripts/decode_file.py data/raw/37_xxx.bin
+# Sincronizar todos os dados
+python scripts/full_data_sync.py
 ```
 
-## Estrutura
+## 🔧 Configuração
+
+### Variáveis de Ambiente
+
+Crie `web/.env.local`:
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_KEY=your-service-key
+```
+
+### Deploy no Vercel
+
+1. Importe o repositório no Vercel
+2. Configure **Root Directory**: `web`
+3. Adicione as variáveis de ambiente
+4. Deploy!
+
+## 📁 Estrutura
 
 ```
 sisu2025/
-├── config/           # Configuracoes
-├── data/
-│   ├── raw/          # Dados binarios
-│   ├── processed/    # JSONs decodificados
-│   ├── history/      # Historico de mudancas
-│   └── exports/      # Exportacoes CSV
-├── logs/             # Logs de execucao
-├── scripts/          # Scripts auxiliares
-├── src/
-│   ├── decoder/      # Parser protobuf
-│   ├── monitor/      # Logica de monitoramento
-│   ├── notifications/# Canais de notificacao
-│   ├── storage/      # Persistencia de dados
-│   └── utils/        # Utilitarios
-└── main.py           # Ponto de entrada
+├── web/                    # Frontend Next.js
+│   ├── app/               # App Router
+│   │   ├── api/           # API Routes
+│   │   └── page.tsx       # Página principal
+│   ├── components/        # Componentes React
+│   ├── lib/               # Supabase client
+│   └── public/            # Assets
+├── scripts/               # Scripts Python
+│   └── full_data_sync.py  # Sincronização completa
+└── src/                   # Decoder Protobuf
+    └── decoder/           # Parser da API MeuSISU
 ```
 
-## API
+## 🗃️ Banco de Dados (Supabase)
 
-Endpoint: `https://meusisu.com/api/getCourseData?courseCode={id}`
+| Tabela | Descrição |
+|--------|-----------|
+| `courses` | 8.500+ cursos com localização |
+| `course_weights` | Pesos por área de conhecimento |
+| `cut_scores` | Notas de corte + parciais |
+| `approved_students` | Lista de aprovados |
 
-Formato: Protocol Buffers (binario)
+## 📡 API Endpoints
 
-## Timeline SISU 2025
+| Endpoint | Descrição |
+|----------|-----------|
+| `GET /api/filters?type=states` | Lista de estados |
+| `GET /api/filters?type=cities&state=XX` | Cidades do estado |
+| `GET /api/courses/[code]` | Dados completos do curso |
+| `POST /api/simulate` | Cálculo de média ponderada |
 
-- **Inscricoes**: 17-21 de Janeiro
-- **Atualizacoes**: Diarias entre 0h-8h
-- **Resultado**: 26 de Janeiro
+## 🛠️ Tecnologias
 
-## Notificacoes
+- **Frontend**: Next.js 14, React 18, TypeScript
+- **Backend**: Supabase (PostgreSQL)
+- **Deploy**: Vercel
+- **Estilo**: CSS Modules
 
-| Canal | Descricao |
-|-------|-----------|
-| Desktop | Notificacao nativa (macOS/Linux) |
-| Sound | Alerta sonoro |
-| Webhook | Discord/Slack |
-| Telegram | Bot Telegram |
+## 📅 Timeline SISU 2026
 
-## Licenca
+- **Inscrições**: Janeiro 2026
+- **Atualizações**: Diárias entre 0h-8h
+- **Resultado**: Final de Janeiro
 
-MIT
+## 📜 Licença
+
+MIT © [XTRI](https://xtri.online)
+
+---
+
+Desenvolvido com ❤️ por **XTRI**
