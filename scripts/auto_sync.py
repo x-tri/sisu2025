@@ -2,6 +2,7 @@
 """
 XTRI SISU 2026 - Auto Sync Scheduler
 Executa sincronização automática a cada 60 minutos
+Usa o script RÁPIDO (quick_sync.py) que atualiza apenas notas de corte
 """
 
 import subprocess
@@ -12,7 +13,7 @@ import os
 
 # Configurações
 SYNC_INTERVAL_MINUTES = 60
-SCRIPT_PATH = os.path.join(os.path.dirname(__file__), 'full_data_sync.py')
+SCRIPT_PATH = os.path.join(os.path.dirname(__file__), 'quick_sync.py')
 
 def log(message):
     """Log com timestamp"""
