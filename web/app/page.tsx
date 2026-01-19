@@ -2,7 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useScores } from '../context/ScoreContext';
+import { useModality, MODALITY_OPTIONS, matchModality, getModalityCode } from '../context/ModalityContext';
 import CourseDetailView from '../components/CourseDetail/CourseDetailView';
+import ScoreEvolutionChart from '../components/CourseDetail/ScoreEvolutionChart';
+import ProbabilityGauge from '../components/CourseDetail/ProbabilityGauge';
+import CourseComparator from '../components/CourseDetail/CourseComparator';
+import ShareModal from '../components/CourseDetail/ShareModal';
 import styles from './page.module.css';
 
 interface CourseData {
@@ -55,10 +60,13 @@ interface CoursePreview {
 
 export default function Home() {
   const { scores, setScores, calculateAverage } = useScores();
+  const { selectedModality, setSelectedModality, getModalityLabel } = useModality();
   const [selectedCourseCode, setSelectedCourseCode] = useState<number | null>(null);
   const [courseData, setCourseData] = useState<CourseData | null>(null);
   const [loading, setLoading] = useState(false);
   const [showScoreInput, setShowScoreInput] = useState(false);
+  const [showComparator, setShowComparator] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -159,6 +167,7 @@ export default function Home() {
       });
   }, [filters.institution]);
 
+
   // Fetch course preview when course selected
   useEffect(() => {
     if (!filters.course) {
@@ -202,19 +211,71 @@ export default function Home() {
         let cutScore2026 = null;
         let cutScore2025 = null;
         let cutScore2024 = null;
+        let allModalities: { modality_name: string; modality_code: string; cut_score: number; vacancies?: number }[] = [];
 
         if (data.cut_scores && Array.isArray(data.cut_scores)) {
+          // Helper to process a year's modalities for easier lookup
+          const getModalityData = (yearData: any, targetModality: string) => {
+            const modalities = yearData.modalities || [];
+            // Store modalities for inspection/fallback
+            if (yearData.year === new Date().getFullYear()) { // or just collect from latest year
+              // Logic to populate allModalities can go here if needed
+            }
+
+            // 1. Try exact match or code match
+            const mappedObjs = modalities.map((m: any) => ({
+              ...m,
+              modality_name: m.name, // ensure property name matches what matchModality expects
+              modality_code: getModalityCode(m.name) // optional, matchModality can derive it
+            }));
+
+            const match = matchModality(targetModality, mappedObjs);
+            if (match) return match;
+
+            // 2. Fallback to Ampla if selected is missing (optional strategy, currently defaulting to keeping null implies "no data" which is better)
+            // But user requirement implies we should try to show something if possible, or maybe just Ampla as fallback?
+            // For now, let's stick to strict matching to avoid misleading info, or fallback to Ampla ONLY if user explicitly wants Ampla.
+            // However, to mimic previous behavior where "everything was Ampla", we might need a fallback if data is sparse.
+            // Let's rely on strict match first.
+            return null;
+          };
+
+          // Iterate years to find data for *selected* modality
           for (const yearData of data.cut_scores) {
-            const ampla = yearData.modalities?.find((m: any) =>
-              m.name?.toLowerCase().includes('ampla')
-            );
-            if (ampla) {
-              const scoreData = { ...ampla, year: yearData.year };
+            const modData = getModalityData(yearData, selectedModality);
+
+            // Fallback: If no data for selected modality, try finding Ampla to at least show something? 
+            // No, showing Ampla when user asked for L1 is bad UX. Better show "No data".
+            // BUT, for the transitional phase, if we return null, everything breaks. 
+            // Let's implement a "Soft Fallback" - we find the data, but we track if it was indeed the requested modality or 'ampla' default if we decide to force default.
+            // Current decision: Strict match.
+
+            // Actually, let's implement the specific year logic using the found modality data
+            if (modData) {
+              const scoreData = { ...modData, year: yearData.year };
               if (yearData.year === 2026) cutScore2026 = scoreData;
               if (yearData.year === 2025) cutScore2025 = scoreData;
               if (yearData.year === 2024) cutScore2024 = scoreData;
               if (!latestCutScore || yearData.year > latestCutScore.year) {
                 latestCutScore = scoreData;
+              }
+            }
+          }
+
+          // If we found NOTHING for the selected modality (e.g. user selected L1 but this course doesn't have L1),
+          // maybe we should fallback to Ampla to show *something* (like "Cota não disponível, visualizando Ampla")?
+          // For this first iteration, if no data found for selected modality, we try to find Ampla as a safe default.
+          if (!latestCutScore && !cutScore2026 && !cutScore2025 && !cutScore2024) {
+            for (const yearData of data.cut_scores) {
+              const ampla = yearData.modalities?.find((m: any) => m.name?.toLowerCase().includes('ampla'));
+              if (ampla) {
+                const scoreData = { ...ampla, year: yearData.year, isFallback: true };
+                if (yearData.year === 2026) cutScore2026 = scoreData;
+                if (yearData.year === 2025) cutScore2025 = scoreData;
+                if (yearData.year === 2024) cutScore2024 = scoreData;
+                if (!latestCutScore || yearData.year > latestCutScore.year) {
+                  latestCutScore = scoreData;
+                }
               }
             }
           }
@@ -389,7 +450,7 @@ export default function Home() {
         });
         setLoadingFilters(prev => ({ ...prev, details: false }));
       });
-  }, [filters.course, options.courses, filters.institution]);
+  }, [filters.course, options.courses, filters.institution, selectedModality]);
 
   // Fetch full course data
   useEffect(() => {
@@ -661,6 +722,14 @@ export default function Home() {
             )}
           </div>
 
+          {/* Probability Gauge - Only if course is selected */}
+          {coursePreview && (
+            <ProbabilityGauge
+              userScore={userAverage}
+              cutScore={coursePreview.cut_score}
+            />
+          )}
+
           {/* Daily Cut Scores - 2026 (shows real data when available, otherwise listening mode) */}
           {coursePreview && (
             <div className={styles.dailyCutsCard}>
@@ -749,6 +818,20 @@ export default function Home() {
                   ))}
                 </select>
               </div>
+
+              {/* New Modality Dropdown */}
+              <div className={styles.filterGroup} style={{ minWidth: '100%' }}>
+                <label>Modalidade de Concorrência</label>
+                <select
+                  value={selectedModality}
+                  onChange={(e) => setSelectedModality(e.target.value)}
+                  style={{ fontWeight: 500 }}
+                >
+                  {MODALITY_OPTIONS.map(opt => (
+                    <option key={opt.code} value={opt.code}>{opt.shortName}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Course Preview */}
@@ -780,39 +863,7 @@ export default function Home() {
 
                 {/* Year Comparison Section */}
                 <div className={styles.yearComparison}>
-                  {/* 2024 - Reference */}
-                  <div className={styles.yearCard}>
-                    <div className={styles.yearHeader}>
-                      <span className={styles.yearBadge}>2024</span>
-                      <span className={styles.yearLabel}>Referência</span>
-                    </div>
-                    {coursePreview.data2024 ? (
-                      <>
-                        <div className={styles.yearScore}>
-                          <span className={styles.yearScoreLabel}>Corte Final</span>
-                          <span className={styles.yearScoreValue}>
-                            {coursePreview.data2024.cut_score > 0
-                              ? coursePreview.data2024.cut_score.toFixed(2).replace('.', ',')
-                              : '---'}
-                          </span>
-                        </div>
-                        {coursePreview.data2024.partial_scores?.length > 0 && (
-                          <div className={styles.partialScoresPreview}>
-                            {coursePreview.data2024.partial_scores.map((p) => (
-                              <div key={p.day} className={styles.partialDay}>
-                                <span>Dia {p.day}</span>
-                                <strong>{p.score > 0 ? p.score.toFixed(0) : '-'}</strong>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className={styles.yearNoData}>Sem dados</div>
-                    )}
-                  </div>
-
-                  {/* 2025 - Current */}
+                  {/* Latest/Best Available */}
                   <div className={`${styles.yearCard} ${styles.yearCardHighlight}`}>
                     <div className={styles.yearHeader}>
                       <span className={styles.yearBadge2025}>2025</span>
@@ -835,7 +886,7 @@ export default function Home() {
                             {coursePreview.data2025.partial_scores.map((p) => (
                               <div key={p.day} className={styles.partialDay}>
                                 <span>Dia {p.day}</span>
-                                <strong>{p.score.toFixed(0)}</strong>
+                                <strong>{p.score.toFixed(2).replace('.', ',')}</strong>
                               </div>
                             ))}
                           </div>
@@ -851,6 +902,16 @@ export default function Home() {
                   </div>
                 </div>
 
+                {/* Score Evolution Chart */}
+                {coursePreview && (
+                  <ScoreEvolutionChart
+                    data2024={coursePreview.data2024}
+                    data2025={coursePreview.data2025}
+                    data2026={coursePreview.data2026}
+                  />
+                )}
+
+
                 {/* User Score Comparison */}
                 <div className={styles.previewScores}>
                   <div className={styles.previewScoreItem}>
@@ -861,6 +922,16 @@ export default function Home() {
                       {userAverage > 0 ? userAverage.toFixed(2).replace('.', ',') : '---'}
                     </span>
                   </div>
+
+                  <div className={styles.actionButtons}>
+                    <button className={styles.compareButton} onClick={() => setShowComparator(true)}>
+                      ⚖️ Comparar
+                    </button>
+                    <button className={styles.shareButton} onClick={() => setShowShare(true)}>
+                      📱 Flex
+                    </button>
+                  </div>
+
                   {userAverage > 0 && coursePreview.cut_score > 0 && (
                     <div className={styles.previewStatus}>
                       {userAverage >= coursePreview.cut_score ? (
@@ -927,6 +998,27 @@ export default function Home() {
         </div>
         <p>© 2025 XTRI SISU - Monitoramento em Tempo Real</p>
       </footer>
+
+
+      {/* Logic Components */}
+      {
+        coursePreview && (
+          <CourseComparator
+            baseCourse={coursePreview}
+            userScore={userAverage}
+            isOpen={showComparator}
+            onClose={() => setShowComparator(false)}
+          />
+        )
+      }
+      {coursePreview && (
+        <ShareModal
+          isOpen={showShare}
+          onClose={() => setShowShare(false)}
+          course={coursePreview}
+          userScore={userAverage}
+        />
+      )}
     </main>
   );
 }

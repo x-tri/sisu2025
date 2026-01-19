@@ -1,0 +1,105 @@
+.container {
+    background-color: #1a1b1e;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #333;
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.title {
+    color: #fff;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.gaugeWrapper {
+    position: relative;
+    width: 200px;
+    height: 100px;
+    /* Half circle */
+    margin-top: 10px;
+}
+
+.gaugeBackground {
+    fill: none;
+    stroke: #333;
+    stroke-width: 20;
+}
+
+.gaugeFill {
+    fill: none;
+    stroke-width: 20;
+    stroke-linecap: round;
+    transition: stroke-dasharray 1s ease-out, stroke 1s ease;
+}
+
+.scoreText {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.percentage {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+}
+
+.statusText {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-top: 5px;
+}
+
+/* Status Colors */
+.statusSafe {
+    color: #10b981;
+}
+
+.statusModerate {
+    color: #eab308;
+}
+
+.statusRisky {
+    color: #f97316;
+}
+
+.statusHard {
+    color: #ef4444;
+}
+
+.diffRaw {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.noScore {
+    text-align: center;
+    padding: 20px;
+}
+
+.noScore button {
+    background: #3b82f6;
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 10px;
+}

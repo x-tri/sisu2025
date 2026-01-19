@@ -8,6 +8,7 @@ import StatsCharts from './StatsCharts';
 import { PartialScores } from './PartialScores';
 import { ApprovedList } from './ApprovedList';
 import { useScores } from '../../context/ScoreContext';
+import { useModality, matchModality, getModalityCode } from '../../context/ModalityContext';
 
 interface CourseDetailViewProps {
     course: any;
@@ -15,6 +16,7 @@ interface CourseDetailViewProps {
 
 export default function CourseDetailView({ course }: CourseDetailViewProps) {
     const { calculateAverage, scores } = useScores();
+    const { selectedModality, getModalityLabel, setSelectedModality } = useModality(); // Get global state
     const [activeTab, setActiveTab] = useState('info');
 
     // Extract latest weights (e.g., 2025 or latest available)
@@ -23,10 +25,24 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
     // Calculate user's average if weights exist
     const userAverage = latestWeights ? calculateAverage(latestWeights) : 0;
 
-    // Get latest cut score for comparison (Ampla Concorrência by default for now)
-    // Fix: use modality_name and cut_score fields
+    // Get latest cut score for comparison based on SELECTED MODALITY
+    // We treat 'course.cut_scores' as a flat list logic or year-grouped logic?
+    // Based on previous file content, 'course.cut_scores' seems to be the array of year data?
+    // Wait, the previous code was: course.cut_scores.filter(cs => cs.modality_name...includes('ampla'))
+    // This implies 'course.cut_scores' IS NOT grouped by year, but flat?
+    // Let's re-read the audit or previous code. 
+    // In page.tsx: data.cut_scores is [{year, modalities: [...]}]
+    // In CourseDetailView, checking line 28: course.cut_scores.filter(...).sort(...).
+    // If it filters by modality name directly, then course.cut_scores must be flat OR the previous code was wrong/different.
+    // Let's assume the passed 'course' prop has the structure from 'page.tsx' transformation?
+    // In page.tsx, we transform it: transformed.cut_scores.push({ year, modality_name, ... })
+    // So 'course.cut_scores' IS FLATTENED in page.tsx! Yes.
+
     const latestCutScore = course.cut_scores
-        .filter((cs: any) => cs.modality_name?.toLowerCase().includes('ampla'))
+        .filter((cs: any) => {
+            const match = matchModality(selectedModality, [{ modality_name: cs.modality_name, modality_code: '' }]);
+            return match !== null;
+        })
         .sort((a: any, b: any) => b.year - a.year)[0];
 
     // If cut_score is null but we have partial scores, use the LAST partial score
@@ -78,7 +94,7 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
                         {latestCutScore && (
                             <div>
                                 <span style={{ display: 'block', fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>
-                                    Nota de corte ({latestCutScore.year})
+                                    Nota de corte ({latestCutScore.year} - {getModalityLabel()})
                                 </span>
                                 <span style={{ fontSize: '2rem', fontWeight: 700, color: '#111827' }}>
                                     {cutScoreValue.toFixed(2).replace('.', ',')}
@@ -182,6 +198,12 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
                     >
                         Lista de Aprovados
                     </button>
+                    <button
+                        className={`${styles.tab} ${activeTab === 'modalities' ? styles.active : ''}`}
+                        onClick={() => setActiveTab('modalities')}
+                    >
+                        Modalidades
+                    </button>
                 </div>
 
                 {activeTab === 'info' && (
@@ -204,6 +226,64 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
                             vacancies={vacancies}
                             year={latestCutScore?.year || new Date().getFullYear()}
                         />
+                    </div>
+                )}
+
+                {activeTab === 'modalities' && (
+                    <div className="animate-in fade-in">
+                        <h4 style={{ marginBottom: '1rem', marginTop: '1rem' }}>Todas as Modalidades ({latestCutScore?.year || new Date().getFullYear()})</h4>
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '2px solid #e5e7eb', textAlign: 'left' }}>
+                                        <th style={{ padding: '0.75rem', fontWeight: 600 }}>Modalidade</th>
+                                        <th style={{ padding: '0.75rem', fontWeight: 600 }}>Nota de Corte</th>
+                                        <th style={{ padding: '0.75rem', fontWeight: 600 }}>Vagas</th>
+                                        <th style={{ padding: '0.75rem', fontWeight: 600 }}>Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {/* Get unique modalities for the latest available year */}
+                                    {(() => {
+                                        const latestYear = course.cut_scores.reduce((max: number, cs: any) => Math.max(max, cs.year), 0);
+                                        const modalitiesForYear = course.cut_scores
+                                            .filter((cs: any) => cs.year === latestYear)
+                                            .sort((a: any, b: any) => b.cut_score - a.cut_score);
+
+                                        return modalitiesForYear.map((mod: any, idx: number) => (
+                                            <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                                <td style={{ padding: '0.75rem', color: '#374151' }}>{mod.modality_name}</td>
+                                                <td style={{ padding: '0.75rem', fontWeight: 600, color: '#111827' }}>
+                                                    {mod.cut_score > 0 ? mod.cut_score.toFixed(2).replace('.', ',') : '-'}
+                                                </td>
+                                                <td style={{ padding: '0.75rem', color: '#6b7280' }}>
+                                                    {mod.vacancies || '-'}
+                                                </td>
+                                                <td style={{ padding: '0.75rem' }}>
+                                                    <button
+                                                        onClick={() => {
+                                                            const code = getModalityCode(mod.modality_name);
+                                                            if (code !== 'other') setSelectedModality(code);
+                                                        }}
+                                                        style={{
+                                                            fontSize: '0.8rem',
+                                                            color: '#2563eb',
+                                                            cursor: 'pointer',
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            fontWeight: 600,
+                                                            padding: 0
+                                                        }}
+                                                    >
+                                                        Selecionar
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ));
+                                    })()}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import styles from './SearchFilters.module.css';
 import { useScores } from '../context/ScoreContext';
+import { useModality, MODALITY_OPTIONS, matchModality, getModalityCode } from '../context/ModalityContext';
 
 interface Course {
     id: number;
@@ -26,9 +27,11 @@ interface CourseDetails {
     weights?: any;
     cut_score?: number;
     cut_score_year?: number;
+    cut_score_modality?: string;
     applicants?: number;
     partial_scores?: any[];
     highest_weight?: string;
+    all_modalities?: { modality_name: string; modality_code: string; cut_score: number; vacancies?: number }[];
 }
 
 interface SearchFiltersProps {
@@ -37,13 +40,13 @@ interface SearchFiltersProps {
 
 export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
     const { calculateAverage, scores } = useScores();
+    const { selectedModality, setSelectedModality, getModalityLabel } = useModality();
 
     const [filters, setFilters] = useState({
         state: '',
         city: '',
         institution: '',
-        course: '',
-        modality: 'ampla'
+        course: ''
     });
 
     const [options, setOptions] = useState({
@@ -169,20 +172,38 @@ export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
                     }
                 }
 
-                // Find latest cut score for Ampla Concorrência from the grouped structure
+                // Find latest cut score for selected modality from the grouped structure
                 let latestCutScore = null;
                 let latestYear = 0;
+                let allModalities: { modality_name: string; modality_code: string; cut_score: number; vacancies?: number }[] = [];
 
                 if (data.cut_scores && Array.isArray(data.cut_scores)) {
                     // cut_scores is: [{year: 2024, modalities: [{code, name, cut_score, ...}]}]
-                    for (const yearData of data.cut_scores) {
-                        if (yearData.year >= latestYear && yearData.modalities) {
-                            const ampla = yearData.modalities.find((m: any) =>
-                                m.name?.toLowerCase().includes('ampla')
-                            );
-                            if (ampla && ampla.cut_score) {
-                                latestCutScore = { ...ampla, year: yearData.year };
-                                latestYear = yearData.year;
+                    // Get latest year's modalities
+                    const sortedYears = [...data.cut_scores].sort((a: any, b: any) => b.year - a.year);
+                    if (sortedYears.length > 0 && sortedYears[0].modalities) {
+                        latestYear = sortedYears[0].year;
+                        allModalities = sortedYears[0].modalities.map((m: any) => ({
+                            modality_name: m.name,
+                            modality_code: getModalityCode(m.name),
+                            cut_score: m.cut_score || 0,
+                            vacancies: m.vacancies
+                        }));
+
+                        // Find cut score for selected modality
+                        const matched = matchModality(selectedModality, allModalities.map(m => ({ modality_name: m.modality_name })));
+                        if (matched) {
+                            const foundMod = allModalities.find(m => m.modality_name === matched.modality_name);
+                            if (foundMod) {
+                                latestCutScore = { ...foundMod, year: latestYear };
+                            }
+                        }
+
+                        // Fallback to Ampla if no match
+                        if (!latestCutScore) {
+                            const ampla = allModalities.find(m => m.modality_name.toLowerCase().includes('ampla'));
+                            if (ampla) {
+                                latestCutScore = { ...ampla, year: latestYear };
                             }
                         }
                     }
@@ -210,9 +231,11 @@ export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
                     weights: weightsForCalc,
                     cut_score: latestCutScore?.cut_score || 0,
                     cut_score_year: latestCutScore?.year || new Date().getFullYear(),
-                    applicants: latestCutScore?.applicants,
+                    cut_score_modality: latestCutScore?.modality_name || 'Ampla Concorrência',
+                    applicants: undefined, // TODO: Add applicants to allModalities if needed
                     partial_scores: [],
-                    highest_weight: highestWeight
+                    highest_weight: highestWeight,
+                    all_modalities: allModalities
                 });
                 setLoading(prev => ({ ...prev, details: false }));
             })
@@ -220,7 +243,7 @@ export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
                 console.error('Error fetching course details:', err);
                 setLoading(prev => ({ ...prev, details: false }));
             });
-    }, [filters.course, options.courses, filters.institution, filters.city, filters.state]);
+    }, [filters.course, options.courses, filters.institution, filters.city, filters.state, selectedModality]);
 
     const handleSearch = () => {
         if (selectedCourseDetails) {
@@ -307,13 +330,12 @@ export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
                     <label className={styles.label}>Modalidade de Concorrência</label>
                     <select
                         className={styles.select}
-                        value={filters.modality}
-                        onChange={(e) => setFilters({ ...filters, modality: e.target.value })}
+                        value={selectedModality}
+                        onChange={(e) => setSelectedModality(e.target.value)}
                     >
-                        <option value="ampla">Ampla Concorrência</option>
-                        <option value="cota_ep">Escola Pública (L1/L2...)</option>
-                        <option value="cota_ppi">Pretos, Pardos e Indígenas</option>
-                        <option value="cota_pcd">Pessoas com Deficiência</option>
+                        {MODALITY_OPTIONS.map(opt => (
+                            <option key={opt.code} value={opt.code}>{opt.shortName}</option>
+                        ))}
                     </select>
                 </div>
             </div>
@@ -355,7 +377,7 @@ export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
                         <div className={styles.cutScoreRow}>
                             <span className={styles.cutScoreIcon}>⭐</span>
                             <span className={styles.cutScoreText}>
-                                Nota de corte ({selectedCourseDetails.cut_score_year}/1 - AMPLA):{' '}
+                                Nota de corte ({selectedCourseDetails.cut_score_year} - {getModalityLabel()}):{' '}
                                 <strong>{selectedCourseDetails.cut_score?.toFixed(2).replace('.', ',') || '0,00'}</strong>
                             </span>
                         </div>
