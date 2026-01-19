@@ -58,7 +58,7 @@ export default function CourseComparator({ baseCourse, userScore, isOpen, onClos
                     const matched = matchModality(selectedModality, yearGroup.modalities.map((m: any) => ({
                         ...m,
                         modality_name: m.name
-                    })));
+                    })) as { modality_name: string; cut_score: number;[key: string]: any }[]);
 
                     if (matched) {
                         cutScore = matched.cut_score;
@@ -140,7 +140,7 @@ export default function CourseComparator({ baseCourse, userScore, isOpen, onClos
                 const matched = matchModality(selectedModality, latest.modalities?.map((m: any) => ({
                     ...m,
                     modality_name: m.name
-                })) || []);
+                })) as { modality_name: string; cut_score: number;[key: string]: any }[] || []);
 
                 if (matched) {
                     cutScore = matched.cut_score;
