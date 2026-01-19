@@ -135,6 +135,59 @@ class SupabaseServer {
   }
 
   /**
+   * Get course by ID
+   */
+  async getCourseById(id: number) {
+    const params = new URLSearchParams({
+      id: `eq.${id}`,
+    })
+
+    const result = await this.request<Course[]>(`courses?${params}`)
+    return {
+      data: result.data?.[0] || null,
+      error: result.error,
+    }
+  }
+
+  /**
+   * Get full course data by ID with weights and cut scores
+   */
+  async getFullCourseDataById(id: number) {
+    // Get course
+    const courseResult = await this.getCourseById(id)
+    if (!courseResult.data) {
+      return { data: null, error: courseResult.error || 'Course not found' }
+    }
+
+    const course = courseResult.data
+    const courseId = course.id
+
+    // Get weights and cut scores in parallel
+    const [weightsResult, scoresResult] = await Promise.all([
+      this.getCourseWeights(courseId),
+      this.getLatestCutScores(courseId),
+    ])
+
+    // Group cut scores by modality (latest only)
+    const latestScores = new Map<string, CutScore>()
+    for (const score of scoresResult.data || []) {
+      const key = `${score.year}-${score.modality_code}`
+      if (!latestScores.has(key)) {
+        latestScores.set(key, score)
+      }
+    }
+
+    return {
+      data: {
+        ...course,
+        weights: weightsResult.data || [],
+        cut_scores: Array.from(latestScores.values()),
+      },
+      error: null,
+    }
+  }
+
+  /**
    * Get full course data with weights and cut scores
    */
   async getFullCourseData(code: number) {

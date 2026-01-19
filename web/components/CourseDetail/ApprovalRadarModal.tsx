@@ -75,7 +75,17 @@ export default function ApprovalRadarModal({ isOpen, onClose, baseCourseName }: 
             if (!response.ok) throw new Error('Failed to fetch');
 
             const data = await response.json();
-            setResults(data);
+
+            if (Array.isArray(data)) {
+                setResults(data);
+            } else if (data.results && Array.isArray(data.results)) {
+                if (data.debug) {
+                    console.log('Radar Debug Info:', data.debug);
+                }
+                setResults(data.results);
+            } else {
+                setResults([]);
+            }
         } catch (error) {
             console.error(error);
         } finally {
@@ -147,8 +157,8 @@ export default function ApprovalRadarModal({ isOpen, onClose, baseCourseName }: 
                                                     <div className={styles.universityLocation}>{result.campus} • {result.city}-{result.state}</div>
                                                 </div>
                                                 <span className={`${styles.shiftBadge} ${result.schedule === 'Integral' ? styles.shiftIntegral :
-                                                        result.schedule === 'Noturno' ? styles.shiftNoturno :
-                                                            styles.shiftMatutino
+                                                    result.schedule === 'Noturno' ? styles.shiftNoturno :
+                                                        styles.shiftMatutino
                                                     }`}>
                                                     {result.schedule}
                                                 </span>

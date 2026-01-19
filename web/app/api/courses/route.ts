@@ -17,6 +17,51 @@ export async function GET(request: NextRequest) {
   const offset = parseInt(searchParams.get('offset') || '0')
 
   try {
+    const id = searchParams.get('id')
+    const code = searchParams.get('code')
+
+    if (id) {
+      // Get full course details by ID
+      const result = await supabase.getFullCourseDataById(parseInt(id))
+
+      if (result.error) {
+        return NextResponse.json(
+          { error: result.error },
+          { status: 500 }
+        )
+      }
+
+      if (!result.data) {
+        return NextResponse.json(
+          { error: 'Course not found' },
+          { status: 404 }
+        )
+      }
+
+      return NextResponse.json(result.data)
+    }
+
+    if (code) {
+      // Get full course details (weights, cut scores)
+      const result = await supabase.getFullCourseData(parseInt(code))
+
+      if (result.error) {
+        return NextResponse.json(
+          { error: result.error },
+          { status: 500 }
+        )
+      }
+
+      if (!result.data) {
+        return NextResponse.json(
+          { error: 'Course not found' },
+          { status: 404 }
+        )
+      }
+
+      return NextResponse.json(result.data)
+    }
+
     if (query && query.length >= 2) {
       // Search mode
       const result = await supabase.searchCourses(query, limit)
