@@ -996,7 +996,7 @@ export default function Home() {
             ✉️ contato@xtri.online
           </a>
         </div>
-        <p>© 2025 XTRI SISU - Monitoramento em Tempo Real</p>
+        <p>© 2026 XTRI SISU - Monitoramento em Tempo Real</p>
       </footer>
 
 
