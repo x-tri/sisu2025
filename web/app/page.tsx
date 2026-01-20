@@ -747,7 +747,9 @@ export default function Home() {
                         <span className={styles.dailyCutScore}>{p.score.toFixed(2).replace('.', ',')}</span>
                       </div>
                     ))}
-                  <div className={styles.dailyCutsNote}>🔴 SISU 2026 ao vivo</div>
+                  <div className={styles.dailyCutsNote}>
+                    <span className={styles.blinkingDot}>🔴</span> SISU 2026 ao vivo
+                  </div>
                 </div>
               ) : (
                 /* Listening mode - waiting for data */

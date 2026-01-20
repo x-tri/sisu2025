@@ -81,30 +81,33 @@ export async function POST(request: NextRequest) {
 
 
             // B. Find matching cut score for selected modality
-            // We need to filter cut_scores for the requested modality
-            // And preferably pick the latest year available (2025/2026/2024)
+            // B. Find matching cut score for selected modality
             if (!course.cut_scores || course.cut_scores.length === 0) {
                 if (debugInfo.length < 10) debugInfo.push({ name: course.name, reason: 'No cut_scores array' });
                 return null;
             }
 
-            // Group by year to find the "best" year
-            // Logic: prefer 2026 > 2025 > 2024
-            // But we first need to see if the year HAS the modality
+            // Define helper to get effective score from a record
+            const getEffectiveScore = (cs: any) => {
+                // If we have a direct cut_score, use it
+                if (cs.cut_score && cs.cut_score > 0) return cs.cut_score;
+                // Otherwise check partials (sorted by day desc)
+                if (cs.partial_scores && cs.partial_scores.length > 0) {
+                    const sorted = [...cs.partial_scores].sort((a: any, b: any) => b.day - a.day);
+                    return sorted[0].score; // Latest partial
+                }
+                return 0;
+            };
 
-            // Let's gather all relevant cut scores first
             const candidates = course.cut_scores
-                .filter((cs: any) => cs.modality_name && cs.cut_score)
                 .map((cs: any) => ({
                     ...cs,
-                    _derivedCode: getModalityCode(cs.modality_name)
-                }));
+                    _derivedCode: getModalityCode(cs.modality_name),
+                    _effectiveScore: getEffectiveScore(cs)
+                }))
+                .filter((cs: any) => cs._effectiveScore > 0); // Only keep records with actual scores
 
-            // We try to match the specific selected code
-            // We reuse the logic from ModalityContext slightly modified for backend
-
-            // Find specific match
-            // We iterate years descending
+            // Iterate years descending (2026 -> 2025 -> 2024)
             const relevantYears = Array.from(new Set(candidates.map((c: any) => c.year))).sort((a: any, b: any) => b - a);
 
             let finalCutScore = null;
@@ -112,12 +115,12 @@ export async function POST(request: NextRequest) {
 
             for (const year of relevantYears) {
                 const yearModalities = candidates.filter((c: any) => c.year === year);
+                let match = null;
 
                 // Try specific match
-                let match = null;
                 if (modalityCode === 'ampla') {
                     match = yearModalities.find((m: any) => m.modality_name.toLowerCase().includes('ampla'));
-                } else if (modalityCode === 'deficiencia') { // Generic PCD wildcard
+                } else if (modalityCode === 'deficiencia') {
                     match = yearModalities.find((m: any) =>
                         ['L9', 'L10', 'L13', 'L14', 'deficiencia'].includes(m._derivedCode)
                     );
@@ -128,12 +131,11 @@ export async function POST(request: NextRequest) {
                 if (match) {
                     finalCutScore = match;
                     finalYear = year as number;
-                    break; // Found latest valid data
+                    break;
                 }
             }
 
-            // If no specific match found, do we return null? 
-            if (!finalCutScore || !finalCutScore.cut_score) {
+            if (!finalCutScore) {
                 if (debugInfo.length < 10) debugInfo.push({
                     name: course.name,
                     reason: 'No matching cut score',
@@ -142,6 +144,8 @@ export async function POST(request: NextRequest) {
                 });
                 return null;
             }
+
+            const cutScoreValue = finalCutScore._effectiveScore;
 
             return {
                 courseId: course.id,
@@ -154,14 +158,16 @@ export async function POST(request: NextRequest) {
                 degree: course.degree,
                 schedule: course.schedule,
                 userScore,
-                cutScore: finalCutScore.cut_score,
+                cutScore: cutScoreValue,
                 cutScoreYear: finalYear,
-                margin: userScore - finalCutScore.cut_score,
-                modalityName: finalCutScore.modality_name
+                margin: userScore - cutScoreValue,
+                modalityName: finalCutScore.modality_name,
+                vacancies: finalCutScore.vacancies || 0, // Pass vacancies for UI
+                applicants: finalCutScore.applicants || 0
             };
         })
-            .filter(Boolean) // Remove nulls
-            .sort((a: any, b: any) => b.margin - a.margin); // Sort by best margin (highest chance first)
+            .filter(Boolean)
+            .sort((a: any, b: any) => b.margin - a.margin);
 
         if (results.length === 0) {
             console.log('[Radar] No results found. Debug info:', JSON.stringify(debugInfo, null, 2));

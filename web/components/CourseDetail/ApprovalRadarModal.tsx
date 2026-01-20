@@ -20,6 +20,8 @@ interface RadarResult {
     cutScoreYear: number;
     margin: number;
     modalityName: string;
+    vacancies?: number;
+    applicants?: number;
 }
 
 interface ApprovalRadarProps {
@@ -93,6 +95,25 @@ export default function ApprovalRadarModal({ isOpen, onClose, baseCourseName }: 
         }
     };
 
+    const getStatusInfo = (margin: number, vacancies: number = 0) => {
+        if (margin >= 0) return { label: '✅ Aprovado', class: '' };
+
+        // "Chance Real" logic: if many vacancies, tolerances are higher
+        const highVacancy = vacancies >= 20;
+        const medVacancy = vacancies >= 5;
+
+        // If high vacancy, accept up to -10 points as "Chance"
+        if (highVacancy && margin > -10) return { label: '🟠 Chance Real', class: styles.statusChance };
+        // If med vacancy, accept up to -5 points
+        if (medVacancy && margin > -5) return { label: '🟠 Chance Real', class: styles.statusChance };
+
+        // Default "Quase lá" for other close calls
+        if (margin > -10) return { label: '⚠️ Quase lá', class: styles.statusNear };
+
+        // Far away
+        return { label: '❌ Difícil', class: styles.statusHard };
+    };
+
     if (!isOpen) return null;
 
     // Filter results locally if needed
@@ -100,12 +121,11 @@ export default function ApprovalRadarModal({ isOpen, onClose, baseCourseName }: 
         ? results.filter(r => r.state === filterState)
         : results;
 
-    // Separate passing and near-passing
-    const passingResults = filteredResults.filter(r => r.margin >= 0);
-    const nearResults = filteredResults.filter(r => r.margin < 0 && r.margin > -20); // Close calls within 20 points
-
-    const displayResults = [...passingResults, ...nearResults];
+    // Separate passing and reasonable near-passing for display
+    // We show everything that is passing OR within -30 points just to be safe
+    const displayResults = filteredResults.filter(r => r.margin > -30);
     const uniqueStates = Array.from(new Set(results.map(r => r.state))).sort();
+    const passingCount = filteredResults.filter(r => r.margin >= 0).length;
 
     return (
         <div className={styles.overlay} onClick={onClose}>
@@ -138,7 +158,7 @@ export default function ApprovalRadarModal({ isOpen, onClose, baseCourseName }: 
                                 </select>
 
                                 <span style={{ color: '#666', fontSize: '0.9rem', alignSelf: 'center' }}>
-                                    {passingResults.length} aprovações encontradas
+                                    {passingCount} aprovações prováveis
                                 </span>
                             </div>
 
@@ -149,44 +169,54 @@ export default function ApprovalRadarModal({ isOpen, onClose, baseCourseName }: 
                                 </div>
                             ) : (
                                 <div className={styles.resultsGrid}>
-                                    {displayResults.map((result, idx) => (
-                                        <div key={idx} className={styles.resultCard}>
-                                            <div className={styles.cardHeader}>
-                                                <div>
-                                                    <div className={styles.universityName}>{result.university}</div>
-                                                    <div className={styles.universityLocation}>{result.campus} • {result.city}-{result.state}</div>
+                                    {displayResults.map((result, idx) => {
+                                        const status = getStatusInfo(result.margin, result.vacancies);
+                                        return (
+                                            <div key={idx} className={styles.resultCard}>
+                                                <div className={styles.cardHeader}>
+                                                    <div>
+                                                        <div className={styles.universityName}>{result.university}</div>
+                                                        <div className={styles.universityLocation}>{result.campus} • {result.city}-{result.state}</div>
+                                                    </div>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'end', gap: '4px' }}>
+                                                        <span className={`${styles.shiftBadge} ${result.schedule === 'Integral' ? styles.shiftIntegral :
+                                                            result.schedule === 'Noturno' ? styles.shiftNoturno :
+                                                                styles.shiftMatutino
+                                                            }`}>
+                                                            {result.schedule}
+                                                        </span>
+                                                        {result.vacancies ? (
+                                                            <span style={{ fontSize: '0.7rem', color: '#888' }}>
+                                                                {result.vacancies} vagas
+                                                            </span>
+                                                        ) : null}
+                                                    </div>
                                                 </div>
-                                                <span className={`${styles.shiftBadge} ${result.schedule === 'Integral' ? styles.shiftIntegral :
-                                                    result.schedule === 'Noturno' ? styles.shiftNoturno :
-                                                        styles.shiftMatutino
-                                                    }`}>
-                                                    {result.schedule}
-                                                </span>
-                                            </div>
 
-                                            <div className={styles.cardBody}>
-                                                <div className={styles.scoreRow}>
-                                                    <span className={styles.scoreLabel}>Sua Média Ponderada</span>
-                                                    <span className={styles.scoreValue}>{result.userScore.toFixed(2)}</span>
-                                                </div>
-                                                <div className={styles.scoreRow}>
-                                                    <span className={styles.scoreLabel}>Corte {result.cutScoreYear}</span>
-                                                    <span className={styles.cutScoreValue}>{result.cutScore.toFixed(2)}</span>
+                                                <div className={styles.cardBody}>
+                                                    <div className={styles.scoreRow}>
+                                                        <span className={styles.scoreLabel}>Sua Média Ponderada</span>
+                                                        <span className={styles.scoreValue}>{result.userScore.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className={styles.scoreRow}>
+                                                        <span className={styles.scoreLabel}>Corte {result.cutScoreYear}</span>
+                                                        <span className={styles.cutScoreValue}>{result.cutScore.toFixed(2)}</span>
+                                                    </div>
+
+                                                    <div className={styles.marginRow}>
+                                                        <span className={styles.scoreLabel} style={{ color: '#fff' }}>Margem</span>
+                                                        <span className={`${styles.marginValue} ${result.margin >= 0 ? styles.marginPassing : styles.marginFailing}`}>
+                                                            {result.margin > 0 ? '+' : ''}{result.margin.toFixed(2)}
+                                                        </span>
+                                                    </div>
                                                 </div>
 
-                                                <div className={styles.marginRow}>
-                                                    <span className={styles.scoreLabel} style={{ color: '#fff' }}>Margem</span>
-                                                    <span className={`${styles.marginValue} ${result.margin >= 0 ? styles.marginPassing : styles.marginFailing}`}>
-                                                        {result.margin > 0 ? '+' : ''}{result.margin.toFixed(2)}
-                                                    </span>
+                                                <div className={`${styles.statusBadge} ${status.class}`}>
+                                                    {status.label}
                                                 </div>
                                             </div>
-
-                                            <div className={`${styles.statusBadge} ${result.margin >= 0 ? '' : styles.statusNear}`}>
-                                                {result.margin >= 0 ? '✅ Aprovado' : '⚠️ Quase lá'}
-                                            </div>
-                                        </div>
-                                    ))}
+                                        )
+                                    })}
                                 </div>
                             )}
                         </>
