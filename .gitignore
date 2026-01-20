@@ -39,3 +39,4 @@ logs/*.log
 # Temporary
 *.tmp
 *.bak
+.tmp/
