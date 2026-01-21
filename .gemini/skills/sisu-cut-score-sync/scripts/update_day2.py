@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-SISU Cut Score Sync - Validated Mining Script
-Extracts cut scores from MeuSISU API and validates data quality before inserting.
+SISU Day 2 Update Script
+Specifically updates partial_scores with Day 2 data for all courses.
 """
 
 import os
@@ -11,13 +11,13 @@ import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
-# Add project root to path for decoder import
+# Add project root to path
 sys.path.insert(0, str(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))))
 from src.decoder.course import decode_course
 
 # Configuration
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://sisymqzxvuktdcbsbpbp.supabase.co")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODYwNTk0MSwiZXhwIjoyMDg0MTgxOTQxfQ.yDWKET6qMOKukkFrRGL8UW4C4qK4BtcVmoJQpI2lG9o")
+SUPABASE_URL = "https://sisymqzxvuktdcbsbpbp.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODYwNTk0MSwiZXhwIjoyMDg0MTgxOTQxfQ.yDWKET6qMOKukkFrRGL8UW4C4qK4BtcVmoJQpI2lG9o"
 MEUSISU_API = "https://meusisu.com/api"
 TARGET_YEAR = 2026
 
@@ -28,16 +28,13 @@ HEADERS = {
     "Prefer": "resolution=merge-duplicates,return=minimal"
 }
 
-
 def log(msg, level="INFO"):
     timestamp = datetime.now().strftime('%H:%M:%S')
     prefix = {"INFO": "ℹ️", "SUCCESS": "✅", "WARNING": "⚠️", "ERROR": "❌"}.get(level, "")
-    print(f"[{timestamp}] {prefix} {msg}")
-
+    print(f"[{timestamp}] {prefix} {msg}", flush=True)
 
 def get_supabase_courses():
     """Get all course codes from Supabase"""
-    log("Buscando cursos do Supabase...")
     all_courses = []
     offset = 0
     limit = 1000
@@ -48,7 +45,6 @@ def get_supabase_courses():
             headers=HEADERS
         )
         if resp.status_code != 200:
-            log(f"Erro ao buscar cursos: {resp.status_code}", "ERROR")
             break
         
         batch = resp.json()
@@ -58,23 +54,21 @@ def get_supabase_courses():
         all_courses.extend(batch)
         offset += limit
     
-    log(f"{len(all_courses)} cursos encontrados", "SUCCESS")
     return all_courses
 
-
 def sync_course(course):
-    """Sync cut scores for a single course with validation"""
+    """Sync cut scores for a single course"""
     course_id = course['id']
     code = course['code']
     
     try:
         resp = requests.get(f"{MEUSISU_API}/getCourseData?courseCode={code}", timeout=15)
         if resp.status_code != 200:
-            return {"code": code, "status": "api_error", "records": 0, "valid": 0}
+            return {"code": code, "status": "api_error", "updated": 0}
         
         course_data = decode_course(resp.content)
         if not course_data or not course_data.years:
-            return {"code": code, "status": "no_data", "records": 0, "valid": 0}
+            return {"code": code, "status": "no_data", "updated": 0}
         
         # Find TARGET_YEAR data
         year_data = None
@@ -84,15 +78,17 @@ def sync_course(course):
                 break
         
         if not year_data or not year_data.modalities:
-            return {"code": code, "status": "no_year", "records": 0, "valid": 0}
+            return {"code": code, "status": "no_year", "updated": 0}
         
-        inserted = 0
-        valid_records = 0
+        updated = 0
+        has_day2 = False
         
         for modality in year_data.modalities:
-            # Check if data is REAL (not placeholder)
-            has_cut_score = modality.cut_score is not None and modality.cut_score > 0
-            has_partial = modality.partial_scores and len(modality.partial_scores) > 0
+            # Check if we have Day 2 data
+            if modality.partial_scores:
+                days = [p.get('day') for p in modality.partial_scores]
+                if '2' in days or 2 in days:
+                    has_day2 = True
             
             payload = {
                 "course_id": course_id,
@@ -105,7 +101,7 @@ def sync_course(course):
                 "partial_scores": modality.partial_scores or [],
             }
             
-            # Use upsert with on_conflict for the unique constraint
+            # Use upsert with on_conflict
             resp = requests.post(
                 f"{SUPABASE_URL}/rest/v1/cut_scores?on_conflict=course_id,year,modality_code",
                 headers=HEADERS,
@@ -113,22 +109,22 @@ def sync_course(course):
             )
             
             if resp.status_code in [200, 201]:
-                inserted += 1
-                if has_cut_score or has_partial:
-                    valid_records += 1
+                updated += 1
         
-        return {"code": code, "status": "ok", "records": inserted, "valid": valid_records}
+        return {"code": code, "status": "ok", "updated": updated, "has_day2": has_day2}
         
     except Exception as e:
-        return {"code": code, "status": "error", "records": 0, "valid": 0, "error": str(e)}
-
+        return {"code": code, "status": "error", "updated": 0, "error": str(e)}
 
 def main():
     log("=" * 60)
-    log(f"🚀 SISU {TARGET_YEAR} Cut Score Sync (Validated)")
+    log(f"🚀 SISU {TARGET_YEAR} - Day 2 Update")
     log("=" * 60)
     
+    log("Buscando cursos do Supabase...")
     courses = get_supabase_courses()
+    log(f"{len(courses)} cursos encontrados", "SUCCESS")
+    
     if not courses:
         log("Nenhum curso encontrado. Abortando.", "ERROR")
         return
@@ -137,10 +133,8 @@ def main():
     
     stats = {
         "total": 0,
-        "with_records": 0,
-        "with_valid_data": 0,
-        "total_records": 0,
-        "valid_records": 0,
+        "updated": 0,
+        "with_day2": 0,
         "errors": 0
     }
     
@@ -152,42 +146,33 @@ def main():
             stats["total"] += 1
             
             if result["status"] == "ok":
-                if result["records"] > 0:
-                    stats["with_records"] += 1
-                    stats["total_records"] += result["records"]
-                if result["valid"] > 0:
-                    stats["with_valid_data"] += 1
-                    stats["valid_records"] += result["valid"]
+                stats["updated"] += result["updated"]
+                if result.get("has_day2"):
+                    stats["with_day2"] += 1
             elif result["status"] in ["api_error", "error"]:
                 stats["errors"] += 1
             
-            # Progress every 500 courses
             if (i + 1) % 500 == 0:
-                log(f"Processados {i+1}/{len(courses)} cursos...")
+                log(f"Processados {i+1}/{len(courses)} cursos... ({stats['with_day2']} com Dia 2)")
     
     log("")
     log("=" * 60)
-    log("📊 RESULTADO DA SINCRONIZAÇÃO", "SUCCESS")
+    log("📊 RESULTADO DA SINCRONIZAÇÃO DO DIA 2", "SUCCESS")
     log("=" * 60)
     log(f"   Cursos processados: {stats['total']}")
-    log(f"   Cursos com registros: {stats['with_records']}")
-    log(f"   Cursos com dados REAIS: {stats['with_valid_data']}")
-    log(f"   Total de registros inseridos: {stats['total_records']}")
-    log(f"   Registros com notas válidas: {stats['valid_records']}")
+    log(f"   Registros atualizados: {stats['updated']}")
+    log(f"   Cursos com Dia 2: {stats['with_day2']}")
     log(f"   Erros: {stats['errors']}")
     log("=" * 60)
     
-    # Validation check
-    if stats["valid_records"] == 0:
+    if stats["with_day2"] > 0:
         log("")
-        log("⚠️  ATENÇÃO: Nenhum registro com notas reais foi encontrado!", "WARNING")
-        log("   Isso significa que o SISU ainda não liberou as notas de corte.", "WARNING")
-        log("   Tente novamente após o MEC publicar os dados (geralmente após 5h).", "WARNING")
+        log(f"✅ {stats['with_day2']} cursos agora têm dados do Dia 2!", "SUCCESS")
+        log("   Os gráficos do frontend devem mostrar os dois dias.", "SUCCESS")
     else:
         log("")
-        log(f"✅ Dados de {TARGET_YEAR} sincronizados com sucesso!", "SUCCESS")
-        log("   O frontend deve mostrar as notas imediatamente.", "SUCCESS")
-
+        log("⚠️  Nenhum curso com Dia 2 encontrado ainda.", "WARNING")
+        log("   O MEC pode não ter liberado os dados ainda.", "WARNING")
 
 if __name__ == "__main__":
     main()
