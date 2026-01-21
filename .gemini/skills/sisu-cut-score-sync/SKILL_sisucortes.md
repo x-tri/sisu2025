@@ -61,7 +61,8 @@ If validation fails, it means SISU hasn't released scores yet.
 
 ## Scripts
 
-- `scripts/sync_cut_scores.py` - Main sync with validation
+- `scripts/sync_cut_scores.py` - Main sync (upserts full data)
+- `scripts/smart_daily_sync.py` - Optimized daily update (skips up-to-date courses)
 - `scripts/verify_data.py` - Check data quality in Supabase
 
 ## References

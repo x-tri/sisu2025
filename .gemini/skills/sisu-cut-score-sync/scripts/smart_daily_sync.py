@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
 """
-SISU Day 2 Update Script
-Specifically updates partial_scores with Day 2 data for all courses.
+SISU Daily Sync - Smart Update
+Syncs only courses that are missing the latest daily data.
+Use this for efficient daily updates after the first big sync.
 """
 
 import os
@@ -11,11 +11,9 @@ import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
-# Add project root to path
 sys.path.insert(0, str(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))))
 from src.decoder.course import decode_course
 
-# Configuration
 SUPABASE_URL = "https://sisymqzxvuktdcbsbpbp.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODYwNTk0MSwiZXhwIjoyMDg0MTgxOTQxfQ.yDWKET6qMOKukkFrRGL8UW4C4qK4BtcVmoJQpI2lG9o"
 MEUSISU_API = "https://meusisu.com/api"
@@ -33,12 +31,14 @@ def log(msg, level="INFO"):
     prefix = {"INFO": "ℹ️", "SUCCESS": "✅", "WARNING": "⚠️", "ERROR": "❌"}.get(level, "")
     print(f"[{timestamp}] {prefix} {msg}", flush=True)
 
-def get_supabase_courses():
-    """Get all course codes from Supabase"""
+def get_courses_missing_day2():
+    """Get courses that don't have Day 2 data yet"""
+    log("Buscando cursos sem Dia 2...")
+    
+    # Get all courses
     all_courses = []
     offset = 0
     limit = 1000
-    
     while True:
         resp = requests.get(
             f"{SUPABASE_URL}/rest/v1/courses?select=id,code,name&order=id&offset={offset}&limit={limit}",
@@ -46,15 +46,43 @@ def get_supabase_courses():
         )
         if resp.status_code != 200:
             break
-        
+        batch = resp.json()
+        if not batch:
+            break
+        all_courses.extend(batch)
+        offset += limit
+    
+    log(f"Total de cursos: {len(all_courses)}")
+    
+    # Get courses that have Day 2
+    courses_with_day2 = set()
+    offset = 0
+    while True:
+        resp = requests.get(
+            f"{SUPABASE_URL}/rest/v1/cut_scores?select=course_id,partial_scores&year=eq.{TARGET_YEAR}&offset={offset}&limit={limit}",
+            headers=HEADERS
+        )
+        if resp.status_code != 200:
+            break
         batch = resp.json()
         if not batch:
             break
         
-        all_courses.extend(batch)
+        for row in batch:
+            ps = row.get('partial_scores', [])
+            if ps:
+                days = [str(p.get('day')) for p in ps]
+                if '2' in days:
+                    courses_with_day2.add(row['course_id'])
         offset += limit
     
-    return all_courses
+    log(f"Cursos já com Dia 2: {len(courses_with_day2)}")
+    
+    # Filter to only missing courses
+    missing = [c for c in all_courses if c['id'] not in courses_with_day2]
+    log(f"Cursos faltando Dia 2: {len(missing)}")
+    
+    return missing
 
 def sync_course(course):
     """Sync cut scores for a single course"""
@@ -62,7 +90,7 @@ def sync_course(course):
     code = course['code']
     
     try:
-        resp = requests.get(f"{MEUSISU_API}/getCourseData?courseCode={code}", timeout=15)
+        resp = requests.get(f"{MEUSISU_API}/getCourseData?courseCode={code}", timeout=30)
         if resp.status_code != 200:
             return {"code": code, "status": "api_error", "updated": 0}
         
@@ -70,7 +98,6 @@ def sync_course(course):
         if not course_data or not course_data.years:
             return {"code": code, "status": "no_data", "updated": 0}
         
-        # Find TARGET_YEAR data
         year_data = None
         for y in course_data.years:
             if y.year == TARGET_YEAR:
@@ -84,7 +111,6 @@ def sync_course(course):
         has_day2 = False
         
         for modality in year_data.modalities:
-            # Check if we have Day 2 data
             if modality.partial_scores:
                 days = [p.get('day') for p in modality.partial_scores]
                 if '2' in days or 2 in days:
@@ -101,11 +127,11 @@ def sync_course(course):
                 "partial_scores": modality.partial_scores or [],
             }
             
-            # Use upsert with on_conflict
             resp = requests.post(
                 f"{SUPABASE_URL}/rest/v1/cut_scores?on_conflict=course_id,year,modality_code",
                 headers=HEADERS,
-                json=payload
+                json=payload,
+                timeout=30
             )
             
             if resp.status_code in [200, 201]:
@@ -118,28 +144,21 @@ def sync_course(course):
 
 def main():
     log("=" * 60)
-    log(f"🚀 SISU {TARGET_YEAR} - Day 2 Update")
+    log(f"🎯 SISU {TARGET_YEAR} - Completar Cursos Faltantes (Dia 2)")
     log("=" * 60)
     
-    log("Buscando cursos do Supabase...")
-    courses = get_supabase_courses()
-    log(f"{len(courses)} cursos encontrados", "SUCCESS")
+    missing_courses = get_courses_missing_day2()
     
-    if not courses:
-        log("Nenhum curso encontrado. Abortando.", "ERROR")
+    if not missing_courses:
+        log("🎉 TODOS os cursos já têm Dia 2! Meta de 100% atingida!", "SUCCESS")
         return
     
-    log(f"Sincronizando {len(courses)} cursos...")
+    log(f"Sincronizando {len(missing_courses)} cursos faltantes...")
     
-    stats = {
-        "total": 0,
-        "updated": 0,
-        "with_day2": 0,
-        "errors": 0
-    }
+    stats = {"total": 0, "updated": 0, "with_day2": 0, "errors": 0}
     
-    with ThreadPoolExecutor(max_workers=20) as executor:
-        futures = {executor.submit(sync_course, c): c for c in courses}
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {executor.submit(sync_course, c): c for c in missing_courses}
         
         for i, future in enumerate(as_completed(futures)):
             result = future.result()
@@ -152,27 +171,23 @@ def main():
             elif result["status"] in ["api_error", "error"]:
                 stats["errors"] += 1
             
-            if (i + 1) % 500 == 0:
-                log(f"Processados {i+1}/{len(courses)} cursos... ({stats['with_day2']} com Dia 2)")
+            if (i + 1) % 100 == 0 or (i + 1) == len(missing_courses):
+                log(f"Processados {i+1}/{len(missing_courses)} ({stats['with_day2']} com Dia 2)")
     
     log("")
     log("=" * 60)
-    log("📊 RESULTADO DA SINCRONIZAÇÃO DO DIA 2", "SUCCESS")
+    log("📊 RESULTADO FINAL", "SUCCESS")
     log("=" * 60)
     log(f"   Cursos processados: {stats['total']}")
     log(f"   Registros atualizados: {stats['updated']}")
-    log(f"   Cursos com Dia 2: {stats['with_day2']}")
+    log(f"   Novos cursos com Dia 2: {stats['with_day2']}")
     log(f"   Erros: {stats['errors']}")
     log("=" * 60)
     
-    if stats["with_day2"] > 0:
-        log("")
-        log(f"✅ {stats['with_day2']} cursos agora têm dados do Dia 2!", "SUCCESS")
-        log("   Os gráficos do frontend devem mostrar os dois dias.", "SUCCESS")
+    if stats["errors"] == 0:
+        log("🎉 META 100% ATINGIDA! Todos os cursos sincronizados!", "SUCCESS")
     else:
-        log("")
-        log("⚠️  Nenhum curso com Dia 2 encontrado ainda.", "WARNING")
-        log("   O MEC pode não ter liberado os dados ainda.", "WARNING")
+        log(f"⚠️  {stats['errors']} cursos com erro. Possivelmente sem dados na API.", "WARNING")
 
 if __name__ == "__main__":
     main()
