@@ -270,3 +270,72 @@
     gap: 1rem;
     text-align: center;
 }
+
+/* New MeuSISU-style elements */
+.distanceBadge {
+    font-size: 0.75rem;
+    color: #3b82f6;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.courseName {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: white;
+    line-height: 1.3;
+    margin-bottom: 0.25rem;
+}
+
+.courseDetails {
+    font-size: 0.75rem;
+    color: #888;
+    margin-bottom: 0.5rem;
+}
+
+.cutScoreHighlight {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.cutScoreHighlight span {
+    font-size: 0.8rem;
+    color: #f59e0b;
+}
+
+.cutScoreHighlight strong {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #f59e0b;
+}
+
+.differenceRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.diffPositive {
+    font-weight: 700;
+    color: #22c55e;
+}
+
+.diffNegative {
+    font-weight: 700;
+    color: #ef4444;
+}
+
+.vacanciesInfo {
+    font-size: 0.75rem;
+    color: #666;
+    text-align: right;
+}

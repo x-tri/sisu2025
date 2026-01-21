@@ -42,18 +42,20 @@ interface YearCutScore {
 }
 
 interface CoursePreview {
+  id: number;
   code: number;
   name: string;
   degree: string;
   university: string;
   campus: string;
+  city: string;
+  state: string;
   schedule: string;
   cut_score: number;
   cut_score_year: number;
-  cut_score_type: string; // "Corte 1", "Corte 2", "Corte 3", "Corte 4", "Corte Final", or "Em breve"
+  cut_score_type: string;
   highest_weight: string;
   weights: any;
-  // Separate data for each year
   data2024?: YearCutScore;
   data2025?: YearCutScore;
   data2026?: YearCutScore;
@@ -434,11 +436,14 @@ export default function Home() {
         }
 
         setCoursePreview({
+          id: courseData?.id || selectedCourse.id,
           code: courseData?.code || selectedCourse.code,
           name: courseData?.name || selectedCourse.name,
           degree: courseData?.degree || 'Bacharelado',
           university: filters.institution,
           campus: courseData?.campus || '',
+          city: courseData?.city || '',
+          state: courseData?.state || '',
           schedule: courseData?.schedule || 'Integral',
           cut_score: cutScoreValue,
           cut_score_year: cutScoreYear,
@@ -1025,7 +1030,10 @@ export default function Home() {
           <ApprovalRadarModal
             isOpen={showRadar}
             onClose={() => setShowRadar(false)}
-            baseCourseName={coursePreview.name} // Pass the name to search for matches
+            baseCourseName={coursePreview.name}
+            referenceCourseId={coursePreview.id}
+            referenceCity={coursePreview.city}
+            referenceState={coursePreview.state}
           />
         )
       }
