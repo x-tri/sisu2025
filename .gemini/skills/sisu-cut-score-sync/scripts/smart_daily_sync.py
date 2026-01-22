@@ -18,6 +18,7 @@ SUPABASE_URL = "https://sisymqzxvuktdcbsbpbp.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODYwNTk0MSwiZXhwIjoyMDg0MTgxOTQxfQ.yDWKET6qMOKukkFrRGL8UW4C4qK4BtcVmoJQpI2lG9o"
 MEUSISU_API = "https://meusisu.com/api"
 TARGET_YEAR = 2026
+TARGET_DAY = int(sys.argv[1]) if len(sys.argv) > 1 else 3  # Dia a sincronizar (default: 3)
 # API do MeuSISU tem inconsistência: alguns cursos (principalmente IFs)
 # retornam ano 2025 para o SISU 2026. Buscamos ambos e mapeamos para 2026.
 API_YEARS = [2026, 2025]  # Prioridade: 2026 primeiro, depois 2025
@@ -34,9 +35,9 @@ def log(msg, level="INFO"):
     prefix = {"INFO": "ℹ️", "SUCCESS": "✅", "WARNING": "⚠️", "ERROR": "❌"}.get(level, "")
     print(f"[{timestamp}] {prefix} {msg}", flush=True)
 
-def get_courses_missing_day2():
-    """Get courses that don't have Day 2 data yet"""
-    log("Buscando cursos sem Dia 2...")
+def get_courses_missing_day():
+    """Get courses that don't have target day data yet"""
+    log(f"Buscando cursos sem Dia {TARGET_DAY}...")
     
     # Get all courses
     all_courses = []
@@ -57,8 +58,8 @@ def get_courses_missing_day2():
     
     log(f"Total de cursos: {len(all_courses)}")
     
-    # Get courses that have Day 2
-    courses_with_day2 = set()
+    # Get courses that have target day
+    courses_with_day = set()
     offset = 0
     while True:
         resp = requests.get(
@@ -70,20 +71,20 @@ def get_courses_missing_day2():
         batch = resp.json()
         if not batch:
             break
-        
+
         for row in batch:
             ps = row.get('partial_scores', [])
             if ps:
                 days = [str(p.get('day')) for p in ps]
-                if '2' in days:
-                    courses_with_day2.add(row['course_id'])
+                if str(TARGET_DAY) in days:
+                    courses_with_day.add(row['course_id'])
         offset += limit
-    
-    log(f"Cursos já com Dia 2: {len(courses_with_day2)}")
-    
+
+    log(f"Cursos já com Dia {TARGET_DAY}: {len(courses_with_day)}")
+
     # Filter to only missing courses
-    missing = [c for c in all_courses if c['id'] not in courses_with_day2]
-    log(f"Cursos faltando Dia 2: {len(missing)}")
+    missing = [c for c in all_courses if c['id'] not in courses_with_day]
+    log(f"Cursos faltando Dia {TARGET_DAY}: {len(missing)}")
     
     return missing
 
@@ -121,13 +122,13 @@ def sync_course(course):
             return {"code": code, "status": "no_year", "updated": 0}
 
         updated = 0
-        has_day2 = False
+        has_target_day = False
 
         for modality in year_data.modalities:
             if modality.partial_scores:
                 days = [str(p.get('day')) for p in modality.partial_scores]
-                if '2' in days:
-                    has_day2 = True
+                if str(TARGET_DAY) in days:
+                    has_target_day = True
 
             # Sempre salvar como TARGET_YEAR (2026) no banco
             payload = {
@@ -155,7 +156,7 @@ def sync_course(course):
             "code": code,
             "status": "ok",
             "updated": updated,
-            "has_day2": has_day2,
+            "has_target_day": has_target_day,
             "api_year": api_year_used  # Para debug: qual ano foi usado da API
         }
 
@@ -164,29 +165,29 @@ def sync_course(course):
 
 def main():
     log("=" * 60)
-    log(f"🎯 SISU {TARGET_YEAR} - Completar Cursos Faltantes (Dia 2)")
+    log(f"🎯 SISU {TARGET_YEAR} - Completar Cursos Faltantes (Dia {TARGET_DAY})")
     log("=" * 60)
-    
-    missing_courses = get_courses_missing_day2()
-    
+
+    missing_courses = get_courses_missing_day()
+
     if not missing_courses:
-        log("🎉 TODOS os cursos já têm Dia 2! Meta de 100% atingida!", "SUCCESS")
+        log(f"🎉 TODOS os cursos já têm Dia {TARGET_DAY}! Meta de 100% atingida!", "SUCCESS")
         return
-    
+
     log(f"Sincronizando {len(missing_courses)} cursos faltantes...")
     log(f"Buscando anos {API_YEARS} na API (mapeando para {TARGET_YEAR} no banco)")
 
     stats = {
         "total": 0,
         "updated": 0,
-        "with_day2": 0,
+        "with_target_day": 0,
         "errors": 0,
         "no_data": 0,
         "api_year_2026": 0,
         "api_year_2025": 0
     }
 
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=15) as executor:
         futures = {executor.submit(sync_course, c): c for c in missing_courses}
 
         for i, future in enumerate(as_completed(futures)):
@@ -195,9 +196,8 @@ def main():
 
             if result["status"] == "ok":
                 stats["updated"] += result["updated"]
-                if result.get("has_day2"):
-                    stats["with_day2"] += 1
-                # Contar qual ano da API foi usado
+                if result.get("has_target_day"):
+                    stats["with_target_day"] += 1
                 api_year = result.get("api_year")
                 if api_year == 2026:
                     stats["api_year_2026"] += 1
@@ -208,8 +208,8 @@ def main():
             elif result["status"] in ["no_data", "no_year"]:
                 stats["no_data"] += 1
 
-            if (i + 1) % 100 == 0 or (i + 1) == len(missing_courses):
-                log(f"Processados {i+1}/{len(missing_courses)} ({stats['with_day2']} com Dia 2)")
+            if (i + 1) % 500 == 0 or (i + 1) == len(missing_courses):
+                log(f"Processados {i+1}/{len(missing_courses)} ({stats['with_target_day']} com Dia {TARGET_DAY})")
 
     log("")
     log("=" * 60)
@@ -217,15 +217,15 @@ def main():
     log("=" * 60)
     log(f"   Cursos processados: {stats['total']}")
     log(f"   Registros atualizados: {stats['updated']}")
-    log(f"   Novos cursos com Dia 2: {stats['with_day2']}")
+    log(f"   Novos cursos com Dia {TARGET_DAY}: {stats['with_target_day']}")
     log(f"   API usou ano 2026: {stats['api_year_2026']}")
     log(f"   API usou ano 2025: {stats['api_year_2025']} (IFs)")
     log(f"   Sem dados na API: {stats['no_data']}")
     log(f"   Erros: {stats['errors']}")
     log("=" * 60)
 
-    if stats["with_day2"] > 0:
-        log(f"🎉 {stats['with_day2']} cursos atualizados com Dia 2!", "SUCCESS")
+    if stats["with_target_day"] > 0:
+        log(f"🎉 {stats['with_target_day']} cursos atualizados com Dia {TARGET_DAY}!", "SUCCESS")
     elif stats["no_data"] == stats["total"]:
         log("⚠️  Nenhum curso teve dados. API pode estar desatualizada.", "WARNING")
     else:
