@@ -93,13 +93,24 @@ def sync_course(course):
             # Check if data is REAL (not placeholder)
             has_cut_score = modality.cut_score is not None and modality.cut_score > 0
             has_partial = modality.partial_scores and len(modality.partial_scores) > 0
-            
+
+            # Derive cut_score from last partial_score if API doesn't provide it
+            # The final cut score is the last day's score (Day 4 for final results)
+            final_cut_score = modality.cut_score
+            if not has_cut_score and has_partial:
+                # Get the last day with a non-zero score
+                for ps in reversed(modality.partial_scores):
+                    if ps.get('score', 0) > 0:
+                        final_cut_score = ps['score']
+                        has_cut_score = True
+                        break
+
             payload = {
                 "course_id": course_id,
                 "year": TARGET_YEAR,
                 "modality_code": modality.code,
                 "modality_name": modality.name,
-                "cut_score": modality.cut_score,
+                "cut_score": final_cut_score,
                 "applicants": modality.applicants,
                 "vacancies": modality.vacancies,
                 "partial_scores": modality.partial_scores or [],
