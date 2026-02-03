@@ -116,8 +116,8 @@ export default function Home() {
     fetch('/api/filters?type=states')
       .then(res => res.json())
       .then(data => {
-        setOptions(prev => ({ ...prev, states: data }));
-        setSystemStats(prev => ({ ...prev, totalStates: data.length }));
+        setOptions(prev => ({ ...prev, states: data.states || [] }));
+        setSystemStats(prev => ({ ...prev, totalStates: (data.states || []).length }));
       })
       .catch(console.error);
   }, []);
@@ -133,7 +133,7 @@ export default function Home() {
     fetch(`/api/filters?type=cities&state=${filters.state}`)
       .then(res => res.json())
       .then(data => {
-        setOptions(prev => ({ ...prev, cities: data, institutions: [], courses: [] }));
+        setOptions(prev => ({ ...prev, cities: data.cities || [], institutions: [], courses: [] }));
         setLoadingFilters(prev => ({ ...prev, cities: false }));
       });
   }, [filters.state]);
@@ -148,7 +148,7 @@ export default function Home() {
     fetch(`/api/filters?type=universities&state=${filters.state}&city=${filters.city}`)
       .then(res => res.json())
       .then(data => {
-        setOptions(prev => ({ ...prev, institutions: data, courses: [] }));
+        setOptions(prev => ({ ...prev, institutions: data.universities || [], courses: [] }));
         setLoadingFilters(prev => ({ ...prev, institutions: false }));
       });
   }, [filters.city]);
