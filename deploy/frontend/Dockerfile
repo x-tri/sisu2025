@@ -46,4 +46,6 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+# Use ENTRYPOINT to ensure it runs correctly
+ENTRYPOINT ["node"]
+CMD ["server.js"]
