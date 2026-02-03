@@ -252,31 +252,22 @@ async def get_filters():
         raise HTTPException(status_code=503, detail="Database not configured")
     
     try:
-        # Get distinct states
-        states = supabase._get(
+        # Get all courses to extract unique values
+        # Using larger limit to get more data
+        all_courses = supabase._get(
             "courses",
-            params={"select": "state", "order": "state", "limit": 100}
+            params={"select": "state,city,university", "limit": 10000}
         )
-        unique_states = list(set([s.get("state") for s in states if s.get("state")]))
         
-        # Get distinct cities (top 100)
-        cities = supabase._get(
-            "courses",
-            params={"select": "city,state", "order": "city", "limit": 100}
-        )
-        unique_cities = list(set([f"{c.get('city')}-{c.get('state')}" for c in cities if c.get("city")]))
-        
-        # Get distinct universities (top 100)
-        universities = supabase._get(
-            "courses",
-            params={"select": "university", "order": "university", "limit": 100}
-        )
-        unique_universities = list(set([u.get("university") for u in universities if u.get("university")]))
+        # Extract unique values
+        unique_states = sorted(list(set([c.get("state") for c in all_courses if c.get("state")])))
+        unique_cities = sorted(list(set([f"{c.get('city')}-{c.get('state')}" for c in all_courses if c.get("city") and c.get("state")])))
+        unique_universities = sorted(list(set([c.get("university") for c in all_courses if c.get("university")])))
         
         return {
-            "states": sorted(unique_states),
-            "cities": sorted(unique_cities)[:50],
-            "universities": sorted(unique_universities)[:50]
+            "states": unique_states,
+            "cities": unique_cities[:100],
+            "universities": unique_universities[:100]
         }
     
     except Exception as e:
