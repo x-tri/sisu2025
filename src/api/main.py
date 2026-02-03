@@ -247,7 +247,8 @@ async def get_course_students(
 
 @app.get("/api/filters")
 async def get_filters(
-    state: Optional[str] = Query(None, description="Filter cities by state")
+    state: Optional[str] = Query(None, description="Filter cities by state"),
+    city: Optional[str] = Query(None, description="Filter universities by city")
 ):
     """Get available filter options"""
     if not supabase:
@@ -262,6 +263,19 @@ async def get_filters(
         
         # Extract unique states (always return all)
         unique_states = sorted(list(set([c.get("state") for c in all_courses if c.get("state")])))
+        
+        # If city is provided, filter universities by state and city
+        if city and state:
+            # Get universities for the selected state and city
+            city_universities = sorted(list(set([
+                c.get("university") for c in all_courses 
+                if c.get("university") and c.get("city") == city and c.get("state") == state.upper()
+            ])))
+            return {
+                "states": unique_states,
+                "cities": [city],
+                "universities": city_universities
+            }
         
         # If state is provided, filter cities by that state
         if state:
