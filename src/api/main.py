@@ -246,22 +246,41 @@ async def get_course_students(
 
 
 @app.get("/api/filters")
-async def get_filters():
+async def get_filters(
+    state: Optional[str] = Query(None, description="Filter cities by state")
+):
     """Get available filter options"""
     if not supabase:
         raise HTTPException(status_code=503, detail="Database not configured")
     
     try:
         # Get all courses to extract unique values
-        # Using larger limit to get more data
         all_courses = supabase._get(
             "courses",
             params={"select": "state,city,university", "limit": 10000}
         )
         
-        # Extract unique values
+        # Extract unique states (always return all)
         unique_states = sorted(list(set([c.get("state") for c in all_courses if c.get("state")])))
-        unique_cities = sorted(list(set([f"{c.get('city')}-{c.get('state')}" for c in all_courses if c.get("city") and c.get("state")])))
+        
+        # If state is provided, filter cities by that state
+        if state:
+            # Get cities only for the selected state
+            state_cities = sorted(list(set([
+                c.get("city") for c in all_courses 
+                if c.get("city") and c.get("state") == state.upper()
+            ])))
+            return {
+                "states": unique_states,
+                "cities": state_cities,
+                "universities": []
+            }
+        
+        # Return all cities with state suffix for initial load
+        unique_cities = sorted(list(set([
+            f"{c.get('city')}-{c.get('state')}" for c in all_courses 
+            if c.get("city") and c.get("state")
+        ])))
         unique_universities = sorted(list(set([c.get("university") for c in all_courses if c.get("university")])))
         
         return {
