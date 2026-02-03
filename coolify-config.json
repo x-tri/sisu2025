@@ -1,0 +1,83 @@
+{
+  "project": "x-sisu-2026",
+  "resources": [
+    {
+      "name": "sisu-backend",
+      "type": "dockerfile",
+      "repository": "https://github.com/x-tri/sisu2025",
+      "branch": "main",
+      "dockerfile": "deploy/backend/Dockerfile",
+      "port": 8000,
+      "healthcheck": {
+        "path": "/health",
+        "port": 8000
+      },
+      "environment": [
+        {
+          "key": "SUPABASE_URL",
+          "value": "https://sisymqzxvuktdcbsbpbp.supabase.co"
+        },
+        {
+          "key": "SUPABASE_SERVICE_KEY",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODYwNTk0MSwiZXhwIjoyMDg0MTgxOTQxfQ.yDWKET6qMOKukkFrRGL8UW4C4qK4BtcVmoJQpI2lG9o"
+        },
+        {
+          "key": "SUPABASE_ANON_KEY",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MDU5NDEsImV4cCI6MjA4NDE4MTk0MX0.2K4q_hByFphlTu83IM-hvkyzNHL_k1SULSoITIdo5oE"
+        },
+        {
+          "key": "PYTHONUNBUFFERED",
+          "value": "1"
+        },
+        {
+          "key": "PYTHONDONTWRITEBYTECODE",
+          "value": "1"
+        },
+        {
+          "key": "TZ",
+          "value": "America/Sao_Paulo"
+        }
+      ]
+    },
+    {
+      "name": "sisu-frontend",
+      "type": "dockerfile",
+      "repository": "https://github.com/x-tri/sisu2025",
+      "branch": "main",
+      "base_directory": "web",
+      "dockerfile": "../deploy/frontend/Dockerfile",
+      "port": 3000,
+      "build_arguments": [
+        {
+          "key": "NEXT_PUBLIC_SUPABASE_URL",
+          "value": "https://sisymqzxvuktdcbsbpbp.supabase.co"
+        },
+        {
+          "key": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MDU5NDEsImV4cCI6MjA4NDE4MTk0MX0.2K4q_hByFphlTu83IM-hvkyzNHL_k1SULSoITIdo5oE"
+        }
+      ],
+      "environment": [
+        {
+          "key": "NODE_ENV",
+          "value": "production"
+        }
+      ]
+    },
+    {
+      "name": "sisu-nginx",
+      "type": "docker-compose",
+      "image": "nginx:alpine",
+      "port": 80,
+      "volumes": [
+        {
+          "host": "deploy/nginx/nginx.conf",
+          "container": "/etc/nginx/nginx.conf",
+          "read_only": true
+        }
+      ],
+      "domain": "sisu2026.xtri.com.br",
+      "https": true
+    }
+  ]
+}

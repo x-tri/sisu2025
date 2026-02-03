@@ -1,0 +1,63 @@
+# XTRI SISU 2026 - Docker Compose para Coolify
+# Este arquivo pode ser usado diretamente no Coolify como "Docker Compose"
+
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: deploy/backend/Dockerfile
+    container_name: sisu-backend
+    restart: unless-stopped
+    expose:
+      - "8000"
+    environment:
+      - SUPABASE_URL=https://sisymqzxvuktdcbsbpbp.supabase.co
+      - SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODYwNTk0MSwiZXhwIjoyMDg0MTgxOTQxfQ.yDWKET6qMOKukkFrRGL8UW4C4qK4BtcVmoJQpI2lG9o
+      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MDU5NDEsImV4cCI6MjA4NDE4MTk0MX0.2K4q_hByFphlTu83IM-hvkyzNHL_k1SULSoITIdo5oE
+      - PYTHONUNBUFFERED=1
+      - TZ=America/Sao_Paulo
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - sisu-network
+
+  frontend:
+    build:
+      context: ./web
+      dockerfile: ../deploy/frontend/Dockerfile
+      args:
+        - NEXT_PUBLIC_SUPABASE_URL=https://sisymqzxvuktdcbsbpbp.supabase.co
+        - NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MDU5NDEsImV4cCI6MjA4NDE4MTk0MX0.2K4q_hByFphlTu83IM-hvkyzNHL_k1SULSoITIdo5oE
+    container_name: sisu-frontend
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - sisu-network
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:alpine
+    container_name: sisu-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - sisu-network
+    depends_on:
+      - backend
+      - frontend
+
+networks:
+  sisu-network:
+    driver: bridge
