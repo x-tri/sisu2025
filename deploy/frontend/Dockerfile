@@ -38,14 +38,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 # Copy necessary files from builder
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-
-# Copy the standalone build
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-
-# Install only production dependencies
-RUN npm ci --only=production
 
 EXPOSE 3000
 
