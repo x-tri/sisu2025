@@ -1,0 +1,63 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.pytest_cache
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data (não incluir no build)
+data/raw/
+data/processed/
+data/history/
+data/exports/
+logs/
+*.log
+
+# Node.js
+node_modules/
+.next/
+npm-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Documentation
+*.md
+!README.md
+DEPLOY*.md
+FRONTEND_AUDIT.md
+WAITING_MODE.md
+
+# Scripts de deploy
+*.sh
+!deploy-vps.sh
+
+# Test files
+tests/
+.pytest_cache/
+
+# Misc
+.DS_Store
+*.pem
+*.key

@@ -1,0 +1,59 @@
+# Coolify Configuration for XTRI SISU 2026
+# Domain: xtrisisu.com
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: xtrisisu-backend
+    restart: unless-stopped
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - PYTHONUNBUFFERED=1
+    networks:
+      - coolify
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.xtrisisu-backend.rule=Host(`api.xtrisisu.com`)"
+      - "traefik.http.routers.xtrisisu-backend.tls=true"
+      - "traefik.http.routers.xtrisisu-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.xtrisisu-backend.loadbalancer.server.port=8000"
+
+  frontend:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: xtrisisu-frontend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      - API_URL=https://api.xtrisisu.com
+    depends_on:
+      - backend
+    networks:
+      - coolify
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.xtrisisu-frontend.rule=Host(`xtrisisu.com`) || Host(`www.xtrisisu.com`)"
+      - "traefik.http.routers.xtrisisu-frontend.tls=true"
+      - "traefik.http.routers.xtrisisu-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.xtrisisu-frontend.loadbalancer.server.port=3000"
+
+networks:
+  coolify:
+    external: true
