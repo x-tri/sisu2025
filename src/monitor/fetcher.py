@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class CourseFetcher:
     """Fetches course data from MeuSISU API"""
 
-    def __init__(self, base_url: str = "https://meusisu.com/api", timeout: int = 30):
+    def __init__(self, base_url: str = "https://d3hf41n0t98fq2.cloudfront.net/api", timeout: int = 30):
         self.base_url = base_url
         self.timeout = timeout
         self.session = requests.Session()

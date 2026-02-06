@@ -27,7 +27,7 @@ from src.decoder.course import decode_course
 # Configuration
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://sisymqzxvuktdcbsbpbp.supabase.co")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
-MEUSISU_API = "https://meusisu.com/api"
+MEUSISU_API = "https://d3hf41n0t98fq2.cloudfront.net/api"
 
 # Monitoring settings
 CHECK_INTERVAL_MINUTES = 15  # Check every 15 minutes

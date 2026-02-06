@@ -25,7 +25,7 @@ class Config:
     critical_poll_interval: int = 60
 
     # API
-    api_base_url: str = "https://meusisu.com/api"
+    api_base_url: str = "https://d3hf41n0t98fq2.cloudfront.net/api"
     api_timeout: int = 30
 
     # Paths
