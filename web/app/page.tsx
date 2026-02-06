@@ -116,8 +116,9 @@ export default function Home() {
     fetch('/api/filters?type=states')
       .then(res => res.json())
       .then(data => {
-        setOptions(prev => ({ ...prev, states: data.states || [] }));
-        setSystemStats(prev => ({ ...prev, totalStates: (data.states || []).length }));
+        const states = Array.isArray(data) ? data : (data.states || []);
+        setOptions(prev => ({ ...prev, states }));
+        setSystemStats(prev => ({ ...prev, totalStates: states.length }));
       })
       .catch(console.error);
   }, []);
@@ -133,7 +134,8 @@ export default function Home() {
     fetch(`/api/filters?type=cities&state=${filters.state}`)
       .then(res => res.json())
       .then(data => {
-        setOptions(prev => ({ ...prev, cities: data.cities || [], institutions: [], courses: [] }));
+        const cities = Array.isArray(data) ? data : (data.cities || []);
+        setOptions(prev => ({ ...prev, cities, institutions: [], courses: [] }));
         setLoadingFilters(prev => ({ ...prev, cities: false }));
       });
   }, [filters.state]);
@@ -148,7 +150,8 @@ export default function Home() {
     fetch(`/api/filters?type=universities&state=${filters.state}&city=${filters.city}`)
       .then(res => res.json())
       .then(data => {
-        setOptions(prev => ({ ...prev, institutions: data.universities || [], courses: [] }));
+        const institutions = Array.isArray(data) ? data : (data.universities || []);
+        setOptions(prev => ({ ...prev, institutions, courses: [] }));
         setLoadingFilters(prev => ({ ...prev, institutions: false }));
       });
   }, [filters.city]);
