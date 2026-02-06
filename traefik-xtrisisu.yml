@@ -1,0 +1,35 @@
+http:
+  routers:
+    xtrisisu-http:
+      entryPoints:
+        - http
+      service: xtrisisu-frontend
+      rule: Host(`xtrisisu.com`) || Host(`www.xtrisisu.com`)
+    xtrisisu-https:
+      entryPoints:
+        - https
+      service: xtrisisu-frontend
+      rule: Host(`xtrisisu.com`) || Host(`www.xtrisisu.com`)
+      tls:
+        certresolver: letsencrypt
+    xtrisisu-api-http:
+      entryPoints:
+        - http
+      service: xtrisisu-backend
+      rule: Host(`api.xtrisisu.com`)
+    xtrisisu-api-https:
+      entryPoints:
+        - https
+      service: xtrisisu-backend
+      rule: Host(`api.xtrisisu.com`)
+      tls:
+        certresolver: letsencrypt
+  services:
+    xtrisisu-frontend:
+      loadBalancer:
+        servers:
+          - url: 'http://xtrisisu-frontend:3000'
+    xtrisisu-backend:
+      loadBalancer:
+        servers:
+          - url: 'http://xtrisisu-backend:8000'
