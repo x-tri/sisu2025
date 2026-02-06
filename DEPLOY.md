@@ -19,7 +19,7 @@ https://212.85.19.50:8000
 2. Selecione **"Docker Compose"**
 3. Preencha:
    - **Name:** xtrisisu-frontend
-   - **Domain:** sisu2025.rankingenem.com
+   - **Domain:** xtrisisu.com
    - **Repository:** https://github.com/x-tri/sisu2025.git
    - **Branch:** main
    - **Base Directory:** web
@@ -72,7 +72,7 @@ Adicionar labels no docker-compose.yml:
 ```yaml
 labels:
   - "traefik.enable=true"
-  - "traefik.http.routers.sisu2025.rule=Host(`sisu2025.rankingenem.com`)"
+  - "traefik.http.routers.sisu2025.rule=Host(`xtrisisu.com`)"
   - "traefik.http.routers.sisu2025.tls=true"
   - "traefik.http.routers.sisu2025.tls.certresolver=letsencrypt"
   - "traefik.http.services.sisu2025.loadbalancer.server.port=3000"
