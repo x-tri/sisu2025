@@ -20,10 +20,22 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
+      <head>
+        {/* Preconnect para Google Fonts - melhora performance */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body>
+        {/* Skip to content link para acessibilidade */}
+        <a href="#main-content" className="skip-link">
+          Pular para conteúdo principal
+        </a>
+        
         <ScoreProvider>
           <ModalityProvider>
-            {children}
+            <main id="main-content">
+              {children}
+            </main>
           </ModalityProvider>
         </ScoreProvider>
       </body>
