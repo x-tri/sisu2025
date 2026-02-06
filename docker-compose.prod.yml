@@ -1,19 +1,26 @@
 version: '3.8'
 
 services:
-  # Backend API
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
     container_name: xtrisisu-backend
     restart: unless-stopped
+    ports:
+      - "8001:8000"
     environment:
-      - SUPABASE_URL=${SUPABASE_URL:-https://sisymqzxvuktdcbsbpbp.supabase.co}
-      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - SUPABASE_URL=https://sisymqzxvuktdcbsbpbp.supabase.co
+      - SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODYwNTk0MSwiZXhwIjoyMDg0MTgxOTQxfQ.yDWKET6qMOKukkFrRGL8UW4C4qK4BtcVmoJQpI2lG9o
       - PYTHONUNBUFFERED=1
     networks:
-      - xtrisisu-network
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.xtrisisu-api.rule=Host(`api.xtrisisu.com`)"
+      - "traefik.http.routers.xtrisisu-api.entrypoints=http,https"
+      - "traefik.http.routers.xtrisisu-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.xtrisisu-api.loadbalancer.server.port=8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -21,21 +28,28 @@ services:
       retries: 3
       start_period: 10s
 
-  # Frontend Next.js
   frontend:
     build:
       context: ./web
       dockerfile: Dockerfile
     container_name: xtrisisu-frontend
     restart: unless-stopped
+    ports:
+      - "3001:3000"
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
-      - API_URL=http://backend:8000
+      - API_URL=https://api.xtrisisu.com
     depends_on:
       - backend
     networks:
-      - xtrisisu-network
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.xtrisisu.rule=Host(`xtrisisu.com`) || Host(`www.xtrisisu.com`)"
+      - "traefik.http.routers.xtrisisu.entrypoints=http,https"
+      - "traefik.http.routers.xtrisisu.tls.certresolver=letsencrypt"
+      - "traefik.http.services.xtrisisu.loadbalancer.server.port=3000"
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
       interval: 30s
@@ -44,5 +58,5 @@ services:
       start_period: 40s
 
 networks:
-  xtrisisu-network:
-    driver: bridge
+  coolify:
+    external: true
