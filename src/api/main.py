@@ -173,7 +173,7 @@ async def get_courses(
 
 @app.get("/api/courses/{code}")
 async def get_course_by_code(code: int):
-    """Get course by SISU code"""
+    """Get course by SISU code with cut scores"""
     if not supabase:
         raise HTTPException(status_code=503, detail="Database not configured")
     
@@ -181,7 +181,51 @@ async def get_course_by_code(code: int):
         course = supabase.get_course_by_code(code)
         if not course:
             raise HTTPException(status_code=404, detail="Course not found")
-        return course
+        
+        # Get cut scores and weights for this course
+        course_id = course.get("id")
+        cut_scores = []
+        weights = None
+        
+        if course_id:
+            # Get cut scores for years 2024, 2025, 2026
+            for year in [2024, 2025, 2026]:
+                year_scores = supabase.get_latest_cut_scores(course_id, year)
+                if year_scores:
+                    cut_scores.append({
+                        "year": year,
+                        "modalities": year_scores
+                    })
+            
+            # Get weights for 2026 (or latest available)
+            for year in [2026, 2025, 2024]:
+                weights_data = supabase.get_weights(course_id, year)
+                if weights_data:
+                    # Transform to frontend expected format
+                    weights = {
+                        "pesos": {
+                            "redacao": weights_data.get("peso_red", 1),
+                            "linguagens": weights_data.get("peso_ling", 1),
+                            "matematica": weights_data.get("peso_mat", 1),
+                            "humanas": weights_data.get("peso_ch", 1),
+                            "natureza": weights_data.get("peso_cn", 1)
+                        },
+                        "notas_minimas": {
+                            "redacao": weights_data.get("min_red", 0),
+                            "linguagens": weights_data.get("min_ling", 0),
+                            "matematica": weights_data.get("min_mat", 0),
+                            "humanas": weights_data.get("min_ch", 0),
+                            "natureza": weights_data.get("min_cn", 0)
+                        },
+                        "year": year
+                    }
+                    break
+        
+        return {
+            "course": course,
+            "cut_scores": cut_scores,
+            "weights": weights
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -256,11 +300,28 @@ async def get_filters(
         raise HTTPException(status_code=503, detail="Database not configured")
     
     try:
-        # Get all courses to extract unique values
-        all_courses = supabase._get(
-            "courses",
-            params={"select": "id,code,name,state,city,university", "limit": 10000}
-        )
+        # Get all courses to extract unique values (with pagination, max 100 per request)
+        all_courses = []
+        offset = 0
+        batch_size = 100
+        max_courses = 20000  # Safety limit
+        
+        while len(all_courses) < max_courses:
+            batch = supabase._get(
+                "courses",
+                params={
+                    "select": "id,code,name,state,city,university,degree,schedule",
+                    "limit": batch_size,
+                    "offset": offset,
+                    "order": "id"
+                }
+            )
+            if not batch:
+                break
+            all_courses.extend(batch)
+            if len(batch) < batch_size:
+                break
+            offset += batch_size
         
         # Extract unique states (always return all)
         unique_states = sorted(list(set([c.get("state") for c in all_courses if c.get("state")])))
@@ -272,10 +333,12 @@ async def get_filters(
                 {
                     "id": c.get("id"),
                     "code": c.get("code"),
-                    "name": c.get("name")
+                    "name": c.get("name"),
+                    "degree": c.get("degree"),
+                    "schedule": c.get("schedule")
                 }
                 for c in all_courses 
-                if c.get("university") == university and c.get("city") == city and c.get("state") == state.upper()
+                if c.get("university", "").upper() == university.upper() and c.get("city", "").upper() == city.upper() and c.get("state", "").upper() == state.upper()
             ]
             return {
                 "states": unique_states,
@@ -289,7 +352,7 @@ async def get_filters(
             # Get universities for the selected state and city
             city_universities = sorted(list(set([
                 c.get("university") for c in all_courses 
-                if c.get("university") and c.get("city") == city and c.get("state") == state.upper()
+                if c.get("university") and c.get("city", "").upper() == city.upper() and c.get("state", "").upper() == state.upper()
             ])))
             return {
                 "states": unique_states,
@@ -303,7 +366,7 @@ async def get_filters(
             # Get cities only for the selected state
             state_cities = sorted(list(set([
                 c.get("city") for c in all_courses 
-                if c.get("city") and c.get("state") == state.upper()
+                if c.get("city") and c.get("state", "").upper() == state.upper()
             ])))
             return {
                 "states": unique_states,
@@ -321,8 +384,8 @@ async def get_filters(
         
         return {
             "states": unique_states,
-            "cities": unique_cities[:100],
-            "universities": unique_universities[:100],
+            "cities": unique_cities,
+            "universities": unique_universities,
             "courses": []
         }
     

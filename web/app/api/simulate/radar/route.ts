@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
                 let match = null;
 
                 if (modalityCode === 'ampla') {
-                    match = yearModalities.find((m: any) => m.modality_name.toLowerCase().includes('ampla'));
+                    match = yearModalities.find((m: any) => m.modality_name?.toLowerCase().includes('ampla'));
                 } else if (modalityCode === 'deficiencia') {
                     match = yearModalities.find((m: any) =>
                         ['L9', 'L10', 'L13', 'L14', 'deficiencia'].includes(m._derivedCode)

@@ -201,7 +201,7 @@ export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
 
                         // Fallback to Ampla if no match
                         if (!latestCutScore) {
-                            const ampla = allModalities.find(m => m.modality_name.toLowerCase().includes('ampla'));
+                            const ampla = allModalities.find(m => m.modality_name?.toLowerCase().includes('ampla'));
                             if (ampla) {
                                 latestCutScore = { ...ampla, year: latestYear };
                             }
@@ -319,7 +319,7 @@ export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
                     >
                         <option value="">{loading.courses ? 'Carregando...' : 'Selecione o curso'}</option>
                         {options.courses.map(course => (
-                            <option key={course.id} value={course.id}>{course.name} - {course.degree}</option>
+                            <option key={course.id} value={course.id}>{course.name}{course.degree ? ` - ${course.degree}` : ''}</option>
                         ))}
                     </select>
                 </div>

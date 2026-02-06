@@ -96,7 +96,7 @@ export function getModalityCode(modalityName: string): string {
 // Function to match user-selected modality to database modality
 export function matchModality<T extends { modality_name: string; modality_code?: string }>(selectedCode: string, availableModalities: T[]): T | null {
     if (selectedCode === 'ampla') {
-        return availableModalities.find(m => m.modality_name.toLowerCase().includes('ampla')) || null;
+        return availableModalities.find(m => m.modality_name?.toLowerCase().includes('ampla')) || null;
     }
 
     // Generic PCD wildcard: if user selects 'deficiencia', match any specific PCD quota

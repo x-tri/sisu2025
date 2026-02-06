@@ -163,9 +163,8 @@ export default function Home() {
     fetch(`/api/filters?type=courses&state=${filters.state}&city=${filters.city}&university=${filters.institution}`)
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) {
-          setOptions(prev => ({ ...prev, courses: data }));
-        }
+        const courses = data.courses || (Array.isArray(data) ? data : []);
+        setOptions(prev => ({ ...prev, courses }));
         setLoadingFilters(prev => ({ ...prev, courses: false }));
       });
   }, [filters.institution]);
@@ -228,8 +227,8 @@ export default function Home() {
             // 1. Try exact match or code match
             const mappedObjs = modalities.map((m: any) => ({
               ...m,
-              modality_name: m.name, // ensure property name matches what matchModality expects
-              modality_code: getModalityCode(m.name) // optional, matchModality can derive it
+              name: m.modality_name, // API returns modality_name, normalize to name for matchModality
+              modality_code: getModalityCode(m.modality_name) // derive code from name
             }));
 
             const match = matchModality(targetModality, mappedObjs);
@@ -822,7 +821,7 @@ export default function Home() {
                 >
                   <option value="">{loadingFilters.courses ? 'Carregando...' : 'Selecione'}</option>
                   {options.courses.map(c => (
-                    <option key={c.id} value={c.id}>{c.name} - {c.degree} - {c.schedule}</option>
+                    <option key={c.id} value={c.id}>{c.name}{c.degree ? ` - ${c.degree}` : ''}{c.schedule ? ` - ${c.schedule}` : ''}</option>
                   ))}
                 </select>
               </div>
