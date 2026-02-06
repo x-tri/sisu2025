@@ -65,6 +65,22 @@ except ValueError as e:
     supabase = None
 
 
+@app.get("/")
+async def root():
+    """Root endpoint - redirects to API documentation"""
+    return {
+        "message": "XTRI SISU 2026 API",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "health": "/health",
+        "endpoints": {
+            "courses": "/api/courses",
+            "filters": "/api/filters",
+            "simulate": "/api/simulate"
+        }
+    }
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
