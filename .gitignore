@@ -40,3 +40,8 @@ logs/*.log
 *.tmp
 *.bak
 .tmp/
+
+# Playwright
+playwright-report/
+test-results/
+blob-report/

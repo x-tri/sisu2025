@@ -43,6 +43,7 @@ interface SimulateResponse {
     cut_score: number | null
     difference: number | null
     status: 'above' | 'below' | 'equal' | 'unknown'
+    verification: 'unverified'
   }[]
   meets_minimums: boolean
   minimum_issues?: string[]
@@ -60,6 +61,13 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json(
+      { error: 'Invalid request body' },
+      { status: 400 }
+    )
+  }
+
   // Validate scores
   const { scores, course_code, weights: customWeights } = body
 
@@ -72,7 +80,12 @@ export async function POST(request: NextRequest) {
 
   const requiredFields = ['redacao', 'linguagens', 'matematica', 'humanas', 'natureza'] as const
   for (const field of requiredFields) {
-    if (typeof scores[field] !== 'number' || scores[field] < 0 || scores[field] > 1000) {
+    if (
+      typeof scores[field] !== 'number'
+      || !Number.isFinite(scores[field])
+      || scores[field] < 0
+      || scores[field] > 1000
+    ) {
       return NextResponse.json(
         { error: `Invalid score for ${field}: must be a number between 0 and 1000` },
         { status: 400 }
@@ -100,12 +113,27 @@ export async function POST(request: NextRequest) {
         // Get latest weights
         const latestWeights = result.data.weights[0]
         if (latestWeights && !customWeights) {
+          const storedWeights = [
+            latestWeights.peso_red,
+            latestWeights.peso_ling,
+            latestWeights.peso_mat,
+            latestWeights.peso_ch,
+            latestWeights.peso_cn,
+          ]
+          if (storedWeights.some(weight => (
+            typeof weight !== 'number' || !Number.isFinite(weight) || weight < 0
+          ))) {
+            return NextResponse.json(
+              { error: 'WEIGHTS_UNAVAILABLE', code: 'WEIGHTS_UNAVAILABLE' },
+              { status: 422 }
+            )
+          }
           weights = {
-            redacao: latestWeights.peso_red || 1,
-            linguagens: latestWeights.peso_ling || 1,
-            matematica: latestWeights.peso_mat || 1,
-            humanas: latestWeights.peso_ch || 1,
-            natureza: latestWeights.peso_cn || 1,
+            redacao: latestWeights.peso_red as number,
+            linguagens: latestWeights.peso_ling as number,
+            matematica: latestWeights.peso_mat as number,
+            humanas: latestWeights.peso_ch as number,
+            natureza: latestWeights.peso_cn as number,
           }
           minimums = {
             redacao: latestWeights.min_red,
@@ -130,20 +158,33 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Use default weights if none provided
+    // Never invent equal weights when neither the caller nor the course supplied them.
     if (!weights) {
-      weights = {
-        redacao: 1,
-        linguagens: 1,
-        matematica: 1,
-        humanas: 1,
-        natureza: 1,
-      }
+      return NextResponse.json(
+        { error: 'WEIGHTS_UNAVAILABLE', code: 'WEIGHTS_UNAVAILABLE' },
+        { status: 422 }
+      )
+    }
+
+    const providedWeights = Object.values(weights)
+    if (providedWeights.some(weight => (
+      typeof weight !== 'number' || !Number.isFinite(weight) || weight < 0
+    ))) {
+      return NextResponse.json(
+        { error: 'Invalid weights: expected finite values greater than or equal to zero' },
+        { status: 400 }
+      )
     }
 
     // Calculate weighted average
     const totalWeight = weights.redacao + weights.linguagens + weights.matematica +
       weights.humanas + weights.natureza
+    if (totalWeight <= 0) {
+      return NextResponse.json(
+        { error: 'WEIGHTS_ZERO_DENOMINATOR', code: 'WEIGHTS_ZERO_DENOMINATOR' },
+        { status: 422 }
+      )
+    }
 
     const weightedSum = (scores.redacao * weights.redacao) +
       (scores.linguagens * weights.linguagens) +
@@ -165,7 +206,7 @@ export async function POST(request: NextRequest) {
     }
 
     for (const [area, minScore] of Object.entries(minimums)) {
-      if (minScore && scoreMap[area] < minScore) {
+      if (minScore !== null && minScore !== undefined && scoreMap[area] < minScore) {
         minimumIssues.push(`${area}: ${scoreMap[area]} < ${minScore}`)
       }
     }
@@ -176,18 +217,12 @@ export async function POST(request: NextRequest) {
       let status: 'above' | 'below' | 'equal' | 'unknown' = 'unknown'
       let difference: number | null = null
 
-      if (cutScore !== null) {
-        difference = Math.round((mediaPonderada - cutScore) * 100) / 100
-        if (difference > 0) status = 'above'
-        else if (difference < 0) status = 'below'
-        else status = 'equal'
-      }
-
       return {
         modality: cs.modality_name,
         cut_score: cutScore,
         difference,
         status,
+        verification: 'unverified' as const,
       }
     })
 

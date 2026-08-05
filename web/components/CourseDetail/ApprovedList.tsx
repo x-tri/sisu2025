@@ -1,10 +1,9 @@
+'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import styles from './ApprovedList.module.css';
 
 interface ApprovedStudent {
-    id: number;
-    course_id: number;
     year: number;
     modality_code: number;
     rank: number;
@@ -12,7 +11,19 @@ interface ApprovedStudent {
     score: number;
     bonus: number;
     call_number: number;
-    status: string;
+}
+
+interface ApprovedListResponse {
+    available: boolean;
+    reason?: string;
+    message?: string;
+    error?: string;
+    students?: ApprovedStudent[];
+    count?: number | null;
+    page?: number;
+    limit?: number;
+    hasMore?: boolean;
+    year?: number | null;
 }
 
 interface ApprovedListProps {
@@ -22,137 +33,203 @@ interface ApprovedListProps {
     year: number;
 }
 
-export function ApprovedList({ courseCode, cutScore, vacancies, year }: ApprovedListProps) {
+type ListStatus = 'loading' | 'available' | 'unavailable' | 'error';
+
+export function ApprovedList({ courseCode, cutScore, year }: ApprovedListProps) {
     const [page, setPage] = useState(1);
     const [students, setStudents] = useState<ApprovedStudent[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [status, setStatus] = useState<ListStatus>('loading');
     const [hasMore, setHasMore] = useState(false);
     const [error, setError] = useState('');
     const [actualYear, setActualYear] = useState<number | null>(null);
+    const [count, setCount] = useState<number | null>(null);
+    const [reloadKey, setReloadKey] = useState(0);
 
     useEffect(() => {
+        setPage(1);
+    }, [courseCode]);
+
+    useEffect(() => {
+        if (!courseCode) return;
+
+        const controller = new AbortController();
         const fetchStudents = async () => {
-            setLoading(true);
+            setStatus('loading');
+            setError('');
+            setStudents([]);
+            setHasMore(false);
+
             try {
-                const res = await fetch(`/api/courses/${courseCode}/students?page=${page}&limit=50`);
-                if (!res.ok) throw new Error('Failed to fetch students');
-                const data = await res.json();
-                setStudents(data.students);
-                setHasMore(data.hasMore);
-                // Use the year from the API response
-                if (data.year) {
-                    setActualYear(data.year);
+                const response = await fetch(
+                    `/api/courses/${courseCode}/students?page=${page}&limit=25`,
+                    { cache: 'no-store', signal: controller.signal },
+                );
+                const data = await response.json() as ApprovedListResponse;
+
+                if (data.available === false && data.reason === 'nominal_list_disabled') {
+                    setStatus('unavailable');
+                    setActualYear(null);
+                    setCount(null);
+                    return;
                 }
-            } catch (err) {
-                console.error(err);
-                setError('Erro ao carregar lista de aprovados');
-            } finally {
-                setLoading(false);
+                if (!response.ok || data.available !== true) {
+                    throw new Error(data.error || 'Não foi possível carregar a lista nominal.');
+                }
+
+                setStudents(Array.isArray(data.students) ? data.students : []);
+                setHasMore(Boolean(data.hasMore));
+                setActualYear(data.year ?? null);
+                setCount(typeof data.count === 'number' ? data.count : null);
+                setStatus('available');
+            } catch (requestError) {
+                if (requestError instanceof DOMException && requestError.name === 'AbortError') return;
+                console.error(requestError);
+                setStudents([]);
+                setHasMore(false);
+                setStatus('error');
+                setError(
+                    requestError instanceof Error
+                        ? requestError.message
+                        : 'Não foi possível carregar a lista nominal.',
+                );
             }
         };
 
-        if (courseCode) {
-            fetchStudents();
-        }
-    }, [courseCode, page]);
+        void fetchStudents();
+        return () => controller.abort();
+    }, [courseCode, page, reloadKey]);
 
-    const handleNextPage = () => setPage(p => p + 1);
-    const handlePrevPage = () => setPage(p => Math.max(1, p - 1));
+    const displayYear = actualYear ?? year;
+    const formattedCutScore = cutScore > 0
+        ? cutScore.toFixed(2).replace('.', ',')
+        : 'Não informada';
 
-    if (error) return <div className={styles.error}>{error}</div>;
+    if (status === 'unavailable') {
+        return (
+            <section className={styles.container} aria-labelledby="nominal-list-title">
+                <div className={styles.header}>
+                    <h3 id="nominal-list-title" className={styles.title}>Lista nominal indisponível</h3>
+                </div>
+                <div className={styles.unavailableState} role="status">
+                    <strong>A consulta por nome está desativada.</strong>
+                    <p>
+                        Para proteger dados pessoais, esta instalação não publica a relação nominal de
+                        candidatos. As notas de corte e estatísticas do curso continuam disponíveis.
+                    </p>
+                </div>
+            </section>
+        );
+    }
 
-    // Use actual year from data, or fallback to prop
-    const displayYear = actualYear || year;
-    const isReference = displayYear < 2025;
+    if (status === 'error') {
+        return (
+            <section className={styles.container} aria-labelledby="nominal-list-title">
+                <div className={styles.header}>
+                    <h3 id="nominal-list-title" className={styles.title}>Lista nominal</h3>
+                </div>
+                <div className={styles.error} role="alert">
+                    <p>{error}</p>
+                    <button type="button" onClick={() => setReloadKey((value) => value + 1)}>
+                        Tentar novamente
+                    </button>
+                </div>
+            </section>
+        );
+    }
 
     return (
-        <div className={styles.container}>
+        <section className={styles.container} aria-labelledby="nominal-list-title" aria-busy={status === 'loading'}>
             <div className={styles.header}>
-                <h3 className={styles.title}>
-                    Primeira chamada regular ({displayYear})
-                    {isReference ? (
-                        <span className={styles.badgeReference}>Referência 2024</span>
-                    ) : (
-                        <span className={styles.badgeOfficial}>Atual 2025</span>
-                    )}
+                <h3 id="nominal-list-title" className={styles.title}>
+                    Relação nominal ({displayYear})
+                    <span className={styles.badgeReference}>Base importada</span>
                 </h3>
             </div>
 
             <div className={styles.summary}>
-                <p>Nota de corte da chamada: <strong>{cutScore.toFixed(2).replace('.', ',')}</strong></p>
-                {/* Only show 'Nenhum inscrito' if we actually have NO students and it's 2025 */}
-                {students.length === 0 && !loading && displayYear === 2025 && (
-                    <p className={styles.classification}>Aguardando dados oficiais...</p>
-                )}
-                {students.length > 0 && (
-                    <p className={styles.classification}>Classificação Oficial</p>
-                )}
+                <p>Nota de corte de referência: <strong>{formattedCutScore}</strong></p>
+                {count !== null && <p>{count} registros na edição consultada</p>}
             </div>
 
-            <div className={styles.tableContainer}>
-                <table className={styles.table}>
-                    <thead>
-                        <tr>
-                            <th style={{ width: '50px' }}>Nº</th>
-                            <th style={{ width: '80px' }}>Opção</th>
-                            <th>Nome</th>
-                            <th>Nota</th>
-                            <th style={{ width: '40px' }}></th>
-                        </tr>
-                    </thead>
-                    <tbody style={{ opacity: loading ? 0.5 : 1 }}>
-                        {students.map((c) => (
-                            <tr key={c.rank} className={c.rank % 2 === 0 ? styles.evenRow : styles.oddRow}>
-                                <td className={styles.rank}>{c.rank}º</td>
-                                <td className={styles.option}>{c.modality_code}</td>
-                                <td className={styles.name}>{c.name}</td>
-                                <td className={styles.scoreRow}>
-                                    {c.score.toFixed(2).replace('.', ',')}
-                                    {c.bonus > 0 && <span className={styles.bonus}> (+{c.bonus}%)</span>}
-                                </td>
-                                <td className={styles.check}>
-                                    {/* Only show check if confirmed/registered? For now assume 'convocado' has check */}
-                                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
-                                        <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                </td>
-                            </tr>
-                        ))}
-                        {!loading && students.length === 0 && (
-                            <tr>
-                                <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>
-                                    Nenhum aluno encontrado.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+            {status === 'loading' ? (
+                <div className={styles.loadingState} role="status" aria-live="polite">
+                    Carregando registros nominais...
+                </div>
+            ) : (
+                <>
+                    <div className={styles.tableContainer}>
+                        <table className={styles.table}>
+                            <caption className={styles.srOnly}>
+                                Relação nominal importada para o curso na edição {displayYear}
+                            </caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Posição</th>
+                                    <th scope="col">Modalidade</th>
+                                    <th scope="col">Nome</th>
+                                    <th scope="col">Nota</th>
+                                    <th scope="col">Chamada</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {students.map((student) => (
+                                    <tr
+                                        key={`${student.call_number}-${student.modality_code}-${student.rank}`}
+                                        className={student.rank % 2 === 0 ? styles.evenRow : styles.oddRow}
+                                    >
+                                        <td className={styles.rank}>{student.rank}º</td>
+                                        <td className={styles.option}>{student.modality_code}</td>
+                                        <td className={styles.name}>{student.name}</td>
+                                        <td className={styles.scoreRow}>
+                                            {student.score.toFixed(2).replace('.', ',')}
+                                            {student.bonus > 0 && (
+                                                <span className={styles.bonus}> (+{student.bonus}%)</span>
+                                            )}
+                                        </td>
+                                        <td className={styles.rank}>{student.call_number}ª</td>
+                                    </tr>
+                                ))}
+                                {students.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className={styles.emptyCell}>
+                                            Nenhum registro nominal disponível nesta edição.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
 
-            <div className={styles.pagination}>
-                <button
-                    className={styles.pageBtn}
-                    onClick={handlePrevPage}
-                    disabled={page === 1 || loading}
-                >
-                    &lt;
-                </button>
-                <button className={`${styles.pageBtn} ${styles.active}`}>{page}</button>
-                <button
-                    className={styles.pageBtn}
-                    onClick={handleNextPage}
-                    disabled={!hasMore || loading}
-                >
-                    &gt;
-                </button>
-            </div>
+                    <nav className={styles.pagination} aria-label="Paginação da lista nominal">
+                        <button
+                            type="button"
+                            className={styles.pageBtn}
+                            onClick={() => setPage((value) => Math.max(1, value - 1))}
+                            disabled={page === 1}
+                            aria-label="Página anterior"
+                        >
+                            &lt;
+                        </button>
+                        <span className={`${styles.pageBtn} ${styles.active}`} aria-current="page">
+                            {page}
+                        </span>
+                        <button
+                            type="button"
+                            className={styles.pageBtn}
+                            onClick={() => setPage((value) => value + 1)}
+                            disabled={!hasMore || page >= 100}
+                            aria-label="Próxima página"
+                        >
+                            &gt;
+                        </button>
+                    </nav>
 
-            <div className={styles.footer}>
-                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
-                    <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span>Candidato convocado nessa chamada</span>
-            </div>
-        </div>
+                    <div className={styles.footer}>
+                        Relação reproduzida de uma base importada. Confirme o resultado nos canais da
+                        instituição responsável.
+                    </div>
+                </>
+            )}
+        </section>
     );
 }

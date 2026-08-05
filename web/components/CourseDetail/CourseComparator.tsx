@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import styles from './CourseComparator.module.css';
-import { useModality, matchModality } from '../../context/ModalityContext';
+import { useModality } from '../../context/ModalityContext';
+import { getEffectiveCutoff } from '../../lib/course-selection';
+import type { CourseReference, VerificationStatus } from '../../types/course';
 
 interface CourseComparatorProps {
     baseCourse: any; // CoursePreview
@@ -19,8 +21,9 @@ interface FullCourseDetails {
     state: string;
     degree: string;
     schedule: string;
-    cut_score: number;
-    cut_score_year: number;
+    cut_score: number | null;
+    cut_score_year: number | null;
+    verification: VerificationStatus;
 }
 
 export default function CourseComparator({ baseCourse, userScore, isOpen, onClose }: CourseComparatorProps) {
@@ -36,6 +39,15 @@ export default function CourseComparator({ baseCourse, userScore, isOpen, onClos
     const [compCourseId, setCompCourseId] = useState('');
     const [options, setOptions] = useState({ state: [], uni: [], course: [], cities: [] });
 
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') onClose();
+        };
+        document.addEventListener('keydown', handleEscape);
+        return () => document.removeEventListener('keydown', handleEscape);
+    }, [isOpen, onClose]);
+
     // Fetch Base Course Full Details on Open
     useEffect(() => {
         if (!isOpen || !baseCourse?.code) return;
@@ -45,26 +57,11 @@ export default function CourseComparator({ baseCourse, userScore, isOpen, onClos
                 const res = await fetch(`/api/courses/${baseCourse.code}`);
                 const data = await res.json();
 
-                // Find latest cut score (Ampla Concorrencia)
-                let cutScore = 0;
-                let year = 0;
-
-                // Try to find the same year as the preview if possible, or latest
-                const targetYear = baseCourse.cut_score_year || 2025;
-                const yearGroup = data.cut_scores.find((y: any) => y.year === targetYear) || data.cut_scores[0];
-
-                if (yearGroup) {
-                    // Match selected modality or fallback
-                    const matched = matchModality(selectedModality, yearGroup.modalities.map((m: any) => ({
-                        ...m,
-                        modality_name: m.name
-                    })) as { modality_name: string; cut_score: number;[key: string]: any }[]);
-
-                    if (matched) {
-                        cutScore = matched.cut_score;
-                        year = yearGroup.year;
-                    }
-                }
+                const targetYear = baseCourse.cut_score_year;
+                const reference = (data.references as CourseReference[]).find(item => (
+                    item.edition === targetYear && item.modalityId === selectedModality
+                ));
+                const cutScore = reference ? getEffectiveCutoff(reference) : null;
 
                 setBaseDetails({
                     name: data.course.name,
@@ -75,7 +72,8 @@ export default function CourseComparator({ baseCourse, userScore, isOpen, onClos
                     degree: data.course.degree,
                     schedule: data.course.schedule,
                     cut_score: cutScore,
-                    cut_score_year: year
+                    cut_score_year: reference?.edition ?? null,
+                    verification: reference?.verification.status ?? 'unverified',
                 });
             } catch (err) {
                 console.error("Error fetching base details:", err);
@@ -131,22 +129,10 @@ export default function CourseComparator({ baseCourse, userScore, isOpen, onClos
             const res = await fetch(`/api/courses/${courseRef.code}`);
             const data = await res.json();
 
-            let cutScore = 0;
-            let year = 0;
-            // Get latest available
-            const latest = data.cut_scores[0];
-            if (latest) {
-                // Match selected modality for the comparison course too
-                const matched = matchModality(selectedModality, latest.modalities?.map((m: any) => ({
-                    ...m,
-                    modality_name: m.name
-                })) as { modality_name: string; cut_score: number;[key: string]: any }[] || []);
-
-                if (matched) {
-                    cutScore = matched.cut_score;
-                    year = latest.year;
-                }
-            }
+            const reference = (data.references as CourseReference[]).find(item => (
+                item.edition === baseDetails?.cut_score_year && item.modalityId === selectedModality
+            ));
+            const cutScore = reference ? getEffectiveCutoff(reference) : null;
 
 
             setCompDetails({
@@ -158,7 +144,8 @@ export default function CourseComparator({ baseCourse, userScore, isOpen, onClos
                 degree: data.course.degree,
                 schedule: data.course.schedule,
                 cut_score: cutScore,
-                cut_score_year: year
+                cut_score_year: reference?.edition ?? null,
+                verification: reference?.verification.status ?? 'unverified',
             });
 
         } catch (err) {
@@ -178,11 +165,13 @@ export default function CourseComparator({ baseCourse, userScore, isOpen, onClos
     };
 
     return (
-        <div className={styles.overlay}>
-            <div className={styles.modal}>
+        <div className={styles.overlay} onMouseDown={(event) => {
+            if (event.currentTarget === event.target) onClose();
+        }}>
+            <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="course-comparator-title">
                 <div className={styles.header}>
-                    <div className={styles.title}>⚖️ Comparador de Cursos</div>
-                    <button className={styles.closeButton} onClick={onClose}>✕</button>
+                    <div className={styles.title} id="course-comparator-title">⚖️ Comparador de Cursos</div>
+                    <button className={styles.closeButton} onClick={onClose} aria-label="Fechar comparador">✕</button>
                 </div>
 
                 <div className={styles.content}>
@@ -201,15 +190,16 @@ export default function CourseComparator({ baseCourse, userScore, isOpen, onClos
                                     <div className={styles.metricsContainer}>
                                         <div className={styles.metricRow}>
                                             <span className={styles.metricLabel}>Nota de Corte ({baseDetails.cut_score_year})</span>
-                                            <span className={styles.metricValue}>{(baseDetails.cut_score || 0).toFixed(2)}</span>
+                                            <span className={styles.metricValue}>
+                                                {baseDetails.cut_score === null ? 'Sem referência' : baseDetails.cut_score.toFixed(2)}
+                                            </span>
                                         </div>
 
-                                        {userScore > 0 && (
+                                        {userScore > 0 && baseDetails.cut_score !== null && baseDetails.verification === 'verified' && (
                                             <div className={`${styles.metricRow} ${styles.userScoreRow}`}>
-                                                <span className={styles.metricLabel}>Sua Chance</span>
+                                                <span className={styles.metricLabel}>Margem para a referência</span>
                                                 <span className={`${styles.metricValue} ${userScore >= baseDetails.cut_score ? styles.passing : styles.failing}`}>
-                                                    {userScore >= baseDetails.cut_score ? 'APROVA' : 'REPROVA'}
-                                                    <small>({getDiff(userScore, baseDetails.cut_score)})</small>
+                                                    {getDiff(userScore, baseDetails.cut_score)} pontos
                                                 </span>
                                             </div>
                                         )}
@@ -239,9 +229,16 @@ export default function CourseComparator({ baseCourse, userScore, isOpen, onClos
                                     <div className={styles.metricsContainer}>
                                         <div className={styles.metricRow}>
                                             <span className={styles.metricLabel}>Nota de Corte ({compDetails.cut_score_year})</span>
-                                            <span className={`${styles.metricValue} ${compDetails.cut_score < (baseDetails?.cut_score || 0) ? styles.better : ''}`}>
-                                                {(compDetails.cut_score || 0).toFixed(2)}
-                                                {baseDetails && (
+                                            <span className={`${styles.metricValue} ${
+                                                compDetails.cut_score !== null
+                                                && baseDetails?.cut_score !== null
+                                                && baseDetails?.cut_score !== undefined
+                                                && compDetails.cut_score < baseDetails.cut_score
+                                                    ? styles.better
+                                                    : ''
+                                            }`}>
+                                                {compDetails.cut_score === null ? 'Sem referência' : compDetails.cut_score.toFixed(2)}
+                                                {baseDetails && baseDetails.cut_score !== null && compDetails.cut_score !== null && (
                                                     <small className={styles.diffValue}>
                                                         ({getDiff(compDetails.cut_score, baseDetails.cut_score)})
                                                     </small>
@@ -249,12 +246,11 @@ export default function CourseComparator({ baseCourse, userScore, isOpen, onClos
                                             </span>
                                         </div>
 
-                                        {userScore > 0 && (
+                                        {userScore > 0 && compDetails.cut_score !== null && compDetails.verification === 'verified' && (
                                             <div className={`${styles.metricRow} ${styles.userScoreRow}`}>
-                                                <span className={styles.metricLabel}>Sua Chance</span>
+                                                <span className={styles.metricLabel}>Margem para a referência</span>
                                                 <span className={`${styles.metricValue} ${userScore >= compDetails.cut_score ? styles.passing : styles.failing}`}>
-                                                    {userScore >= compDetails.cut_score ? 'APROVA' : 'REPROVA'}
-                                                    <small>({getDiff(userScore, compDetails.cut_score)})</small>
+                                                    {getDiff(userScore, compDetails.cut_score)} pontos
                                                 </span>
                                             </div>
                                         )}
@@ -273,19 +269,19 @@ export default function CourseComparator({ baseCourse, userScore, isOpen, onClos
                                 <div className={styles.selectorContainer}>
                                     <p>Selecione um curso para comparar:</p>
                                     <div className={styles.selectGroup}>
-                                        <select value={compState} onChange={e => setCompState(e.target.value)}>
+                                        <select aria-label="Estado" value={compState} onChange={e => setCompState(e.target.value)}>
                                             <option value="">Estado</option>
                                             {(options.state as string[]).map(s => <option key={s} value={s}>{s}</option>)}
                                         </select>
-                                        <select value={compCity} onChange={e => setCompCity(e.target.value)} disabled={!compState}>
+                                        <select aria-label="Cidade" value={compCity} onChange={e => setCompCity(e.target.value)} disabled={!compState}>
                                             <option value="">Cidade</option>
                                             {(options.cities as string[]).map(c => <option key={c} value={c}>{c}</option>)}
                                         </select>
-                                        <select value={compUni} onChange={e => setCompUni(e.target.value)} disabled={!compCity}>
+                                        <select aria-label="Universidade" value={compUni} onChange={e => setCompUni(e.target.value)} disabled={!compCity}>
                                             <option value="">Universidade</option>
                                             {(options.uni as string[]).map(u => <option key={u} value={u}>{u}</option>)}
                                         </select>
-                                        <select value={compCourseId} onChange={e => setCompCourseId(e.target.value)} disabled={!compUni}>
+                                        <select aria-label="Curso" value={compCourseId} onChange={e => setCompCourseId(e.target.value)} disabled={!compUni}>
                                             <option value="">Curso</option>
                                             {(options.course as any[]).map(c => <option key={c.id} value={c.id}>{c.name} - {c.degree}</option>)}
                                         </select>

@@ -5,8 +5,8 @@ import { ScoreProvider } from '../context/ScoreContext'
 import { ModalityProvider } from '../context/ModalityContext'
 
 export const metadata: Metadata = {
-  title: 'XTRI SISU 2026 - Simulador',
-  description: 'Monitoramento do SISU 2026 em Tempo Real - Compare suas notas e descubra suas chances de aprovação',
+  title: 'XTRI SISU — referências verificáveis',
+  description: 'Compare suas notas do ENEM com referências do SISU, com modalidade, edição e origem dos dados claramente identificadas.',
   icons: {
     icon: '/favicon.png',
     apple: '/xtri-logo.png',
@@ -20,19 +20,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
       <body>
         <a href="#main-content" className="skip-link">
           Pular para conteúdo principal
         </a>
         <ScoreProvider>
           <ModalityProvider>
-            <main id="main-content">
+            <div id="main-content" tabIndex={-1}>
               {children}
-            </main>
+            </div>
           </ModalityProvider>
         </ScoreProvider>
       </body>

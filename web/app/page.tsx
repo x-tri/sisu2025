@@ -1,37 +1,59 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useScores } from '../context/ScoreContext';
-import { useModality, MODALITY_OPTIONS, matchModality, getModalityCode } from '../context/ModalityContext';
+import { useModality } from '../context/ModalityContext';
+import { calculateWeightedScore, type CourseWeights, validateScores } from '../lib/score-core';
+import { getEffectiveCutoff, selectLatestReference } from '../lib/course-selection';
 import CourseDetailView from '../components/CourseDetail/CourseDetailView';
-import ScoreEvolutionChart from '../components/CourseDetail/ScoreEvolutionChart';
 import ProbabilityGauge from '../components/CourseDetail/ProbabilityGauge';
 import ApprovalRadarModal from '../components/CourseDetail/ApprovalRadarModal';
 import ShareModal from '../components/CourseDetail/ShareModal';
+import DataTrustPanel from '../components/DataTrustPanel';
+import type {
+  CourseCoverageResponse,
+  CourseProvenance,
+  CourseReference,
+  CourseSearchItem,
+  CourseSearchResponse,
+  ReferenceType,
+  VerificationStatus,
+} from '../types/course';
 import styles from './page.module.css';
 
-interface CourseData {
-  id: number;
-  code: number;
-  name: string;
-  university: string;
-  campus: string;
-  city: string;
-  state: string;
-  degree: string;
-  schedule: string;
-  latitude?: string;
-  longitude?: string;
-  weights: any[];
-  cut_scores: any[];
+async function fetchJson<T>(url: string, signal?: AbortSignal): Promise<T> {
+  const requestController = new AbortController();
+  let timedOut = false;
+  const forwardAbort = () => requestController.abort();
+  if (signal?.aborted) requestController.abort();
+  signal?.addEventListener('abort', forwardAbort, { once: true });
+  const timeout = window.setTimeout(() => {
+    timedOut = true;
+    requestController.abort();
+  }, 12_000);
+
+  try {
+    const response = await fetch(url, { signal: requestController.signal, cache: 'no-store' });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null) as { error?: string } | null;
+      throw new Error(payload?.error || 'Não foi possível carregar os dados (' + response.status + ').');
+    }
+    return response.json() as Promise<T>;
+  } catch (error) {
+    if (timedOut) throw new Error('A consulta excedeu o tempo limite. Tente novamente.');
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+    signal?.removeEventListener('abort', forwardAbort);
+  }
 }
 
 interface Course {
   id: number;
   code: number;
   name: string;
-  degree: string;
-  schedule: string;
+  degree: string | null;
+  schedule: string | null;
 }
 
 interface YearCutScore {
@@ -39,6 +61,63 @@ interface YearCutScore {
   cut_score: number;
   cut_score_type: string;
   partial_scores: Array<{ day: number; score: number }>;
+  captured_at?: string | null;
+  reference_type?: ReferenceType;
+}
+
+interface EnemWeights {
+  year: number;
+  pesos: {
+    redacao: number | null;
+    linguagens: number | null;
+    matematica: number | null;
+    humanas: number | null;
+    natureza: number | null;
+  };
+  minimos: {
+    redacao: number | null;
+    linguagens: number | null;
+    matematica: number | null;
+    humanas: number | null;
+    natureza: number | null;
+    enem: number | null;
+  } | null;
+}
+
+interface CourseApiResponse {
+  course: {
+    id: number;
+    code: number;
+    name: string;
+    university: string | null;
+    campus: string | null;
+    city: string | null;
+    state: string | null;
+    degree: string | null;
+    schedule: string | null;
+  };
+  weights: EnemWeights | null;
+  weights_history: EnemWeights[];
+  cut_scores: Array<{
+    year: number;
+    modalities: Array<{
+      code: number | null;
+      name: string;
+      cut_score: number | null;
+      applicants?: number | null;
+      vacancies?: number | null;
+      partial_scores?: Array<{ day: string | number; score: number }>;
+      verification?: { status: VerificationStatus };
+      reference?: CourseReference | null;
+    }>;
+  }>;
+  references: CourseReference[];
+  provenance: CourseProvenance;
+}
+
+interface AvailableModality {
+  id: string;
+  name: string;
 }
 
 interface CoursePreview {
@@ -55,587 +134,706 @@ interface CoursePreview {
   cut_score_year: number;
   cut_score_type: string;
   highest_weight: string;
-  weights: any;
-  data2024?: YearCutScore;
-  data2025?: YearCutScore;
-  data2026?: YearCutScore;
+  weights: CourseWeights | null;
+  weights_year: number | null;
+  minimums: EnemWeights['minimos'];
+  activeData: YearCutScore;
+  reference: CourseReference;
+  verification: VerificationStatus;
+  availableModalities: AvailableModality[];
+}
+
+interface CourseData {
+  id: number;
+  code: number;
+  name: string;
+  university: string;
+  campus: string;
+  city: string;
+  state: string;
+  degree: string;
+  schedule: string;
+  weights: Array<Record<string, number | null>>;
+  cut_scores: Array<Record<string, unknown>>;
+}
+
+const SCORE_FIELDS = [
+  { key: 'redacao', label: 'Redação' },
+  { key: 'linguagens', label: 'Linguagens' },
+  { key: 'matematica', label: 'Matemática' },
+  { key: 'humanas', label: 'Ciências Humanas' },
+  { key: 'natureza', label: 'Ciências da Natureza' },
+] as const;
+
+const WEIGHT_LABELS: Array<[keyof EnemWeights['pesos'], string]> = [
+  ['redacao', 'Redação'],
+  ['linguagens', 'Linguagens'],
+  ['matematica', 'Matemática'],
+  ['humanas', 'Ciências Humanas'],
+  ['natureza', 'Ciências da Natureza'],
+];
+
+function formatScore(value: number): string {
+  return value.toFixed(2).replace('.', ',');
+}
+
+function getDailyTrend(data: YearCutScore): string {
+  const partials = data.partial_scores;
+  if (partials.length < 2) return 'Tendência indisponível: são necessárias ao menos duas parciais.';
+  const previous = partials[partials.length - 2];
+  const latest = partials[partials.length - 1];
+  const difference = latest.score - previous.score;
+  if (difference === 0) return 'Sem variação desde a parcial anterior.';
+  return (difference > 0 ? '+' : '') + formatScore(difference)
+    + ' pontos desde a parcial anterior.';
+}
+
+function toYearCutScore(reference: CourseReference): YearCutScore {
+  const partialScores = reference.partialScores
+    .map(partial => ({ day: Number(partial.day), score: partial.score }))
+    .filter(partial => Number.isFinite(partial.day) && partial.score >= 0 && partial.score <= 1000)
+    .sort((left, right) => left.day - right.day);
+  const cutoff = getEffectiveCutoff(reference) ?? 0;
+  const latestDay = partialScores[partialScores.length - 1]?.day;
+  const type = reference.referenceType === 'final'
+    ? 'Corte final'
+    : reference.referenceType === 'historical'
+      ? 'Referência histórica'
+      : latestDay
+        ? 'Parcial — dia ' + latestDay
+        : 'Parcial';
+
+  return {
+    year: reference.edition,
+    cut_score: cutoff,
+    cut_score_type: type,
+    partial_scores: partialScores,
+    captured_at: reference.capturedAt,
+    reference_type: reference.referenceType,
+  };
+}
+
+function toCalculationWeights(weights: EnemWeights | null): CourseWeights | null {
+  if (!weights?.pesos) return null;
+  const values = weights.pesos;
+  const allWeightsPresent = Object.values(values).every(value => (
+    typeof value === 'number' && Number.isFinite(value) && value >= 0
+  ));
+  if (!allWeightsPresent) return null;
+
+  return {
+    peso_red: values.redacao,
+    peso_ling: values.linguagens,
+    peso_mat: values.matematica,
+    peso_ch: values.humanas,
+    peso_cn: values.natureza,
+    min_red: weights.minimos?.redacao ?? null,
+    min_ling: weights.minimos?.linguagens ?? null,
+    min_mat: weights.minimos?.matematica ?? null,
+    min_ch: weights.minimos?.humanas ?? null,
+    min_cn: weights.minimos?.natureza ?? null,
+    min_enem: weights.minimos?.enem ?? null,
+  };
+}
+
+function getAvailableModalities(references: CourseReference[]): AvailableModality[] {
+  const editions = references.map(reference => reference.edition);
+  const latestEdition = editions.length > 0 ? Math.max(...editions) : null;
+  if (latestEdition === null) return [];
+
+  const unique = new Map<string, string>();
+  for (const reference of references) {
+    if (
+      reference.edition === latestEdition
+      && reference.modalityId
+      && !unique.has(reference.modalityId)
+    ) {
+      unique.set(reference.modalityId, reference.modalityOfficialName);
+    }
+  }
+
+  return Array.from(unique, ([id, name]) => ({ id, name }))
+    .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'));
+}
+
+function toCourseDetailData(data: CourseApiResponse): CourseData {
+  const weights = data.weights_history.map(weight => ({
+    year: weight.year,
+    peso_red: weight.pesos.redacao,
+    peso_ling: weight.pesos.linguagens,
+    peso_mat: weight.pesos.matematica,
+    peso_ch: weight.pesos.humanas,
+    peso_cn: weight.pesos.natureza,
+    min_red: weight.minimos?.redacao ?? null,
+    min_ling: weight.minimos?.linguagens ?? null,
+    min_mat: weight.minimos?.matematica ?? null,
+    min_ch: weight.minimos?.humanas ?? null,
+    min_cn: weight.minimos?.natureza ?? null,
+    min_enem: weight.minimos?.enem ?? null,
+  }));
+
+  const cutScores: Array<Record<string, unknown>> = [];
+  for (const yearData of data.cut_scores) {
+    for (const modality of yearData.modalities) {
+      const reference = modality.reference
+        || data.references.find(item => (
+          item.edition === yearData.year && item.modalityId === String(modality.code ?? '')
+        ))
+        || null;
+      const partialScores = (reference?.partialScores || modality.partial_scores || [])
+        .filter(partial => (
+          typeof partial.score === 'number'
+          && Number.isFinite(partial.score)
+          && partial.score >= 0
+          && partial.score <= 1000
+        ));
+      const finalCutoff = reference?.cutoff;
+      cutScores.push({
+        year: yearData.year,
+        modality_code: modality.code,
+        modality_name: modality.name,
+        cut_score: typeof finalCutoff === 'number'
+          && Number.isFinite(finalCutoff)
+          && finalCutoff >= 0
+          && finalCutoff <= 1000
+            ? finalCutoff
+            : null,
+        applicants: modality.applicants ?? null,
+        vacancies: modality.vacancies ?? null,
+        partial_scores: partialScores,
+        verification: reference?.verification.status ?? 'stale',
+        reference,
+      });
+    }
+  }
+
+  return {
+    id: data.course.id,
+    code: data.course.code,
+    name: data.course.name,
+    university: data.course.university || '',
+    campus: data.course.campus || '',
+    city: data.course.city || '',
+    state: data.course.state || '',
+    degree: data.course.degree || '',
+    schedule: data.course.schedule || '',
+    weights,
+    cut_scores: cutScores,
+  };
 }
 
 export default function Home() {
-  const { scores, setScores, calculateAverage } = useScores();
-  const { selectedModality, setSelectedModality, getModalityLabel } = useModality();
-  const [selectedCourseCode, setSelectedCourseCode] = useState<number | null>(null);
-  const [courseData, setCourseData] = useState<CourseData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const {
+    scores,
+    setScores,
+    clearScores,
+    rememberScores,
+    setRememberScores,
+  } = useScores();
+  const { selectedModality, setSelectedModality } = useModality();
   const [showScoreInput, setShowScoreInput] = useState(false);
   const [showRadar, setShowRadar] = useState(false);
   const [showShare, setShowShare] = useState(false);
-
-  // Filter states
+  const [showDetails, setShowDetails] = useState(false);
+  const [filterError, setFilterError] = useState('');
+  const [detailsError, setDetailsError] = useState('');
+  const [scoreError, setScoreError] = useState('');
+  const [modalityNotice, setModalityNotice] = useState('');
+  const [filterReloadKey, setFilterReloadKey] = useState(0);
+  const [detailsReloadKey, setDetailsReloadKey] = useState(0);
   const [filters, setFilters] = useState({
     state: '',
     city: '',
     institution: '',
-    course: ''
+    course: '',
   });
-
   const [options, setOptions] = useState({
     states: [] as string[],
     cities: [] as string[],
     institutions: [] as string[],
-    courses: [] as Course[]
+    courses: [] as Course[],
   });
-
   const [loadingFilters, setLoadingFilters] = useState({
     cities: false,
     institutions: false,
     courses: false,
-    details: false
+    details: false,
   });
-
+  const [courseResponse, setCourseResponse] = useState<CourseApiResponse | null>(null);
   const [coursePreview, setCoursePreview] = useState<CoursePreview | null>(null);
-
-  // System stats
+  const [availableModalities, setAvailableModalities] = useState<AvailableModality[]>([]);
   const [systemStats, setSystemStats] = useState({
-    totalCourses: 8500,
-    totalUniversities: 120,
-    totalStates: 27
+    totalCourses: 0,
+    totalUniversities: 0,
+    totalStates: 0,
+    latestEdition: null as number | null,
+    missingStates: [] as string[],
   });
-
-  // Local score inputs
   const [tempScores, setTempScores] = useState({
-    redacao: scores.redacao?.toString() || '',
-    linguagens: scores.linguagens?.toString() || '',
-    matematica: scores.matematica?.toString() || '',
-    humanas: scores.humanas?.toString() || '',
-    natureza: scores.natureza?.toString() || ''
+    redacao: '',
+    linguagens: '',
+    matematica: '',
+    humanas: '',
+    natureza: '',
   });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<CourseSearchItem[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
 
-  // Fetch states and system stats on mount
   useEffect(() => {
-    fetch('/api/filters?type=states')
-      .then(res => res.json())
-      .then(data => {
-        const states = Array.isArray(data) ? data : (data.states || []);
-        setOptions(prev => ({ ...prev, states }));
-        setSystemStats(prev => ({ ...prev, totalStates: states.length }));
+    if (!showScoreInput) return;
+    setTempScores({
+      redacao: scores.redacao ? String(scores.redacao) : '',
+      linguagens: scores.linguagens ? String(scores.linguagens) : '',
+      matematica: scores.matematica ? String(scores.matematica) : '',
+      humanas: scores.humanas ? String(scores.humanas) : '',
+      natureza: scores.natureza ? String(scores.natureza) : '',
+    });
+  }, [scores, showScoreInput]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setFilterError('');
+
+    Promise.all([
+      fetchJson<string[]>('/api/filters?type=states', controller.signal),
+      fetchJson<CourseCoverageResponse>('/api/courses/coverage', controller.signal),
+    ])
+      .then(([statesData, coverage]) => {
+        const states = Array.isArray(statesData) ? statesData : [];
+        setOptions(previous => ({ ...previous, states }));
+        setSystemStats({
+          totalCourses: coverage.coverage.courses.rows,
+          totalUniversities: coverage.coverage.courses.institutions,
+          totalStates: coverage.coverage.courses.states,
+          latestEdition: coverage.coverage.cutScores.latestEdition,
+          missingStates: coverage.coverage.courses.missingStates,
+        });
       })
-      .catch(console.error);
+      .catch((error: Error) => {
+        if (error.name !== 'AbortError') setFilterError(error.message);
+      });
+
+    return () => controller.abort();
+  }, [filterReloadKey]);
+
+  useEffect(() => {
+    const directCode = new URLSearchParams(window.location.search).get('courseCode');
+    if (!directCode || !/^\d+$/.test(directCode)) return;
+
+    const controller = new AbortController();
+    setLoadingFilters(previous => ({ ...previous, details: true }));
+    fetchJson<CourseApiResponse>('/api/courses/' + directCode, controller.signal)
+      .then(data => {
+        const directCourse: Course = {
+          id: data.course.id,
+          code: data.course.code,
+          name: data.course.name,
+          degree: data.course.degree,
+          schedule: data.course.schedule,
+        };
+        setOptions(previous => ({
+          ...previous,
+          states: data.course.state && !previous.states.includes(data.course.state)
+            ? [...previous.states, data.course.state].sort()
+            : previous.states,
+          cities: data.course.city ? [data.course.city] : [],
+          institutions: data.course.university ? [data.course.university] : [],
+          courses: [directCourse],
+        }));
+        setFilters({
+          state: data.course.state || '',
+          city: data.course.city || '',
+          institution: data.course.university || '',
+          course: String(data.course.id),
+        });
+      })
+      .catch((error: Error) => {
+        if (error.name !== 'AbortError') setDetailsError(error.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoadingFilters(previous => ({ ...previous, details: false }));
+        }
+      });
+
+    return () => controller.abort();
   }, []);
 
-  // Cascading filters
   useEffect(() => {
     if (!filters.state) {
-      setOptions(prev => ({ ...prev, cities: [], institutions: [], courses: [] }));
-      setCoursePreview(null);
+      setOptions(previous => ({ ...previous, cities: [], institutions: [], courses: [] }));
       return;
     }
-    setLoadingFilters(prev => ({ ...prev, cities: true }));
-    fetch(`/api/filters?type=cities&state=${filters.state}`)
-      .then(res => res.json())
-      .then(data => {
-        const cities = Array.isArray(data) ? data : (data.cities || []);
-        setOptions(prev => ({ ...prev, cities, institutions: [], courses: [] }));
-        setLoadingFilters(prev => ({ ...prev, cities: false }));
+    const controller = new AbortController();
+    setLoadingFilters(previous => ({ ...previous, cities: true }));
+    const params = new URLSearchParams({ type: 'cities', state: filters.state });
+    fetchJson<string[]>('/api/filters?' + params.toString(), controller.signal)
+      .then(cities => setOptions(previous => ({
+        ...previous,
+        cities: Array.isArray(cities) ? cities : [],
+      })))
+      .catch((error: Error) => {
+        if (error.name !== 'AbortError') setFilterError(error.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoadingFilters(previous => ({ ...previous, cities: false }));
+        }
       });
-  }, [filters.state]);
+    return () => controller.abort();
+  }, [filters.state, filterReloadKey]);
 
   useEffect(() => {
     if (!filters.city) {
-      setOptions(prev => ({ ...prev, institutions: [], courses: [] }));
-      setCoursePreview(null);
+      setOptions(previous => ({ ...previous, institutions: [], courses: [] }));
       return;
     }
-    setLoadingFilters(prev => ({ ...prev, institutions: true }));
-    fetch(`/api/filters?type=universities&state=${filters.state}&city=${filters.city}`)
-      .then(res => res.json())
-      .then(data => {
-        const institutions = Array.isArray(data) ? data : (data.universities || []);
-        setOptions(prev => ({ ...prev, institutions, courses: [] }));
-        setLoadingFilters(prev => ({ ...prev, institutions: false }));
+    const controller = new AbortController();
+    setLoadingFilters(previous => ({ ...previous, institutions: true }));
+    const params = new URLSearchParams({
+      type: 'universities',
+      state: filters.state,
+      city: filters.city,
+    });
+    fetchJson<string[]>('/api/filters?' + params.toString(), controller.signal)
+      .then(institutions => setOptions(previous => ({
+        ...previous,
+        institutions: Array.isArray(institutions) ? institutions : [],
+      })))
+      .catch((error: Error) => {
+        if (error.name !== 'AbortError') setFilterError(error.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoadingFilters(previous => ({ ...previous, institutions: false }));
+        }
       });
-  }, [filters.city]);
+    return () => controller.abort();
+  }, [filters.city, filters.state, filterReloadKey]);
 
   useEffect(() => {
     if (!filters.institution) {
-      setOptions(prev => ({ ...prev, courses: [] }));
-      setCoursePreview(null);
+      setOptions(previous => ({ ...previous, courses: [] }));
       return;
     }
-    setLoadingFilters(prev => ({ ...prev, courses: true }));
-    fetch(`/api/filters?type=courses&state=${filters.state}&city=${filters.city}&university=${filters.institution}`)
-      .then(res => res.json())
-      .then(data => {
-        const courses = data.courses || (Array.isArray(data) ? data : []);
-        setOptions(prev => ({ ...prev, courses }));
-        setLoadingFilters(prev => ({ ...prev, courses: false }));
+    const controller = new AbortController();
+    setLoadingFilters(previous => ({ ...previous, courses: true }));
+    const params = new URLSearchParams({
+      type: 'courses',
+      state: filters.state,
+      city: filters.city,
+      university: filters.institution,
+    });
+    fetchJson<Course[]>('/api/filters?' + params.toString(), controller.signal)
+      .then(courses => setOptions(previous => ({
+        ...previous,
+        courses: Array.isArray(courses) ? courses : [],
+      })))
+      .catch((error: Error) => {
+        if (error.name !== 'AbortError') setFilterError(error.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoadingFilters(previous => ({ ...previous, courses: false }));
+        }
       });
-  }, [filters.institution]);
+    return () => controller.abort();
+  }, [filters.city, filters.institution, filters.state, filterReloadKey]);
 
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (query.length < 2) {
+      setSearchResults([]);
+      setSearchError('');
+      setSearchLoading(false);
+      return;
+    }
 
-  // Fetch course preview when course selected
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setSearchLoading(true);
+      setSearchError('');
+      const params = new URLSearchParams({ q: query, limit: '8' });
+      fetchJson<CourseSearchResponse>('/api/courses?' + params.toString(), controller.signal)
+        .then(response => setSearchResults(response.courses))
+        .catch((error: Error) => {
+          if (error.name !== 'AbortError') {
+            setSearchResults([]);
+            setSearchError(error.message);
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setSearchLoading(false);
+        });
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [searchQuery]);
+
   useEffect(() => {
     if (!filters.course) {
+      setCourseResponse(null);
+      setCoursePreview(null);
+      setAvailableModalities([]);
+      setSelectedModality('');
+      setDetailsError('');
+      setModalityNotice('');
+      setShowDetails(false);
+      return;
+    }
+
+    const selectedCourse = options.courses.find(course => String(course.id) === filters.course);
+    if (!selectedCourse) return;
+
+    const controller = new AbortController();
+    setLoadingFilters(previous => ({ ...previous, details: true }));
+    setDetailsError('');
+    setModalityNotice('');
+    setCoursePreview(null);
+    setShowDetails(false);
+
+    fetchJson<CourseApiResponse>('/api/courses/' + selectedCourse.code, controller.signal)
+      .then(data => {
+        setCourseResponse(data);
+        const modalities = getAvailableModalities(data.references);
+        setAvailableModalities(modalities);
+        setSelectedModality('');
+        if (modalities.length === 0) {
+          setModalityNotice('Nenhuma referência com código oficial está disponível para a edição mais recente deste curso.');
+        }
+      })
+      .catch((error: Error) => {
+        if (error.name !== 'AbortError') {
+          setCourseResponse(null);
+          setAvailableModalities([]);
+          setDetailsError(error.message);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoadingFilters(previous => ({ ...previous, details: false }));
+        }
+      });
+
+    return () => controller.abort();
+  }, [detailsReloadKey, filters.course, options.courses, setSelectedModality]);
+
+  useEffect(() => {
+    if (!courseResponse || !selectedModality) {
       setCoursePreview(null);
       return;
     }
 
-    const selectedCourse = options.courses.find(c => String(c.id) === filters.course);
-    if (!selectedCourse) return;
-
-    setLoadingFilters(prev => ({ ...prev, details: true }));
-
-    fetch(`/api/courses/${selectedCourse.code}`)
-      .then(res => res.json())
-      .then(data => {
-        const courseData = data.course;
-        const weightsData = data.weights;
-
-        let highestWeight = '';
-        if (weightsData?.pesos) {
-          const weightMap: Record<string, string> = {
-            redacao: 'Redação',
-            linguagens: 'Linguagens',
-            matematica: 'Matemática',
-            humanas: 'Humanas',
-            natureza: 'Natureza'
-          };
-          let maxWeight = 0;
-          for (const [key, label] of Object.entries(weightMap)) {
-            const pesoKey = key as keyof typeof weightsData.pesos;
-            if (weightsData.pesos[pesoKey] > maxWeight) {
-              maxWeight = weightsData.pesos[pesoKey];
-              highestWeight = label;
-            }
-          }
-        }
-
-        // Find best cut score data
-        // Priority: 2026 with data > 2025 with data > 2024 with data > latest available
-        let latestCutScore = null;
-        let cutScore2026 = null;
-        let cutScore2025 = null;
-        let cutScore2024 = null;
-        let allModalities: { modality_name: string; modality_code: string; cut_score: number; vacancies?: number }[] = [];
-
-        if (data.cut_scores && Array.isArray(data.cut_scores)) {
-          // Helper to process a year's modalities for easier lookup
-          const getModalityData = (yearData: any, targetModality: string) => {
-            const modalities = yearData.modalities || [];
-            // Store modalities for inspection/fallback
-            if (yearData.year === new Date().getFullYear()) { // or just collect from latest year
-              // Logic to populate allModalities can go here if needed
-            }
-
-            // 1. Try exact match or code match
-            const mappedObjs = modalities.map((m: any) => ({
-              ...m,
-              name: m.modality_name, // API returns modality_name, normalize to name for matchModality
-              modality_code: getModalityCode(m.modality_name) // derive code from name
-            }));
-
-            const match = matchModality(targetModality, mappedObjs);
-            if (match) return match;
-
-            // 2. Fallback to Ampla if selected is missing (optional strategy, currently defaulting to keeping null implies "no data" which is better)
-            // But user requirement implies we should try to show something if possible, or maybe just Ampla as fallback?
-            // For now, let's stick to strict matching to avoid misleading info, or fallback to Ampla ONLY if user explicitly wants Ampla.
-            // However, to mimic previous behavior where "everything was Ampla", we might need a fallback if data is sparse.
-            // Let's rely on strict match first.
-            return null;
-          };
-
-          // Iterate years to find data for *selected* modality
-          for (const yearData of data.cut_scores) {
-            const modData = getModalityData(yearData, selectedModality);
-
-            // Fallback: If no data for selected modality, try finding Ampla to at least show something? 
-            // No, showing Ampla when user asked for L1 is bad UX. Better show "No data".
-            // BUT, for the transitional phase, if we return null, everything breaks. 
-            // Let's implement a "Soft Fallback" - we find the data, but we track if it was indeed the requested modality or 'ampla' default if we decide to force default.
-            // Current decision: Strict match.
-
-            // Actually, let's implement the specific year logic using the found modality data
-            if (modData) {
-              const scoreData = { ...modData, year: yearData.year };
-              if (yearData.year === 2026) cutScore2026 = scoreData;
-              if (yearData.year === 2025) cutScore2025 = scoreData;
-              if (yearData.year === 2024) cutScore2024 = scoreData;
-              if (!latestCutScore || yearData.year > latestCutScore.year) {
-                latestCutScore = scoreData;
-              }
-            }
-          }
-
-          // If we found NOTHING for the selected modality (e.g. user selected L1 but this course doesn't have L1),
-          // maybe we should fallback to Ampla to show *something* (like "Cota não disponível, visualizando Ampla")?
-          // For this first iteration, if no data found for selected modality, we try to find Ampla as a safe default.
-          if (!latestCutScore && !cutScore2026 && !cutScore2025 && !cutScore2024) {
-            for (const yearData of data.cut_scores) {
-              const ampla = yearData.modalities?.find((m: any) => m.name?.toLowerCase().includes('ampla'));
-              if (ampla) {
-                const scoreData = { ...ampla, year: yearData.year, isFallback: true };
-                if (yearData.year === 2026) cutScore2026 = scoreData;
-                if (yearData.year === 2025) cutScore2025 = scoreData;
-                if (yearData.year === 2024) cutScore2024 = scoreData;
-                if (!latestCutScore || yearData.year > latestCutScore.year) {
-                  latestCutScore = scoreData;
-                }
-              }
-            }
-          }
-        }
-
-        // Determine which data to use
-        let cutScoreValue = 0;
-        let cutScoreYear = new Date().getFullYear();
-        let cutScoreType = 'Em breve';
-
-        // Check 2026 first (highest priority)
-        if (cutScore2026) {
-          const has2026Data = cutScore2026.cut_score > 0 ||
-            (cutScore2026.partial_scores?.some((p: any) => p.score > 0));
-
-          if (has2026Data) {
-            cutScoreYear = 2026;
-            if (cutScore2026.cut_score > 0) {
-              cutScoreValue = cutScore2026.cut_score;
-              cutScoreType = 'Corte Final';
-            } else if (cutScore2026.partial_scores?.length > 0) {
-              const partials = cutScore2026.partial_scores
-                .filter((p: any) => p.score > 0)
-                .sort((a: any, b: any) => b.day - a.day);
-              if (partials.length > 0) {
-                cutScoreValue = partials[0].score;
-                cutScoreType = `Corte ${partials[0].day}`;
-              }
-            }
-          }
-        }
-
-        // If no 2026 data, check 2025
-        if (cutScoreValue === 0 && cutScore2025) {
-          const has2025Data = cutScore2025.cut_score > 0 ||
-            (cutScore2025.partial_scores?.some((p: any) => p.score > 0));
-
-          if (has2025Data) {
-            cutScoreYear = 2025;
-            if (cutScore2025.cut_score > 0) {
-              cutScoreValue = cutScore2025.cut_score;
-              cutScoreType = 'Corte Final';
-            } else if (cutScore2025.partial_scores?.length > 0) {
-              const partials = cutScore2025.partial_scores
-                .filter((p: any) => p.score > 0)
-                .sort((a: any, b: any) => b.day - a.day);
-              if (partials.length > 0) {
-                cutScoreValue = partials[0].score;
-                cutScoreType = `Corte ${partials[0].day}`;
-              }
-            }
-          }
-        }
-
-        // If no 2025 data, use 2024
-        if (cutScoreValue === 0 && cutScore2024?.cut_score > 0) {
-          cutScoreValue = cutScore2024.cut_score;
-          cutScoreYear = 2024;
-          cutScoreType = 'Corte Final';
-        }
-
-        // Fallback to any available data
-        if (cutScoreValue === 0 && latestCutScore?.cut_score > 0) {
-          cutScoreValue = latestCutScore.cut_score;
-          cutScoreYear = latestCutScore.year;
-          cutScoreType = 'Corte Final';
-        }
-
-        // Helper to check if weights are trivial (all 1)
-        const areWeightsTrivial = (w: any) => {
-          if (!w?.pesos) return true;
-          const { redacao, linguagens, matematica, humanas, natureza } = w.pesos;
-          return redacao === 1 && linguagens === 1 && matematica === 1 && humanas === 1 && natureza === 1;
-        };
-
-        let weightsToUse = weightsData;
-
-        // If current weights are trivial, try to find distinct weights in history
-        if (areWeightsTrivial(weightsToUse) && data.weights_history?.length > 0) {
-          const complexWeights = data.weights_history.find((w: any) => !areWeightsTrivial(w));
-          if (complexWeights) {
-            weightsToUse = complexWeights;
-          }
-        }
-
-        const weightsForCalc = weightsToUse?.pesos ? {
-          peso_red: weightsToUse.pesos.redacao || 1,
-          peso_ling: weightsToUse.pesos.linguagens || 1,
-          peso_mat: weightsToUse.pesos.matematica || 1,
-          peso_ch: weightsToUse.pesos.humanas || 1,
-          peso_cn: weightsToUse.pesos.natureza || 1
-        } : null;
-
-        // Prepare 2024 data
-        const data2024: YearCutScore | undefined = cutScore2024 ? {
-          year: 2024,
-          cut_score: cutScore2024.cut_score || 0,
-          cut_score_type: cutScore2024.cut_score > 0 ? 'Corte Final' : 'Em breve',
-          partial_scores: (cutScore2024.partial_scores || []).map((p: any) => ({
-            day: parseInt(p.day) || p.day,
-            score: p.score || 0
-          }))
-        } : undefined;
-
-        // Prepare 2025 data
-        let data2025: YearCutScore | undefined = undefined;
-        if (cutScore2025) {
-          const partials2025 = (cutScore2025.partial_scores || [])
-            .map((p: any) => ({ day: parseInt(p.day) || p.day, score: p.score || 0 }))
-            .filter((p: any) => p.score > 0);
-
-          let type2025 = 'Em breve';
-          let score2025 = cutScore2025.cut_score || 0;
-
-          if (score2025 > 0) {
-            type2025 = 'Corte Final';
-          } else if (partials2025.length > 0) {
-            const lastPartial = partials2025.sort((a: any, b: any) => b.day - a.day)[0];
-            score2025 = lastPartial.score;
-            type2025 = `Corte ${lastPartial.day}`;
-          }
-
-          data2025 = {
-            year: 2025,
-            cut_score: score2025,
-            cut_score_type: type2025,
-            partial_scores: partials2025
-          };
-        }
-
-        // Prepare 2026 data
-        let data2026: YearCutScore | undefined = undefined;
-        if (cutScore2026) {
-          const partials2026 = (cutScore2026.partial_scores || [])
-            .map((p: any) => ({ day: parseInt(p.day) || p.day, score: p.score || 0 }))
-            .filter((p: any) => p.score > 0);
-
-          let type2026 = 'Em breve';
-          let score2026 = cutScore2026.cut_score || 0;
-
-          if (score2026 > 0) {
-            type2026 = 'Corte Final';
-          } else if (partials2026.length > 0) {
-            const lastPartial = partials2026.sort((a: any, b: any) => b.day - a.day)[0];
-            score2026 = lastPartial.score;
-            type2026 = `Corte ${lastPartial.day}`;
-          }
-
-          data2026 = {
-            year: 2026,
-            cut_score: score2026,
-            cut_score_type: type2026,
-            partial_scores: partials2026
-          };
-        }
-
-        setCoursePreview({
-          id: courseData?.id || selectedCourse.id,
-          code: courseData?.code || selectedCourse.code,
-          name: courseData?.name || selectedCourse.name,
-          degree: courseData?.degree || 'Bacharelado',
-          university: filters.institution,
-          campus: courseData?.campus || '',
-          city: courseData?.city || '',
-          state: courseData?.state || '',
-          schedule: courseData?.schedule || 'Integral',
-          cut_score: cutScoreValue,
-          cut_score_year: cutScoreYear,
-          cut_score_type: cutScoreType,
-          highest_weight: highestWeight,
-          weights: weightsForCalc,
-          data2024,
-          data2025,
-          data2026
-        });
-        setLoadingFilters(prev => ({ ...prev, details: false }));
-      });
-  }, [filters.course, options.courses, filters.institution, selectedModality]);
-
-  // Fetch full course data
-  useEffect(() => {
-    if (!selectedCourseCode) {
-      setCourseData(null);
+    const selection = selectLatestReference(courseResponse.references, selectedModality);
+    if (!selection.ok) {
+      setCoursePreview(null);
+      setModalityNotice(
+        selection.error === 'NO_REFERENCE_FOR_MODALITY'
+          ? 'NO_REFERENCE_FOR_MODALITY: esta modalidade não possui referência nesta oferta. Nenhum valor de Ampla foi substituído.'
+          : 'A referência desta modalidade contém valores inválidos e não pode ser usada.',
+      );
       return;
     }
 
-    setLoading(true);
-    fetch(`/api/courses/${selectedCourseCode}`)
-      .then(res => res.json())
-      .then(data => {
-        // Transform weights from API format to WeightsTable expected format
-        const transformedWeights = (data.weights_history || []).map((w: any) => ({
-          year: w.year,
-          peso_red: w.pesos?.redacao || w.peso_red,
-          peso_ling: w.pesos?.linguagens || w.peso_ling,
-          peso_mat: w.pesos?.matematica || w.peso_mat,
-          peso_ch: w.pesos?.humanas || w.peso_ch,
-          peso_cn: w.pesos?.natureza || w.peso_cn,
-          min_red: w.minimos?.redacao || w.min_red,
-          min_ling: w.minimos?.linguagens || w.min_ling,
-          min_mat: w.minimos?.matematica || w.min_mat,
-          min_ch: w.minimos?.humanas || w.min_ch,
-          min_cn: w.minimos?.natureza || w.min_cn,
-          min_enem: w.minimos?.enem || w.min_enem
-        }));
+    const reference = selection.reference;
+    const sameEditionWeights = courseResponse.weights_history.find(weight => (
+      weight.year === reference.edition && reference.weightsEdition === reference.edition
+    )) || null;
+    const calculationWeights = toCalculationWeights(sameEditionWeights);
+    const weightCandidates = sameEditionWeights
+      ? WEIGHT_LABELS
+        .map(([key, label]) => ({ label, value: sameEditionWeights.pesos[key] }))
+        .filter((item): item is { label: string; value: number } => typeof item.value === 'number')
+        .sort((left, right) => right.value - left.value)
+      : [];
+    const activeData = toYearCutScore(reference);
 
-        // Also transform from the single 'weights' object if weights_history is empty
-        if (transformedWeights.length === 0 && data.weights) {
-          transformedWeights.push({
-            year: data.weights.year,
-            peso_red: data.weights.pesos?.redacao,
-            peso_ling: data.weights.pesos?.linguagens,
-            peso_mat: data.weights.pesos?.matematica,
-            peso_ch: data.weights.pesos?.humanas,
-            peso_cn: data.weights.pesos?.natureza,
-            min_red: data.weights.minimos?.redacao,
-            min_ling: data.weights.minimos?.linguagens,
-            min_mat: data.weights.minimos?.matematica,
-            min_ch: data.weights.minimos?.humanas,
-            min_cn: data.weights.minimos?.natureza,
-            min_enem: data.weights.minimos?.enem
-          });
-        }
+    setModalityNotice('');
+    setCoursePreview({
+      id: courseResponse.course.id,
+      code: courseResponse.course.code,
+      name: courseResponse.course.name,
+      degree: courseResponse.course.degree || 'Grau não informado',
+      university: courseResponse.course.university || 'Instituição não informada',
+      campus: courseResponse.course.campus || '',
+      city: courseResponse.course.city || '',
+      state: courseResponse.course.state || '',
+      schedule: courseResponse.course.schedule || 'Turno não informado',
+      cut_score: selection.cutoff,
+      cut_score_year: reference.edition,
+      cut_score_type: activeData.cut_score_type,
+      highest_weight: weightCandidates[0]?.label || '',
+      weights: calculationWeights,
+      weights_year: sameEditionWeights?.year ?? null,
+      minimums: sameEditionWeights?.minimos ?? null,
+      activeData,
+      reference,
+      verification: reference.verification.status,
+      availableModalities,
+    });
+  }, [availableModalities, courseResponse, selectedModality]);
 
-        const transformed: CourseData = {
-          id: data.course?.id || 0,
-          code: data.course?.code || selectedCourseCode,
-          name: data.course?.name || '',
-          university: data.course?.university || '',
-          campus: data.course?.campus || '',
-          city: data.course?.city || '',
-          state: data.course?.state || '',
-          degree: data.course?.degree || '',
-          schedule: data.course?.schedule || '',
-          weights: transformedWeights,
-          cut_scores: []
-        };
-
-        if (data.cut_scores && Array.isArray(data.cut_scores)) {
-          for (const yearData of data.cut_scores) {
-            for (const modality of yearData.modalities || []) {
-              transformed.cut_scores.push({
-                year: yearData.year,
-                modality_code: modality.code,
-                modality_name: modality.name,
-                cut_score: modality.cut_score,
-                applicants: modality.applicants,
-                vacancies: modality.vacancies,
-                partial_scores: modality.partial_scores || []
-              });
-            }
-          }
-        }
-
-        setCourseData(transformed);
-        setLoading(false);
-      });
-  }, [selectedCourseCode]);
-
-  const handleViewDetails = () => {
-    if (coursePreview) {
-      setSelectedCourseCode(coursePreview.code);
-      // Scroll to inline details after render
-      setTimeout(() => {
-        const detailsSection = document.querySelector('[class*="inlineDetails"]');
-        if (detailsSection) {
-          detailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
-    }
-  };
-
-  const handleBack = () => {
-    setSelectedCourseCode(null);
-    setCourseData(null);
-  };
+  const scoreResult = useMemo(
+    () => calculateWeightedScore(scores, coursePreview?.weights),
+    [coursePreview?.weights, scores],
+  );
+  const hasEnteredScores = Object.values(scores).some(score => score > 0);
+  const simpleAverage = hasEnteredScores
+    ? (scores.redacao + scores.linguagens + scores.matematica + scores.humanas + scores.natureza) / 5
+    : null;
+  const userAverage = scoreResult.average;
+  const comparisonAllowed = Boolean(
+    coursePreview
+    && coursePreview.verification === 'verified'
+    && userAverage !== null
+    && scoreResult.minimums.status !== 'failed'
+    && scoreResult.minimums.status !== 'not_evaluated',
+  );
+  const margin = comparisonAllowed && coursePreview && userAverage !== null
+    ? userAverage - coursePreview.cut_score
+    : null;
+  const detailCourse = useMemo(
+    () => courseResponse ? toCourseDetailData(courseResponse) : null,
+    [courseResponse],
+  );
 
   const handleSaveScores = () => {
-    setScores({
-      redacao: parseFloat(tempScores.redacao) || 0,
-      linguagens: parseFloat(tempScores.linguagens) || 0,
-      matematica: parseFloat(tempScores.matematica) || 0,
-      humanas: parseFloat(tempScores.humanas) || 0,
-      natureza: parseFloat(tempScores.natureza) || 0
-    });
+    const parsed = {
+      redacao: tempScores.redacao.trim() === '' ? Number.NaN : Number(tempScores.redacao),
+      linguagens: tempScores.linguagens.trim() === '' ? Number.NaN : Number(tempScores.linguagens),
+      matematica: tempScores.matematica.trim() === '' ? Number.NaN : Number(tempScores.matematica),
+      humanas: tempScores.humanas.trim() === '' ? Number.NaN : Number(tempScores.humanas),
+      natureza: tempScores.natureza.trim() === '' ? Number.NaN : Number(tempScores.natureza),
+    };
+    const validation = validateScores(parsed);
+    if (!validation.valid || !setScores(parsed)) {
+      setScoreError('Preencha as cinco notas com valores entre 0 e 1000.');
+      return;
+    }
+    setScoreError('');
     setShowScoreInput(false);
   };
 
-  const userAverage = coursePreview?.weights ? calculateAverage(coursePreview.weights) : 0;
-  const simpleAverage = (scores.redacao + scores.linguagens + scores.matematica + scores.humanas + scores.natureza) / 5;
+  const chooseSearchResult = (result: CourseSearchItem) => {
+    const course: Course = {
+      id: result.id,
+      code: result.code,
+      name: result.name,
+      degree: result.degree,
+      schedule: result.schedule,
+    };
+    setOptions(previous => ({
+      ...previous,
+      states: result.state && !previous.states.includes(result.state)
+        ? [...previous.states, result.state].sort()
+        : previous.states,
+      cities: result.city ? [result.city] : [],
+      institutions: result.university ? [result.university] : [],
+      courses: [course],
+    }));
+    setFilters({
+      state: result.state || '',
+      city: result.city || '',
+      institution: result.university || '',
+      course: String(result.id),
+    });
+    setSearchQuery('');
+    setSearchResults([]);
+    setSelectedModality('');
+  };
 
-  // Check if course has real differentiated weights (not all 1)
-  const hasRealWeights = coursePreview?.weights && (
-    coursePreview.weights.peso_red !== 1 ||
-    coursePreview.weights.peso_ling !== 1 ||
-    coursePreview.weights.peso_mat !== 1 ||
-    coursePreview.weights.peso_ch !== 1 ||
-    coursePreview.weights.peso_cn !== 1
-  );
-
-  // Details are now shown inline, not on a separate page
+  const clearSelectedCourse = () => {
+    setCourseResponse(null);
+    setCoursePreview(null);
+    setAvailableModalities([]);
+    setSelectedModality('');
+    setShowDetails(false);
+  };
 
   return (
     <main className={styles.main}>
-      {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerContent}>
           <div className={styles.logoContainer}>
-            <img src="/xtri-logo.png" alt="XTRI" className={styles.logoImage} />
+            <img src="/xtri-logo.png" alt="" className={styles.logoImage} />
             <h1 className={styles.logo}>XTRI SISU</h1>
           </div>
-          {/* Badge removido - sistema em modo de dados históricos */}
+          <a
+            className={styles.officialLink}
+            href="https://sisu.mec.gov.br/vagas"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Consultar SISU/MEC
+          </a>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className={styles.hero}>
-        <h2 className={styles.heroTitle}>
-          Monitoramento do SISU {new Date().getFullYear()}
-          <span className={styles.heroHighlight}> em Tempo Real</span>
+      <section className={styles.hero} aria-labelledby="hero-title">
+        <h2 id="hero-title" className={styles.heroTitle}>
+          Referências do SISU
+          <span className={styles.heroHighlight}> com origem identificada</span>
         </h2>
         <p className={styles.heroSubtitle}>
-          Acompanhe as notas de corte, compare com suas notas e descubra suas chances de aprovação
+          Compare suas notas somente quando edição, modalidade, pesos e fonte puderem ser conferidos.
+          Classificações parciais não garantem seleção.
         </p>
       </section>
 
-      {/* Stats Bar */}
-      <section className={styles.statsBar}>
+      <section className={styles.statsBar} aria-label="Cobertura medida da base">
         <div className={styles.statItem}>
-          <span className={styles.statNumber}>8.500+</span>
-          <span className={styles.statLabel}>Cursos</span>
+          <span className={styles.statNumber}>
+            {systemStats.totalCourses ? systemStats.totalCourses.toLocaleString('pt-BR') : '—'}
+          </span>
+          <span className={styles.statLabel}>Ofertas</span>
         </div>
         <div className={styles.statItem}>
-          <span className={styles.statNumber}>{systemStats.totalUniversities}+</span>
-          <span className={styles.statLabel}>Universidades</span>
+          <span className={styles.statNumber}>
+            {systemStats.totalUniversities ? systemStats.totalUniversities.toLocaleString('pt-BR') : '—'}
+          </span>
+          <span className={styles.statLabel}>Instituições</span>
         </div>
         <div className={styles.statItem}>
-          <span className={styles.statNumber}>{systemStats.totalStates}</span>
-          <span className={styles.statLabel}>Estados</span>
+          <span className={styles.statNumber}>{systemStats.totalStates || '—'}</span>
+          <span className={styles.statLabel}>UFs cobertas</span>
         </div>
         <div className={styles.statItem}>
-          <span className={styles.statNumber}>{simpleAverage > 0 ? simpleAverage.toFixed(2).replace('.', ',') : '---'}</span>
-          <span className={styles.statLabel}>Média Simples</span>
+          <span className={styles.statNumber}>{simpleAverage === null ? '—' : formatScore(simpleAverage)}</span>
+          <span className={styles.statLabel}>Média simples</span>
         </div>
       </section>
 
-      {/* Main Content */}
+      {systemStats.missingStates.length > 0 && (
+        <p className={styles.coverageNote}>
+          UFs ainda ausentes da cobertura: {systemStats.missingStates.join(', ')}.
+        </p>
+      )}
+
+      {filterError && (
+        <div className={styles.globalError} role="alert">
+          <span>{filterError}</span>
+          <button type="button" onClick={() => setFilterReloadKey(value => value + 1)}>
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
       <div className={styles.content}>
-        {/* Left Column - Score Input */}
-        <aside className={styles.sidebar}>
+        <aside className={styles.sidebar} aria-label="Minhas notas">
           <div className={styles.scoreCard}>
             <div className={styles.scoreCardHeader}>
-              <h3>📊 Suas Notas do ENEM</h3>
+              <h3>Suas notas do ENEM</h3>
               {!showScoreInput && (
-                <button className={styles.editButton} onClick={() => setShowScoreInput(true)}>
+                <button
+                  type="button"
+                  className={styles.editButton}
+                  onClick={() => setShowScoreInput(true)}
+                >
                   Editar
                 </button>
               )}
@@ -643,410 +841,457 @@ export default function Home() {
 
             {showScoreInput ? (
               <div className={styles.scoreInputs}>
-                <div className={styles.inputGroup}>
-                  <label>Redação</label>
-                  <input
-                    type="number"
-                    value={tempScores.redacao}
-                    onChange={e => setTempScores({ ...tempScores, redacao: e.target.value })}
-                    placeholder="0 - 1000"
-                    min="0"
-                    max="1000"
-                  />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label>Linguagens</label>
-                  <input
-                    type="number"
-                    value={tempScores.linguagens}
-                    onChange={e => setTempScores({ ...tempScores, linguagens: e.target.value })}
-                    placeholder="0 - 1000"
-                  />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label>Matemática</label>
-                  <input
-                    type="number"
-                    value={tempScores.matematica}
-                    onChange={e => setTempScores({ ...tempScores, matematica: e.target.value })}
-                    placeholder="0 - 1000"
-                  />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label>Humanas</label>
-                  <input
-                    type="number"
-                    value={tempScores.humanas}
-                    onChange={e => setTempScores({ ...tempScores, humanas: e.target.value })}
-                    placeholder="0 - 1000"
-                  />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label>Natureza</label>
-                  <input
-                    type="number"
-                    value={tempScores.natureza}
-                    onChange={e => setTempScores({ ...tempScores, natureza: e.target.value })}
-                    placeholder="0 - 1000"
-                  />
-                </div>
-                <button className={styles.saveButton} onClick={handleSaveScores}>
-                  Salvar Notas
+                {SCORE_FIELDS.map(field => (
+                  <div className={styles.inputGroup} key={field.key}>
+                    <label htmlFor={'score-' + field.key}>{field.label}</label>
+                    <input
+                      id={'score-' + field.key}
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      max="1000"
+                      step="0.01"
+                      value={tempScores[field.key]}
+                      onChange={event => setTempScores(previous => ({
+                        ...previous,
+                        [field.key]: event.target.value,
+                      }))}
+                      placeholder="0 a 1000"
+                      aria-invalid={Boolean(scoreError)}
+                    />
+                  </div>
+                ))}
+                {scoreError && <p className={styles.scoreError} role="alert">{scoreError}</p>}
+                <button type="button" className={styles.saveButton} onClick={handleSaveScores}>
+                  Usar estas notas
                 </button>
               </div>
             ) : (
               <div className={styles.scoreDisplay}>
-                <div className={styles.scoreRow}>
-                  <span>Redação</span>
-                  <strong>{scores.redacao || '---'}</strong>
-                </div>
-                <div className={styles.scoreRow}>
-                  <span>Linguagens</span>
-                  <strong>{scores.linguagens || '---'}</strong>
-                </div>
-                <div className={styles.scoreRow}>
-                  <span>Matemática</span>
-                  <strong>{scores.matematica || '---'}</strong>
-                </div>
-                <div className={styles.scoreRow}>
-                  <span>Humanas</span>
-                  <strong>{scores.humanas || '---'}</strong>
-                </div>
-                <div className={styles.scoreRow}>
-                  <span>Natureza</span>
-                  <strong>{scores.natureza || '---'}</strong>
-                </div>
+                {SCORE_FIELDS.map(field => (
+                  <div className={styles.scoreRow} key={field.key}>
+                    <span>{field.label}</span>
+                    <strong>{hasEnteredScores ? formatScore(scores[field.key]) : '—'}</strong>
+                  </div>
+                ))}
                 <div className={styles.scoreDivider} />
                 <div className={styles.scoreRow}>
-                  <span>Média Simples</span>
+                  <span>Média simples</span>
                   <strong className={styles.averageHighlight}>
-                    {simpleAverage > 0 ? simpleAverage.toFixed(2) : '---'}
+                    {simpleAverage === null ? '—' : formatScore(simpleAverage)}
                   </strong>
                 </div>
               </div>
             )}
+
+            <label className={styles.rememberOption}>
+              <input
+                type="checkbox"
+                checked={rememberScores}
+                onChange={event => setRememberScores(event.target.checked)}
+              />
+              <span>Lembrar neste dispositivo por 30 dias</span>
+            </label>
+            <button
+              type="button"
+              className={styles.clearScoresButton}
+              onClick={() => {
+                clearScores();
+                setScoreError('');
+                setTempScores({
+                  redacao: '',
+                  linguagens: '',
+                  matematica: '',
+                  humanas: '',
+                  natureza: '',
+                });
+              }}
+            >
+              Limpar minhas notas
+            </button>
+            <p className={styles.privacyNote}>
+              Por padrão, as notas ficam somente na memória desta aba.
+            </p>
           </div>
-
-          {/* Probability Gauge - Only if course is selected */}
-          {coursePreview && (
-            <ProbabilityGauge
-              userScore={userAverage}
-              cutScore={coursePreview.cut_score}
-            />
-          )}
-
-          {/* Daily Cut Scores - Current Edition */}
-          {coursePreview && (() => {
-            const currentYear = new Date().getFullYear();
-            const currentData = currentYear === 2026 ? coursePreview.data2026
-              : currentYear === 2025 ? coursePreview.data2025
-              : coursePreview.data2024;
-            return (
-              <div className={styles.dailyCutsCard}>
-                <h3>📈 Cortes Diários {currentYear}</h3>
-
-                {currentData?.partial_scores?.length ? (
-                  <div className={styles.dailyCutsList}>
-                    {currentData.partial_scores
-                      .sort((a, b) => a.day - b.day)
-                      .map((p) => (
-                        <div key={p.day} className={styles.dailyCutRow}>
-                          <span className={styles.dailyCutDay}>DIA {p.day}</span>
-                          <span className={styles.dailyCutScore}>{p.score.toFixed(2).replace('.', ',')}</span>
-                        </div>
-                      ))}
-                    <div className={styles.dailyCutsNote}>
-                      <span className={styles.blinkingDot}>🔴</span> SISU {currentYear} ao vivo
-                    </div>
-                  </div>
-                ) : (
-                  <div className={styles.dailyCutsList}>
-                    {[1, 2, 3, 4, 5].map((day) => (
-                      <div key={day} className={`${styles.dailyCutRow} ${styles.dailyCutRowPending}`}>
-                        <span className={styles.dailyCutDay}>DIA {day}</span>
-                        <span className={styles.dailyCutScorePending}>---</span>
-                      </div>
-                    ))}
-                    <div className={styles.dailyCutsNote}>⏳ Aguardando SISU {currentYear}</div>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
         </aside>
 
-        {/* Right Column - Course Search */}
-        <section className={styles.searchSection}>
+        <section className={styles.searchSection} aria-labelledby="course-search-title">
           <div className={styles.searchCard}>
-            <h3>🎯 Encontre seu Curso</h3>
+            <h3 id="course-search-title">Encontre uma oferta</h3>
 
-            <div className={styles.filterGrid}>
-              <div className={styles.filterGroup}>
-                <label>Estado</label>
-                <select
-                  value={filters.state}
-                  onChange={e => setFilters({ state: e.target.value, city: '', institution: '', course: '' })}
-                >
-                  <option value="">Selecione</option>
-                  {options.states.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-
-              <div className={styles.filterGroup}>
-                <label>Cidade</label>
-                <select
-                  value={filters.city}
-                  disabled={!filters.state}
-                  onChange={e => setFilters({ ...filters, city: e.target.value, institution: '', course: '' })}
-                >
-                  <option value="">{loadingFilters.cities ? 'Carregando...' : 'Selecione'}</option>
-                  {options.cities.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
-              <div className={styles.filterGroup}>
-                <label>Instituição</label>
-                <select
-                  value={filters.institution}
-                  disabled={!filters.city}
-                  onChange={e => setFilters({ ...filters, institution: e.target.value, course: '' })}
-                >
-                  <option value="">{loadingFilters.institutions ? 'Carregando...' : 'Selecione'}</option>
-                  {options.institutions.map(i => <option key={i} value={i}>{i}</option>)}
-                </select>
-              </div>
-
-              <div className={styles.filterGroup}>
-                <label>Curso</label>
-                <select
-                  value={filters.course}
-                  disabled={!filters.institution}
-                  onChange={e => setFilters({ ...filters, course: e.target.value })}
-                >
-                  <option value="">{loadingFilters.courses ? 'Carregando...' : 'Selecione'}</option>
-                  {options.courses.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}{c.degree ? ` - ${c.degree}` : ''}{c.schedule ? ` - ${c.schedule}` : ''}</option>
+            <div className={styles.primarySearch}>
+              <label htmlFor="main-course-search">Curso, instituição ou cidade</label>
+              <input
+                id="main-course-search"
+                type="search"
+                value={searchQuery}
+                onChange={event => setSearchQuery(event.target.value)}
+                placeholder="Ex.: Medicina, UFGD ou Dourados"
+                autoComplete="off"
+                aria-describedby="search-help"
+              />
+              <span id="search-help">Digite ao menos 2 caracteres.</span>
+              {searchLoading && <p className={styles.inlineStatus} role="status">Buscando...</p>}
+              {searchError && <p className={styles.inlineError} role="alert">{searchError}</p>}
+              {!searchLoading && searchQuery.trim().length >= 2 && !searchError && searchResults.length === 0 && (
+                <p className={styles.inlineStatus} role="status">Nenhuma oferta encontrada.</p>
+              )}
+              {searchResults.length > 0 && (
+                <ul className={styles.searchResults} aria-label="Resultados da busca">
+                  {searchResults.map(result => (
+                    <li key={result.id}>
+                      <button type="button" onClick={() => chooseSearchResult(result)}>
+                        <strong>{result.name}</strong>
+                        <span>
+                          {[result.university, result.city, result.state].filter(Boolean).join(' · ')}
+                        </span>
+                      </button>
+                    </li>
                   ))}
-                </select>
-              </div>
-
-              {/* New Modality Dropdown */}
-              <div className={styles.filterGroup} style={{ minWidth: '100%' }}>
-                <label>Modalidade de Concorrência</label>
-                <select
-                  value={selectedModality}
-                  onChange={(e) => setSelectedModality(e.target.value)}
-                  style={{ fontWeight: 500 }}
-                >
-                  {MODALITY_OPTIONS.map(opt => (
-                    <option key={opt.code} value={opt.code}>{opt.shortName}</option>
-                  ))}
-                </select>
-              </div>
+                </ul>
+              )}
             </div>
 
-            {/* Course Preview */}
-            {coursePreview && !loadingFilters.details && (
-              <div className={styles.coursePreview}>
-                <div className={styles.previewHeader}>
-                  <h4>{coursePreview.name}</h4>
-                  <span className={styles.previewDegree}>{coursePreview.degree}</span>
+            <details className={styles.secondaryFilters}>
+              <summary>Filtrar por localização</summary>
+              <div className={styles.filterGrid}>
+                <div className={styles.filterGroup}>
+                  <label htmlFor="state-filter">UF</label>
+                  <select
+                    id="state-filter"
+                    value={filters.state}
+                    onChange={event => {
+                      setFilters({ state: event.target.value, city: '', institution: '', course: '' });
+                      clearSelectedCourse();
+                    }}
+                  >
+                    <option value="">Selecione</option>
+                    {options.states.map(state => <option key={state} value={state}>{state}</option>)}
+                  </select>
                 </div>
-
-                <div className={styles.previewInfo}>
-                  <div className={styles.previewRow}>
-                    <span>🏛️ {coursePreview.university}</span>
-                  </div>
-                  {coursePreview.campus && (
-                    <div className={styles.previewRow}>
-                      <span>📍 {coursePreview.campus}</span>
-                    </div>
-                  )}
-                  <div className={styles.previewRow}>
-                    <span style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      backgroundColor: coursePreview.schedule === 'Integral' ? '#dbeafe' :
-                        coursePreview.schedule === 'Noturno' ? '#f3e8ff' :
-                          '#fef3c7',
-                      color: coursePreview.schedule === 'Integral' ? '#1e40af' :
-                        coursePreview.schedule === 'Noturno' ? '#6b21a8' :
-                          '#92400e'
-                    }}>
-                      ⏰ {coursePreview.schedule}
-                    </span>
-                  </div>
-                  {coursePreview.highest_weight && (
-                    <div className={styles.previewRow}>
-                      <span>⚖️ Maior peso: {coursePreview.highest_weight}</span>
-                    </div>
-                  )}
+                <div className={styles.filterGroup}>
+                  <label htmlFor="city-filter">Cidade</label>
+                  <select
+                    id="city-filter"
+                    value={filters.city}
+                    disabled={!filters.state}
+                    onChange={event => {
+                      setFilters(previous => ({
+                        ...previous,
+                        city: event.target.value,
+                        institution: '',
+                        course: '',
+                      }));
+                      clearSelectedCourse();
+                    }}
+                  >
+                    <option value="">{loadingFilters.cities ? 'Carregando...' : 'Selecione'}</option>
+                    {options.cities.map(city => <option key={city} value={city}>{city}</option>)}
+                  </select>
                 </div>
-
-                {/* Year Comparison Section - Always show current edition */}
-                <div className={styles.yearComparison}>
-                  {(() => {
-                    const currentYear = new Date().getFullYear();
-                    const currentData = currentYear === 2026 ? coursePreview.data2026
-                      : currentYear === 2025 ? coursePreview.data2025
-                      : coursePreview.data2024;
-                    return (
-                      <div className={`${styles.yearCard} ${styles.yearCardHighlight}`}>
-                        <div className={styles.yearHeader}>
-                          <span className={styles.yearBadge2025}>{currentYear}</span>
-                          <span className={styles.yearLabel}>
-                            {currentData?.cut_score_type || 'Em breve'}
-                          </span>
-                        </div>
-                        {currentData && currentData.cut_score > 0 ? (
-                          <>
-                            <div className={styles.yearScore}>
-                              <span className={styles.yearScoreLabel}>
-                                {currentData.cut_score_type}
-                              </span>
-                              <span className={styles.yearScoreValue2025}>
-                                {currentData.cut_score.toFixed(2).replace('.', ',')}
-                              </span>
-                            </div>
-                            {currentData.partial_scores?.length > 0 && (
-                              <div className={styles.partialScoresPreview}>
-                                {currentData.partial_scores.map((p) => (
-                                  <div key={p.day} className={styles.partialDay}>
-                                    <span>Dia {p.day}</span>
-                                    <strong>{p.score.toFixed(2).replace('.', ',')}</strong>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <div className={styles.yearPending}>
-                            <span>⏳</span>
-                            <span>Aguardando início do SISU</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
+                <div className={styles.filterGroup}>
+                  <label htmlFor="institution-filter">Instituição</label>
+                  <select
+                    id="institution-filter"
+                    value={filters.institution}
+                    disabled={!filters.city}
+                    onChange={event => {
+                      setFilters(previous => ({
+                        ...previous,
+                        institution: event.target.value,
+                        course: '',
+                      }));
+                      clearSelectedCourse();
+                    }}
+                  >
+                    <option value="">{loadingFilters.institutions ? 'Carregando...' : 'Selecione'}</option>
+                    {options.institutions.map(institution => (
+                      <option key={institution} value={institution}>{institution}</option>
+                    ))}
+                  </select>
                 </div>
-
-                {/* Score Evolution Chart */}
-                {coursePreview && (
-                  <ScoreEvolutionChart
-                    data2024={coursePreview.data2024}
-                    data2025={coursePreview.data2025}
-                    data2026={coursePreview.data2026}
-                  />
-                )}
-
-
-                {/* User Score Comparison */}
-                <div className={styles.previewScores}>
-                  <div className={styles.previewScoreItem}>
-                    <span className={styles.previewScoreLabel}>
-                      {hasRealWeights ? 'Sua Nota Ponderada' : 'Sua Média (pesos iguais)'}
-                    </span>
-                    <span className={`${styles.previewScoreValue} ${userAverage >= coursePreview.cut_score ? styles.passing : styles.failing}`}>
-                      {userAverage > 0 ? userAverage.toFixed(2).replace('.', ',') : '---'}
-                    </span>
-                  </div>
-
-                  <div className={styles.actionButtons}>
-                    <button className={styles.compareButton} onClick={() => setShowRadar(true)}>
-                      🔍 Radar de Aprovação
-                    </button>
-                    <button className={styles.shareButton} onClick={() => setShowShare(true)}>
-                      📱 Share
-                    </button>
-                  </div>
-
-                  {userAverage > 0 && coursePreview.cut_score > 0 && (
-                    <div className={styles.previewStatus}>
-                      {userAverage >= coursePreview.cut_score ? (
-                        <span className={styles.statusPassing}>✅ Aprovado com base em {coursePreview.cut_score_year} (+{(userAverage - coursePreview.cut_score).toFixed(2).replace('.', ',')})</span>
-                      ) : (
-                        <span className={styles.statusFailing}>❌ Reprovado com base em {coursePreview.cut_score_year} ({(userAverage - coursePreview.cut_score).toFixed(2).replace('.', ',')})</span>
-                      )}
-                    </div>
-                  )}
+                <div className={styles.filterGroup}>
+                  <label htmlFor="course-filter">Oferta</label>
+                  <select
+                    id="course-filter"
+                    value={filters.course}
+                    disabled={!filters.institution}
+                    onChange={event => {
+                      setFilters(previous => ({ ...previous, course: event.target.value }));
+                      clearSelectedCourse();
+                    }}
+                  >
+                    <option value="">{loadingFilters.courses ? 'Carregando...' : 'Selecione'}</option>
+                    {options.courses.map(course => (
+                      <option key={course.id} value={course.id}>
+                        {course.name}
+                        {course.degree ? ' — ' + course.degree : ''}
+                        {course.schedule ? ' — ' + course.schedule : ''}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+              </div>
+            </details>
 
-                <button className={styles.viewButton} onClick={handleViewDetails}>
-                  Ver Detalhes Completos →
-                </button>
+            {courseResponse && (
+              <div className={styles.modalitySection}>
+                <div className={styles.filterGroup}>
+                  <label htmlFor="modality-filter">Modalidade oficial com referência nesta edição</label>
+                  <select
+                    id="modality-filter"
+                    value={selectedModality}
+                    onChange={event => setSelectedModality(event.target.value)}
+                  >
+                    <option value="">Confirme sua modalidade</option>
+                    {availableModalities.map(modality => (
+                      <option key={modality.id} value={modality.id}>{modality.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <details className={styles.modalityAssistant}>
+                  <summary>Como confirmar minha modalidade?</summary>
+                  <p>
+                    Confira escola pública, renda de até 1 salário mínimo per capita, pertencimento
+                    étnico-racial, condição de pessoa com deficiência e critérios específicos da instituição.
+                    Este assistente não decide por você.
+                  </p>
+                  <a
+                    href="https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/lei/l14723.htm"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Ver critérios da Lei 14.723/2023
+                  </a>
+                </details>
               </div>
             )}
 
             {loadingFilters.details && (
-              <div className={styles.loadingPreview}>
-                <div className={styles.spinner} />
-                <p>Carregando informações...</p>
+              <div className={styles.loadingPreview} role="status" aria-live="polite">
+                <div className={styles.spinner} aria-hidden="true" />
+                <p>Carregando a oferta e suas referências...</p>
               </div>
+            )}
+
+            {detailsError && (
+              <div className={styles.errorState} role="alert">
+                <p>{detailsError}</p>
+                <button type="button" onClick={() => setDetailsReloadKey(value => value + 1)}>
+                  Tentar novamente
+                </button>
+              </div>
+            )}
+
+            {!loadingFilters.details && courseResponse && !selectedModality && !modalityNotice && (
+              <div className={styles.emptyState} role="status">
+                Confirme uma das modalidades oficiais disponíveis para ver a referência correspondente.
+              </div>
+            )}
+
+            {modalityNotice && <div className={styles.emptyState} role="status">{modalityNotice}</div>}
+
+            {coursePreview && !loadingFilters.details && (
+              <article className={styles.coursePreview}>
+                <div className={styles.previewHeader}>
+                  <div>
+                    <h4>{coursePreview.name}</h4>
+                    <p>{coursePreview.university}</p>
+                  </div>
+                  <span className={styles.previewDegree}>{coursePreview.degree}</span>
+                </div>
+
+                <div className={styles.previewInfo}>
+                  <span>{[coursePreview.campus, coursePreview.city, coursePreview.state].filter(Boolean).join(' · ')}</span>
+                  <span>Turno: {coursePreview.schedule}</span>
+                  {coursePreview.highest_weight && (
+                    <span>Maior peso em {coursePreview.weights_year}: {coursePreview.highest_weight}</span>
+                  )}
+                </div>
+
+                <section className={styles.resultSection} aria-labelledby="result-title">
+                  <h5 id="result-title">Resumo da comparação</h5>
+                  <div className={styles.resultGrid}>
+                    <div>
+                      <span>Sua nota ponderada</span>
+                      <strong>{userAverage === null ? 'Indisponível' : formatScore(userAverage)}</strong>
+                      <small>
+                        {coursePreview.weights_year
+                          ? 'Pesos da edição ' + coursePreview.weights_year
+                          : 'Pesos da mesma edição não disponíveis'}
+                      </small>
+                    </div>
+                    <div>
+                      <span>Última referência</span>
+                      <strong>{formatScore(coursePreview.cut_score)}</strong>
+                      <small>{coursePreview.cut_score_type} · edição {coursePreview.cut_score_year}</small>
+                    </div>
+                    <div>
+                      <span>Margem verificável</span>
+                      <strong>{margin === null ? 'Suspensa' : (margin > 0 ? '+' : '') + formatScore(margin)}</strong>
+                      <small>
+                        {margin === null
+                          ? 'Liberada somente após conferência oficial'
+                          : margin >= 0 ? 'pontos acima da referência' : 'pontos abaixo da referência'}
+                      </small>
+                    </div>
+                  </div>
+                  {comparisonAllowed && userAverage !== null && (
+                    <ProbabilityGauge userScore={userAverage} cutScore={coursePreview.cut_score} />
+                  )}
+                  {!comparisonAllowed && (
+                    <p className={styles.comparisonBlocked}>
+                      Nenhum veredito foi produzido: esta referência ainda não está verificada, os pesos estão
+                      indisponíveis ou algum requisito mínimo não pôde ser confirmado.
+                    </p>
+                  )}
+                </section>
+
+                <section className={styles.requirementsSection} aria-labelledby="requirements-title">
+                  <h5 id="requirements-title">Requisitos mínimos da edição</h5>
+                  {coursePreview.minimums && Object.values(coursePreview.minimums).some(value => value !== null) ? (
+                    <dl className={styles.minimumsGrid}>
+                      {[
+                        ['Redação', coursePreview.minimums.redacao],
+                        ['Linguagens', coursePreview.minimums.linguagens],
+                        ['Matemática', coursePreview.minimums.matematica],
+                        ['Humanas', coursePreview.minimums.humanas],
+                        ['Natureza', coursePreview.minimums.natureza],
+                        ['Média ENEM', coursePreview.minimums.enem],
+                      ].map(([label, value]) => (
+                        <div key={String(label)}>
+                          <dt>{label}</dt>
+                          <dd>{typeof value === 'number' ? formatScore(value) : 'Não exigido'}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  ) : (
+                    <p className={styles.sectionEmpty}>Mínimos da mesma edição não informados.</p>
+                  )}
+                  {scoreResult.minimums.status === 'failed' && (
+                    <p className={styles.minimumWarning} role="alert">
+                      Uma ou mais notas estão abaixo do mínimo informado. A margem permanece suspensa.
+                    </p>
+                  )}
+                </section>
+
+                <section className={styles.trendSection} aria-labelledby="trend-title">
+                  <h5 id="trend-title">Tendência e parciais</h5>
+                  {coursePreview.activeData.partial_scores.length > 0 ? (
+                    <>
+                      <p className={styles.trendSummary}>{getDailyTrend(coursePreview.activeData)}</p>
+                      <div className={styles.dailyCutsList}>
+                        {coursePreview.activeData.partial_scores.map(partial => (
+                          <div key={partial.day} className={styles.dailyCutRow}>
+                            <span className={styles.dailyCutDay}>Dia {partial.day}</span>
+                            <strong className={styles.dailyCutScore}>{formatScore(partial.score)}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <p className={styles.sectionEmpty}>Não há sequência de parciais para esta referência.</p>
+                  )}
+                </section>
+
+                <DataTrustPanel
+                  status={coursePreview.reference.verification.status}
+                  edition={coursePreview.reference.edition}
+                  modalityName={coursePreview.reference.modalityOfficialName}
+                  referenceType={coursePreview.reference.referenceType}
+                  capturedAt={coursePreview.reference.capturedAt}
+                  checkedAt={coursePreview.reference.verification.checkedAt}
+                  sourceUrl={coursePreview.reference.sourceUrl}
+                  intermediary={coursePreview.reference.intermediary}
+                />
+
+                <div className={styles.actionButtons}>
+                  <button
+                    type="button"
+                    className={styles.compareButton}
+                    disabled={!comparisonAllowed}
+                    onClick={() => setShowRadar(true)}
+                  >
+                    Radar de ofertas
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.shareButton}
+                    disabled={!comparisonAllowed}
+                    onClick={() => setShowShare(true)}
+                  >
+                    Compartilhar comparação
+                  </button>
+                </div>
+                {!comparisonAllowed && (
+                  <p className={styles.actionHint}>
+                    Radar e compartilhamento ficam indisponíveis enquanto a referência não estiver verificada.
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  className={styles.viewButton}
+                  onClick={() => {
+                    setShowDetails(true);
+                    window.setTimeout(() => {
+                      document.getElementById('course-details')?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start',
+                      });
+                    }, 50);
+                  }}
+                >
+                  Ver detalhes da oferta
+                </button>
+              </article>
             )}
           </div>
         </section>
       </div>
 
-      {/* Inline Course Details - Shows below when 'Ver Detalhes Completos' is clicked */}
-      {selectedCourseCode && (
-        <div className={styles.inlineDetails}>
+      {showDetails && detailCourse && (
+        <section id="course-details" className={styles.inlineDetails} aria-labelledby="details-title">
           <div className={styles.inlineDetailsHeader}>
-            <h2>📚 Detalhes Completos</h2>
-            <button className={styles.closeButton} onClick={handleBack}>
-              ✕ Fechar
+            <h2 id="details-title">Detalhes da oferta</h2>
+            <button type="button" className={styles.closeButton} onClick={() => setShowDetails(false)}>
+              Fechar
             </button>
           </div>
-
-          {loading ? (
-            <div className={styles.loadingContainer}>
-              <div className={styles.spinner} />
-              <p>Carregando detalhes...</p>
-            </div>
-          ) : courseData ? (
-            <CourseDetailView course={courseData} />
-          ) : null}
-        </div>
+          <CourseDetailView course={detailCourse} />
+        </section>
       )}
 
-      {/* Footer */}
       <footer className={styles.footer}>
         <p className={styles.disclaimer}>
-          Os dados exibidos na plataforma são obtidos dos portais de transparência do Ministério da Educação
-          e atualizados ao longo do período do SISU. Além disso, verificamos regularmente as informações
-          para assegurar que estejam sempre corretas e atualizadas.
+          As referências são capturadas por meio do MeuSISU/CloudFront e identificadas individualmente com
+          edição, modalidade e horário. Dados parciais não garantem seleção. Confirme sempre no{' '}
+          <a href="https://sisu.mec.gov.br/vagas" target="_blank" rel="noopener noreferrer">
+            portal oficial do SISU/MEC
+          </a>.
         </p>
         <div className={styles.contacts}>
           <a href="https://instagram.com/xandaoxtri" target="_blank" rel="noopener noreferrer">
-            📸 @xandaoxtri
+            @xandaoxtri
           </a>
           <span className={styles.contactDivider}>•</span>
-          <a href="mailto:contato@xtri.online">
-            ✉️ contato@xtri.online
-          </a>
+          <a href="mailto:contato@xtri.online">contato@xtri.online</a>
         </div>
-        <p>© {new Date().getFullYear()} XTRI SISU - Monitoramento em Tempo Real</p>
+        <p>© {new Date().getFullYear()} XTRI SISU — referências para acompanhamento</p>
       </footer>
 
-
-      {/* Logic Components */}
-      {
-        coursePreview && (
-          <ApprovalRadarModal
-            isOpen={showRadar}
-            onClose={() => setShowRadar(false)}
-            baseCourseName={coursePreview.name}
-            referenceCourseId={coursePreview.id}
-            referenceCity={coursePreview.city}
-            referenceState={coursePreview.state}
-          />
-        )
-      }
-      {coursePreview && (
+      {coursePreview && comparisonAllowed && (
+        <ApprovalRadarModal
+          isOpen={showRadar}
+          onClose={() => setShowRadar(false)}
+          baseCourseName={coursePreview.name}
+          referenceCourseId={coursePreview.id}
+          referenceCity={coursePreview.city}
+          referenceState={coursePreview.state}
+          modalityName={coursePreview.reference.modalityOfficialName}
+        />
+      )}
+      {coursePreview && comparisonAllowed && userAverage !== null && (
         <ShareModal
           isOpen={showShare}
           onClose={() => setShowShare(false)}

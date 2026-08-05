@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import {
+  buildCourseProvenance,
+  buildCourseReference,
+} from '@/lib/course-reference'
 import { supabase } from '@/lib/supabase'
+import type { CourseReference } from '@/types/course'
 
 interface RouteParams {
   params: Promise<{ code: string }>
@@ -14,11 +19,11 @@ interface RouteParams {
 export async function GET(
   request: NextRequest,
   { params }: RouteParams
-) {
+): Promise<NextResponse> {
   const { code: codeStr } = await params
-  const code = parseInt(codeStr)
+  const code = Number(codeStr)
 
-  if (isNaN(code)) {
+  if (!Number.isInteger(code) || code <= 0) {
     return NextResponse.json(
       { error: 'Invalid course code' },
       { status: 400 }
@@ -29,9 +34,17 @@ export async function GET(
     // Get by SISU Code (the URL param is the SISU code, not internal ID)
     const result = await supabase.getFullCourseData(code)
 
-    if (result.error || !result.data) {
+    if (result.error) {
+      console.error('Error fetching course from Supabase:', result.error)
       return NextResponse.json(
-        { error: result.error || 'Course not found' },
+        { error: 'Unable to fetch course data' },
+        { status: 502 }
+      )
+    }
+
+    if (!result.data) {
+      return NextResponse.json(
+        { error: 'Course not found' },
         { status: 404 }
       )
     }
@@ -50,9 +63,41 @@ export async function GET(
 
     // Get latest weights
     const latestWeights = course.weights[0] || null
+    const generatedAt = new Date()
+    const weightsByEdition = new Map(course.weights.map(weight => [weight.year, weight]))
+    const referencesByScoreId = new Map<number, CourseReference>()
+    for (const score of course.cut_scores) {
+      const reference = buildCourseReference(
+        course.code,
+        score,
+        weightsByEdition.get(score.year) || null,
+        generatedAt
+      )
+      if (reference) referencesByScoreId.set(score.id, reference)
+    }
+    const references = Array.from(referencesByScoreId.values())
+      .sort((left, right) => (
+        right.edition - left.edition
+        || left.modalityOfficialName.localeCompare(right.modalityOfficialName, 'pt-BR')
+      ))
+    const requestedModalityId = request.nextUrl.searchParams.get('modalityId')?.trim()
+    if (
+      requestedModalityId
+      && !references.some(reference => reference.modalityId === requestedModalityId)
+    ) {
+      return NextResponse.json({
+        error: 'NO_REFERENCE_FOR_MODALITY',
+        code: 'NO_REFERENCE_FOR_MODALITY',
+        modalityId: requestedModalityId,
+      }, { status: 404 })
+    }
+    const responseReferences = requestedModalityId
+      ? references.filter(reference => reference.modalityId === requestedModalityId)
+      : references
 
     return NextResponse.json({
       course: {
+        id: course.id,
         code: course.code,
         name: course.name,
         university: course.university,
@@ -84,18 +129,43 @@ export async function GET(
           enem: latestWeights.min_enem,
         },
       } : null,
-      cut_scores: Array.from(scoresByYear.entries()).map(([year, scores]) => ({
-        year,
-        modalities: scores.map(s => ({
-          code: s.modality_code,
-          name: s.modality_name,
-          cut_score: s.cut_score,
-          applicants: s.applicants,
-          vacancies: s.vacancies,
-          updated_at: s.captured_at,
-          partial_scores: s.partial_scores || [],
+      cut_scores: Array.from(scoresByYear.entries())
+        .sort(([leftYear], [rightYear]) => rightYear - leftYear)
+        .map(([year, scores]) => ({
+          year,
+          modalities: scores
+            .filter(score => {
+              if (!requestedModalityId) return true
+              return referencesByScoreId.get(score.id)?.modalityId === requestedModalityId
+            })
+            .sort((left, right) => left.modality_name.localeCompare(
+              right.modality_name,
+              'pt-BR'
+            ))
+            .map(score => {
+              const reference = referencesByScoreId.get(score.id)
+
+              return {
+                // Legacy aliases are preserved for existing consumers.
+                code: score.modality_code,
+                name: score.modality_name,
+                modality_code: score.modality_code,
+                modality_name: score.modality_name,
+                cut_score: score.cut_score,
+                applicants: score.applicants,
+                vacancies: score.vacancies,
+                updated_at: score.captured_at,
+                partial_scores: score.partial_scores || [],
+                // Canonical, camelCase reference metadata.
+                capturedAt: reference?.capturedAt || null,
+                referenceType: reference?.referenceType || null,
+                sourceUrl: reference?.sourceUrl || null,
+                intermediary: reference?.intermediary || null,
+                verification: reference?.verification || { status: 'stale' },
+                reference: reference || null,
+              }
+            }),
         })),
-      })),
       weights_history: course.weights.map(w => ({
         year: w.year,
         pesos: {
@@ -105,7 +175,17 @@ export async function GET(
           humanas: w.peso_ch,
           natureza: w.peso_cn,
         },
+        minimos: {
+          redacao: w.min_red,
+          linguagens: w.min_ling,
+          matematica: w.min_mat,
+          humanas: w.min_ch,
+          natureza: w.min_cn,
+          enem: w.min_enem,
+        },
       })),
+      references: responseReferences,
+      provenance: buildCourseProvenance(course.code, responseReferences, generatedAt),
     })
   } catch (error) {
     console.error('Error fetching course:', error)

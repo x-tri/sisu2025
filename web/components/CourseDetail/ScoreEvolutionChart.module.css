@@ -1,5 +1,6 @@
 .container {
     width: 100%;
+    min-width: 0;
     height: 300px;
     background-color: #1a1b1e;
     margin-bottom: 2rem;
@@ -51,4 +52,32 @@
 .tooltipValue {
     font-weight: 600;
     color: #fff;
+}
+
+.emptyState {
+    margin: 1rem 0 2rem;
+    padding: 1rem;
+    border: 1px dashed #d1d5db;
+    border-radius: 0.75rem;
+    color: #6b7280;
+    text-align: center;
+}
+
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (max-width: 480px) {
+    .container {
+        height: 260px;
+        padding-right: 0;
+    }
 }

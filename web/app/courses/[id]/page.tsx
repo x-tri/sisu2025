@@ -1,35 +1,12 @@
-import { supabase } from '@/lib/supabase';
-import { notFound } from 'next/navigation';
-import CourseDetailView from '@/components/CourseDetail/CourseDetailView';
-import ScoreDrawer from '@/components/ScoreDrawer';
+import { notFound, redirect } from 'next/navigation';
 
 interface PageProps {
-    params: {
-        id: string;
-    }
+  params: {
+    id: string;
+  };
 }
 
-// Revalidate every hour
-export const revalidate = 3600;
-
-export default async function CoursePage({ params }: PageProps) {
-    const code = parseInt(params.id);
-
-    if (isNaN(code)) {
-        return notFound();
-    }
-
-    const { data: course, error } = await supabase.getFullCourseData(code);
-
-    if (error || !course) {
-        console.error("Error fetching course:", error);
-        return notFound();
-    }
-
-    return (
-        <>
-            <ScoreDrawer />
-            <CourseDetailView course={course} />
-        </>
-    );
+export default function CoursePage({ params }: PageProps) {
+  if (!/^\d+$/.test(params.id) || Number(params.id) <= 0) notFound();
+  redirect('/?courseCode=' + encodeURIComponent(params.id));
 }

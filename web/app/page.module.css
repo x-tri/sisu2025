@@ -169,6 +169,22 @@
 @media (max-width: 900px) {
     .content {
         grid-template-columns: 1fr;
+        padding: 0 1rem 2rem;
+        gap: 1rem;
+    }
+
+    .sidebar {
+        position: static;
+        top: auto;
+        width: 100%;
+    }
+
+    .searchSection,
+    .searchCard,
+    .coursePreview,
+    .inlineDetails {
+        min-width: 0;
+        max-width: 100%;
     }
 }
 
@@ -340,7 +356,7 @@
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #888;
+    color: #57534e;
     font-weight: 600;
 }
 
@@ -353,6 +369,9 @@
     background: #fafafa;
     cursor: pointer;
     transition: border-color 0.2s, background 0.2s;
+    width: 100%;
+    min-width: 0;
+    text-overflow: ellipsis;
 }
 
 .filterGroup select:focus {
@@ -840,4 +859,521 @@
 
 .closeButton:hover {
     background: #dc2626;
+}
+
+/* Trust-first search and result states */
+.officialLink {
+    color: #1a1a1a;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-underline-offset: 0.2rem;
+}
+
+.coverageNote {
+    max-width: 1400px;
+    margin: -1rem auto 1.5rem;
+    padding: 0 2rem;
+    color: #78716c;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.globalError,
+.errorState {
+    max-width: 1400px;
+    margin: 0 auto 1rem;
+    padding: 1rem;
+    border: 1px solid #fca5a5;
+    border-radius: 0.75rem;
+    background: #fef2f2;
+    color: #991b1b;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.globalError button,
+.errorState button {
+    border: 0;
+    border-radius: 0.5rem;
+    background: #991b1b;
+    color: #fff;
+    padding: 0.65rem 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.primarySearch {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.primarySearch label {
+    color: #292524;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.primarySearch input {
+    width: 100%;
+    min-width: 0;
+    padding: 1rem;
+    border: 2px solid #e7e5e4;
+    border-radius: 0.75rem;
+    background: #fff;
+    color: #1c1917;
+    font-size: 1rem;
+}
+
+.primarySearch input:focus {
+    border-color: #d97706;
+}
+
+.primarySearch > span {
+    color: #78716c;
+    font-size: 0.78rem;
+}
+
+.searchResults {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% - 0.25rem);
+    right: 0;
+    left: 0;
+    max-height: 22rem;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0.35rem;
+    border: 1px solid #e7e5e4;
+    border-radius: 0.75rem;
+    background: #fff;
+    box-shadow: 0 16px 40px rgba(28, 25, 23, 0.18);
+    list-style: none;
+}
+
+.searchResults button {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.85rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: transparent;
+    color: #1c1917;
+    text-align: left;
+    cursor: pointer;
+}
+
+.searchResults button:hover,
+.searchResults button:focus-visible {
+    background: #fef3c7;
+}
+
+.searchResults span {
+    color: #78716c;
+    font-size: 0.8rem;
+}
+
+.inlineStatus,
+.inlineError {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.inlineStatus {
+    color: #57534e;
+}
+
+.inlineError {
+    color: #b91c1c;
+}
+
+.secondaryFilters {
+    margin: 1rem 0;
+    border: 1px solid #e7e5e4;
+    border-radius: 0.75rem;
+    background: #fafaf9;
+}
+
+.secondaryFilters summary,
+.modalityAssistant summary {
+    padding: 0.9rem 1rem;
+    color: #292524;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.secondaryFilters .filterGrid {
+    padding: 0 1rem 1rem;
+    margin-bottom: 0;
+}
+
+.modalitySection {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 1rem;
+    margin: 1.25rem 0;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    background: #f5f5f4;
+}
+
+.modalityAssistant {
+    border: 1px solid #d6d3d1;
+    border-radius: 0.65rem;
+    background: #fff;
+    font-size: 0.85rem;
+}
+
+.modalityAssistant p,
+.modalityAssistant a {
+    margin: 0 1rem 1rem;
+    line-height: 1.55;
+}
+
+.modalityAssistant a {
+    display: inline-block;
+    color: #92400e;
+    font-weight: 700;
+}
+
+.emptyState {
+    margin-top: 1rem;
+    padding: 1.2rem;
+    border: 1px dashed #a8a29e;
+    border-radius: 0.75rem;
+    background: #fafaf9;
+    color: #57534e;
+    text-align: center;
+}
+
+.scoreError {
+    margin: 0;
+    color: #fecaca;
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.rememberOption {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    margin-top: 1.25rem;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+.rememberOption input {
+    margin-top: 0.15rem;
+    accent-color: #f59e0b;
+}
+
+.clearScoresButton {
+    width: 100%;
+    margin-top: 0.75rem;
+    padding: 0.65rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 0.5rem;
+    background: transparent;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.privacyNote {
+    margin: 0.75rem 0 0;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+
+.previewHeader {
+    justify-content: space-between;
+}
+
+.previewHeader p {
+    margin: 0.25rem 0 0;
+    color: #57534e;
+    font-size: 0.88rem;
+}
+
+.previewInfo span {
+    color: #57534e;
+    font-size: 0.88rem;
+}
+
+.resultSection,
+.requirementsSection,
+.trendSection {
+    margin: 1.25rem 0;
+    padding: 1.25rem;
+    border: 1px solid rgba(120, 113, 108, 0.16);
+    border-radius: 0.85rem;
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.resultSection h5,
+.requirementsSection h5,
+.trendSection h5 {
+    margin: 0 0 1rem;
+    color: #1c1917;
+    font-size: 1rem;
+}
+
+.resultGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.resultGrid > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1rem;
+    border-radius: 0.7rem;
+    background: #fff;
+}
+
+.resultGrid span,
+.resultGrid small {
+    color: #78716c;
+}
+
+.resultGrid span {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.resultGrid strong {
+    color: #1c1917;
+    font-size: clamp(1.1rem, 3vw, 1.55rem);
+    overflow-wrap: anywhere;
+}
+
+.resultGrid small {
+    font-size: 0.74rem;
+    line-height: 1.4;
+}
+
+.comparisonBlocked,
+.actionHint,
+.sectionEmpty,
+.minimumWarning {
+    margin: 0.9rem 0 0;
+    font-size: 0.85rem;
+    line-height: 1.55;
+}
+
+.comparisonBlocked {
+    padding: 0.85rem;
+    border-left: 4px solid #d97706;
+    background: #fffbeb;
+    color: #78350f;
+}
+
+.minimumsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin: 0;
+}
+
+.minimumsGrid > div {
+    padding: 0.75rem;
+    border-radius: 0.65rem;
+    background: #fafaf9;
+}
+
+.minimumsGrid dt {
+    color: #78716c;
+    font-size: 0.72rem;
+}
+
+.minimumsGrid dd {
+    margin: 0.25rem 0 0;
+    color: #292524;
+    font-weight: 700;
+}
+
+.minimumWarning {
+    color: #991b1b;
+}
+
+.sectionEmpty {
+    color: #78716c;
+}
+
+.trendSection .dailyCutRow {
+    background: #f5f5f4;
+}
+
+.trendSection .dailyCutDay {
+    color: #57534e;
+}
+
+.trendSection .dailyCutScore {
+    color: #92400e;
+}
+
+.trendSummary {
+    margin: 0 0 0.75rem;
+    color: #44403c;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.compareButton:disabled,
+.shareButton:disabled {
+    background: #d6d3d1;
+    color: #57534e;
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.actionHint {
+    margin: -0.25rem 0 1rem;
+    color: #78716c;
+    text-align: center;
+}
+
+@media (max-width: 900px) {
+    .header {
+        padding: 0.75rem 1rem;
+    }
+
+    .logo {
+        font-size: 1.35rem;
+    }
+
+    .logoImage {
+        width: 34px;
+        height: 34px;
+    }
+
+    .hero {
+        padding: 2rem 1rem 1rem;
+    }
+
+    .heroTitle {
+        font-size: clamp(1.85rem, 9vw, 2.4rem);
+    }
+
+    .heroSubtitle {
+        font-size: 1rem;
+    }
+
+    .statsBar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .statItem {
+        min-width: 0;
+        padding: 0.75rem;
+        border-radius: 0.75rem;
+        background: rgba(255, 255, 255, 0.55);
+    }
+
+    .statNumber {
+        font-size: 1.45rem;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .scoreCard,
+    .searchCard,
+    .coursePreview {
+        border-radius: 1rem;
+        padding: 1.25rem;
+    }
+
+    .filterGrid,
+    .yearComparison {
+        grid-template-columns: 1fr;
+    }
+
+    .previewHeader,
+    .previewScoreItem,
+    .inlineDetailsHeader {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .partialScoresPreview {
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+    }
+
+    .actionButtons {
+        flex-direction: column;
+    }
+
+    .compareButton,
+    .shareButton {
+        width: 100%;
+        flex: none;
+    }
+
+    .inlineDetails {
+        padding: 0 1rem;
+    }
+
+    .footer {
+        padding: 1.5rem 1rem;
+    }
+
+    .searchSection {
+        order: -1;
+    }
+
+    .modalitySection,
+    .resultGrid,
+    .minimumsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .officialLink {
+        font-size: 0.75rem;
+        text-align: right;
+    }
+
+    .globalError,
+    .errorState {
+        margin: 0 1rem 1rem;
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+
+    .coverageNote {
+        margin: 0 auto 1rem;
+        padding: 0 1rem;
+    }
+}
+
+@media (max-width: 380px) {
+    .statsBar {
+        grid-template-columns: 1fr;
+    }
+
+    .scoreCard,
+    .searchCard,
+    .coursePreview {
+        padding: 1rem;
+    }
 }

@@ -1,105 +1,94 @@
 .container {
     background-color: #1a1b1e;
-    border-radius: 12px;
-    padding: 20px;
     border: 1px solid #333;
+    border-radius: 12px;
     margin-top: 1rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
+    padding: 20px;
+    text-align: center;
 }
 
-.title {
-    color: #fff;
-    font-size: 0.9rem;
-    margin-bottom: 5px;
-    opacity: 0.8;
+.container .title {
+    color: #d1d5db;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    margin: 0 0 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
-.gaugeWrapper {
-    position: relative;
-    width: 200px;
-    height: 100px;
-    /* Half circle */
-    margin-top: 10px;
-}
-
-.gaugeBackground {
-    fill: none;
-    stroke: #333;
-    stroke-width: 20;
-}
-
-.gaugeFill {
-    fill: none;
-    stroke-width: 20;
-    stroke-linecap: round;
-    transition: stroke-dasharray 1s ease-out, stroke 1s ease;
-}
-
-.scoreText {
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.percentage {
-    font-size: 2rem;
+.marginValue {
+    display: block;
+    font-size: clamp(1.75rem, 6vw, 2.4rem);
     font-weight: 800;
-    color: #fff;
-    line-height: 1;
+    line-height: 1.1;
 }
 
-.statusText {
+.above {
+    color: #60a5fa;
+}
+
+.below {
+    color: #fbbf24;
+}
+
+.equal {
+    color: #d1d5db;
+}
+
+.explanation {
+    color: #e5e7eb;
     font-size: 0.9rem;
-    font-weight: 500;
-    margin-top: 5px;
+    line-height: 1.5;
+    margin: 0.75rem auto 1rem;
+    max-width: 34rem;
 }
 
-/* Status Colors */
-.statusSafe {
-    color: #10b981;
+.comparison {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+    width: 100%;
 }
 
-.statusModerate {
-    color: #eab308;
+.comparison div {
+    background: #222328;
+    border: 1px solid #33353c;
+    border-radius: 8px;
+    padding: 0.75rem;
 }
 
-.statusRisky {
-    color: #f97316;
+.comparison dt {
+    color: #9ca3af;
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
 }
 
-.statusHard {
-    color: #ef4444;
+.comparison dd {
+    color: #f9fafb;
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
 }
 
-.diffRaw {
-    margin-top: 10px;
-    font-size: 0.85rem;
-    color: #888;
+.disclaimer {
+    border-top: 1px solid #303136;
+    color: #9ca3af;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    margin: 1rem 0 0;
+    padding-top: 0.75rem;
 }
 
 .noScore {
-    text-align: center;
-    padding: 20px;
+    color: #9ca3af;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0;
 }
 
-.noScore button {
-    background: #3b82f6;
-    border: none;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    margin-top: 10px;
+@media (max-width: 420px) {
+    .comparison {
+        grid-template-columns: 1fr;
+    }
 }

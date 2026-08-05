@@ -67,7 +67,11 @@ export default function ScoreEvolutionChart({
     }, [data2024, data2025, data2026]);
 
     if (chartData.length === 0) {
-        return null;
+        return (
+            <div className={styles.emptyState} role="status">
+                Ainda não há histórico diário suficiente para montar o gráfico.
+            </div>
+        );
     }
 
     // Custom Tooltip Component
@@ -95,7 +99,11 @@ export default function ScoreEvolutionChart({
     };
 
     return (
-        <div className={styles.container}>
+        <div
+            className={styles.container}
+            role="img"
+            aria-label="Gráfico da evolução diária das notas de referência por edição do SISU"
+        >
             <div className={styles.title}>Evolução das Notas de Corte</div>
             <ResponsiveContainer width="100%" height="100%">
                 <LineChart
@@ -167,11 +175,18 @@ export default function ScoreEvolutionChart({
                             activeDot={{ r: 8 }}
                             name="2026 (Atual)"
                             connectNulls
-                            animationDuration={2000}
+                            isAnimationActive={false}
                         />
                     )}
                 </LineChart>
             </ResponsiveContainer>
+            <ul className={styles.srOnly}>
+                {chartData.map((entry: Record<string, string | number>) => (
+                    <li key={String(entry.day)}>
+                        {Object.entries(entry).map(([key, value]) => `${key}: ${value}`).join(', ')}
+                    </li>
+                ))}
+            </ul>
         </div>
     );
 }

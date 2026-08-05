@@ -3,20 +3,52 @@
  * Uses service_role key for backend operations only
  */
 
+import type { CourseSearchItem } from '@/types/course'
+
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://sisymqzxvuktdcbsbpbp.supabase.co'
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || ''
-
-// Log environment status for debugging
-console.log('Supabase Config:', {
-  url: SUPABASE_URL,
-  hasKey: !!SUPABASE_SERVICE_KEY,
-  keyLength: SUPABASE_SERVICE_KEY.length
-})
 
 interface SupabaseResponse<T> {
   data: T | null
   error: string | null
   count?: number
+}
+
+export interface CourseSearchFilters {
+  query?: string
+  course?: string
+  institution?: string
+  city?: string
+  state?: string
+}
+
+export interface CourseCoverageRow {
+  id: number
+  state: string | null
+  city: string | null
+  university: string | null
+}
+
+export interface LatestCutScoreMetadata {
+  year: number
+  captured_at: string | null
+}
+
+type CoverageTable = 'course_weights' | 'cut_scores'
+
+function normalizeSearchTerm(value: string): string {
+  return value
+    .replace(/[(),%*"']/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function getCutScoreIdentity(score: CutScore): string {
+  const modality = score.modality_code === null
+    ? `name:${score.modality_name.trim().toLocaleLowerCase('pt-BR')}`
+    : `code:${score.modality_code}`
+
+  return `${score.year}-${modality}`
 }
 
 class SupabaseServer {
@@ -53,7 +85,9 @@ class SupabaseServer {
 
       const data = await response.json()
       const contentRange = response.headers.get('content-range')
-      const count = contentRange ? parseInt(contentRange.split('/')[1]) : undefined
+      const total = contentRange?.split('/')[1]
+      const parsedCount = total && total !== '*' ? Number.parseInt(total, 10) : undefined
+      const count = Number.isFinite(parsedCount) ? parsedCount : undefined
 
       return { data, error: null, count }
     } catch (error) {
@@ -65,13 +99,60 @@ class SupabaseServer {
    * Search courses by name, university, or city
    */
   async searchCourses(query: string, limit = 20) {
+    return this.searchCoursesPaginated({ query }, limit, 0)
+  }
+
+  /**
+   * Search courses with exact pagination metadata.
+   *
+   * General query matches course, institution or city. Explicit filters are
+   * combined with AND and do not imply a modality or any other fallback.
+   */
+  async searchCoursesPaginated(
+    filters: CourseSearchFilters,
+    limit = 20,
+    offset = 0
+  ) {
     const params = new URLSearchParams({
-      or: `(name.ilike.%${query}%,university.ilike.%${query}%,city.ilike.%${query}%)`,
-      order: 'name',
+      select: 'id,code,name,university,campus,city,state,degree,schedule',
+      order: 'name.asc,code.asc',
       limit: String(limit),
+      offset: String(offset),
     })
 
-    return this.request<Course[]>(`courses?${params}`)
+    const query = filters.query ? normalizeSearchTerm(filters.query) : ''
+    if (query) {
+      params.set(
+        'or',
+        `(name.ilike.*${query}*,university.ilike.*${query}*,city.ilike.*${query}*)`
+      )
+    }
+
+    const course = filters.course ? normalizeSearchTerm(filters.course) : ''
+    if (course) {
+      params.set('name', `ilike.*${course}*`)
+    }
+
+    const institution = filters.institution
+      ? normalizeSearchTerm(filters.institution)
+      : ''
+    if (institution) {
+      params.set('university', `ilike.*${institution}*`)
+    }
+
+    const city = filters.city ? normalizeSearchTerm(filters.city) : ''
+    if (city) {
+      params.set('city', `ilike.*${city}*`)
+    }
+
+    const state = filters.state ? normalizeSearchTerm(filters.state).toUpperCase() : ''
+    if (state) {
+      params.set('state', `eq.${state}`)
+    }
+
+    return this.request<CourseSearchItem[]>(`courses?${params}`, {
+      headers: { 'Prefer': 'count=exact' },
+    })
   }
 
   /**
@@ -87,6 +168,83 @@ class SupabaseServer {
     return this.request<Course[]>(`courses?${params}`, {
       headers: { 'Prefer': 'count=exact' },
     })
+  }
+
+  /**
+   * Count stored rows without downloading the table.
+   */
+  async countCoverageRows(table: CoverageTable) {
+    const params = new URLSearchParams({
+      select: 'id',
+      limit: '1',
+    })
+
+    return this.request<Array<{ id: number }>>(`${table}?${params}`, {
+      headers: { 'Prefer': 'count=exact' },
+    })
+  }
+
+  /**
+   * Fetch all course geography fields in API-sized batches. The exact total in
+   * Content-Range is also used by the coverage endpoint.
+   */
+  async getCourseCoverageRows(batchSize = 1000) {
+    const getBatch = (offset: number, withCount = false) => {
+      const params = new URLSearchParams({
+        select: 'id,state,city,university',
+        order: 'id.asc',
+        limit: String(batchSize),
+        offset: String(offset),
+      })
+
+      return this.request<CourseCoverageRow[]>(`courses?${params}`, withCount
+        ? { headers: { 'Prefer': 'count=exact' } }
+        : {})
+    }
+
+    const firstBatch = await getBatch(0, true)
+    if (firstBatch.error || !firstBatch.data) {
+      return firstBatch
+    }
+
+    const total = firstBatch.count ?? firstBatch.data.length
+    const offsets: number[] = []
+    for (let offset = batchSize; offset < total; offset += batchSize) {
+      offsets.push(offset)
+    }
+
+    const remainingBatches = await Promise.all(offsets.map(offset => getBatch(offset)))
+    const failedBatch = remainingBatches.find(batch => batch.error || !batch.data)
+    if (failedBatch) {
+      return {
+        data: null,
+        error: failedBatch.error || 'Incomplete course coverage response',
+        count: total,
+      }
+    }
+
+    return {
+      data: [
+        ...firstBatch.data,
+        ...remainingBatches.flatMap(batch => batch.data || []),
+      ],
+      error: null,
+      count: total,
+    }
+  }
+
+  async getLatestCutScoreMetadata() {
+    const params = new URLSearchParams({
+      select: 'year,captured_at',
+      order: 'year.desc,captured_at.desc',
+      limit: '1',
+    })
+
+    return this.request<LatestCutScoreMetadata[]>(`cut_scores?${params}`)
+  }
+
+  getDataApiUrl(): string {
+    return `${this.url}/rest/v1`
   }
 
   /**
@@ -171,7 +329,7 @@ class SupabaseServer {
     // Group cut scores by modality (latest only)
     const latestScores = new Map<string, CutScore>()
     for (const score of scoresResult.data || []) {
-      const key = `${score.year}-${score.modality_code}`
+      const key = getCutScoreIdentity(score)
       if (!latestScores.has(key)) {
         latestScores.set(key, score)
       }
@@ -209,7 +367,7 @@ class SupabaseServer {
     // Group cut scores by modality (latest only)
     const latestScores = new Map<string, CutScore>()
     for (const score of scoresResult.data || []) {
-      const key = `${score.year}-${score.modality_code}`
+      const key = getCutScoreIdentity(score)
       if (!latestScores.has(key)) {
         latestScores.set(key, score)
       }
@@ -301,8 +459,8 @@ export interface CutScore {
   cut_score: number | null
   applicants: number | null
   vacancies: number | null
-  captured_at: string
-  partial_scores?: Array<{ day: string; score: number }>
+  captured_at: string | null
+  partial_scores?: Array<{ day: string | number; score: number }>
 }
 
 export interface FullCourseData extends Course {

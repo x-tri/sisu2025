@@ -20,9 +20,9 @@ export default function CourseHeader({ course }: HeaderProps) {
                 <div className={styles.university}>
                     {course.university} - {course.campus}
                 </div>
-                <h1 className={styles.title}>
+                <h2 className={styles.title}>
                     {course.name} <span style={{ fontWeight: 400, color: '#6b7280' }}>({course.degree})</span>
-                </h1>
+                </h2>
                 <div className={styles.badges}>
                     <span className={styles.badge}>{course.city} - {course.state}</span>
                     <span className={styles.badge}>{course.schedule}</span>

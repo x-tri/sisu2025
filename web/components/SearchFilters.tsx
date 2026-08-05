@@ -150,7 +150,7 @@ export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
             .then(data => {
                 // API returns: { course: {...}, weights: {...}, cut_scores: [{year, modalities: [...]}], weights_history: [...] }
                 const courseData = data.course;
-                const weightsData = data.weights;
+                let weightsData = data.weights;
 
                 // Find highest weight from the weights object
                 let highestWeight = '';
@@ -185,38 +185,40 @@ export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
                         latestYear = sortedYears[0].year;
                         allModalities = sortedYears[0].modalities.map((m: any) => ({
                             modality_name: m.name,
-                            modality_code: getModalityCode(m.name),
-                            cut_score: m.cut_score || 0,
+                            modality_code: m.code === null || m.code === undefined ? '' : String(m.code),
+                            cut_score: m.cut_score,
                             vacancies: m.vacancies
-                        }));
+                        })).filter((m: any) => typeof m.cut_score === 'number');
+                        weightsData = data.weights_history?.find((weights: any) => weights.year === latestYear) || null;
 
                         // Find cut score for selected modality
-                        const matched = matchModality(selectedModality, allModalities.map(m => ({ modality_name: m.modality_name })));
+                        const matched = matchModality(selectedModality, allModalities);
                         if (matched) {
                             const foundMod = allModalities.find(m => m.modality_name === matched.modality_name);
                             if (foundMod) {
                                 latestCutScore = { ...foundMod, year: latestYear };
                             }
                         }
-
-                        // Fallback to Ampla if no match
-                        if (!latestCutScore) {
-                            const ampla = allModalities.find(m => m.modality_name?.toLowerCase().includes('ampla'));
-                            if (ampla) {
-                                latestCutScore = { ...ampla, year: latestYear };
-                            }
-                        }
                     }
                 }
 
                 // Convert weights for calculateAverage function
-                const weightsForCalc = weightsData?.pesos ? {
-                    peso_red: weightsData.pesos.redacao || 1,
-                    peso_ling: weightsData.pesos.linguagens || 1,
-                    peso_mat: weightsData.pesos.matematica || 1,
-                    peso_ch: weightsData.pesos.humanas || 1,
-                    peso_cn: weightsData.pesos.natureza || 1
+                const weightValues = weightsData?.pesos ? Object.values(weightsData.pesos) : [];
+                const weightsForCalc = weightValues.length === 5 && weightValues.every(value => (
+                    typeof value === 'number' && Number.isFinite(value) && value >= 0
+                )) ? {
+                    peso_red: weightsData.pesos.redacao,
+                    peso_ling: weightsData.pesos.linguagens,
+                    peso_mat: weightsData.pesos.matematica,
+                    peso_ch: weightsData.pesos.humanas,
+                    peso_cn: weightsData.pesos.natureza
                 } : null;
+
+                if (!latestCutScore || !weightsForCalc) {
+                    setSelectedCourseDetails(null);
+                    setLoading(prev => ({ ...prev, details: false }));
+                    return;
+                }
 
                 setSelectedCourseDetails({
                     id: courseData?.id || 0,
@@ -229,9 +231,9 @@ export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
                     state: filters.state,
                     schedule: courseData?.schedule || 'Integral',
                     weights: weightsForCalc,
-                    cut_score: latestCutScore?.cut_score || 0,
-                    cut_score_year: latestCutScore?.year || new Date().getFullYear(),
-                    cut_score_modality: latestCutScore?.modality_name || 'Ampla Concorrência',
+                    cut_score: latestCutScore.cut_score,
+                    cut_score_year: latestCutScore.year,
+                    cut_score_modality: latestCutScore.modality_name,
                     applicants: undefined, // TODO: Add applicants to allModalities if needed
                     partial_scores: [],
                     highest_weight: highestWeight,

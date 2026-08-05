@@ -33,11 +33,10 @@ export default function CourseCard({
                 <span className={styles.tag}>{campus}</span>
                 <span className={styles.tag}>{city} - {state}</span>
                 <span className={styles.tag}>{schedule}</span>
-                <span className={`${styles.tag} ${styles.highlight}`}>Maior peso: Redação (2)</span>
             </div>
 
             <div className={styles.footer}>
-                <span className={styles.cutLabel}>Nota de Corte (Ampla)</span>
+                <span className={styles.cutLabel}>Nota de referência</span>
                 <span className={styles.cutScore}>
                     {cut_score.toFixed(2)}
                 </span>

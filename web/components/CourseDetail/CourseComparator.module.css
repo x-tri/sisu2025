@@ -271,3 +271,36 @@
     color: white;
     background-color: rgba(255, 255, 255, 0.05);
 }
+
+@media (max-width: 720px) {
+    .overlay {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .modal {
+        max-height: 92dvh;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .header,
+    .content {
+        padding: 16px;
+    }
+
+    .comparisonGrid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .courseCard {
+        min-width: 0;
+        padding: 18px;
+    }
+
+    .metricRow {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
+    }
+}

@@ -1,263 +1,525 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getModalityCode } from '@/utils/modality';
+import { getReferenceVerification } from '@/lib/course-reference';
 
-// Haversine formula to calculate distance between two points in km
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+type ModalityCode =
+    | 'ampla'
+    | 'L1'
+    | 'L2'
+    | 'L5'
+    | 'L6'
+    | 'L9'
+    | 'L10'
+    | 'L13'
+    | 'L14'
+    | 'quilombola'
+    | 'indigenas'
+    | 'ciganos'
+    | 'trans'
+    | 'deficiencia'
+    | 'rural'
+    | 'other';
+
+type ScoreType = 'final' | 'partial';
+
+interface Grades {
+    redacao: number;
+    linguagens: number;
+    humanas: number;
+    natureza: number;
+    matematica: number;
 }
 
-// Map numeric DB modality codes to string codes used by getModalityCode
-const NUMERIC_CODE_MAP: Record<number, string> = {
+interface PartialScore {
+    day: string | number;
+    score: number;
+}
+
+interface CutScoreRecord {
+    year: number;
+    modality_name: string;
+    modality_code: number | null;
+    cut_score: number | string | null;
+    vacancies: number | null;
+    partial_scores?: PartialScore[] | null;
+    captured_at: string | null;
+}
+
+interface CourseWeightsRecord {
+    year: number;
+    peso_red: number | string | null;
+    peso_ling: number | string | null;
+    peso_mat: number | string | null;
+    peso_ch: number | string | null;
+    peso_cn: number | string | null;
+}
+
+interface RadarCourse {
+    id: number;
+    code: number;
+    name: string;
+    university: string | null;
+    campus: string | null;
+    city: string | null;
+    state: string | null;
+    degree: string | null;
+    schedule: string | null;
+    latitude: string | number | null;
+    longitude: string | number | null;
+    course_weights?: CourseWeightsRecord[] | null;
+    cut_scores?: CutScoreRecord[] | null;
+}
+
+interface EffectiveCutScore {
+    score: number;
+    type: ScoreType;
+    capturedAt: string | null;
+    partialDay: number | null;
+}
+
+// Identifiers observed across the historical and current SISU datasets. Values
+// marked as `other` are intentionally kept distinct from ampla concorrencia.
+const NUMERIC_MODALITY_CODES: Record<number, ModalityCode> = {
     41: 'ampla',
-    686: 'L1',
+    111: 'other',
+    220: 'L6',
+    221: 'L2',
+    233: 'L14',
+    234: 'L10',
+    242: 'L9',
+    243: 'L13',
+    249: 'L1',
+    289: 'L5',
+    608: 'L2',
+    609: 'L6',
+    610: 'L13',
+    611: 'L9',
+    612: 'L1',
+    613: 'L5',
+    614: 'quilombola',
+    615: 'quilombola',
+    652: 'other',
     682: 'L2',
-    687: 'L5',
     683: 'L6',
+    684: 'L13',
     685: 'L9',
-    // L10, L13, L14 can be added as needed
+    686: 'L1',
+    687: 'L5',
+    688: 'quilombola',
     689: 'quilombola',
 };
 
-function normalizeModalityCode(code: unknown): string {
-    if (code === undefined || code === null || code === '') return 'ampla';
-    if (typeof code === 'string') return code;
-    if (typeof code === 'number') return NUMERIC_CODE_MAP[code] ?? 'ampla';
-    return 'ampla';
+const VALID_MODALITY_CODES: readonly ModalityCode[] = [
+    'ampla',
+    'L1',
+    'L2',
+    'L5',
+    'L6',
+    'L9',
+    'L10',
+    'L13',
+    'L14',
+    'quilombola',
+    'indigenas',
+    'ciganos',
+    'trans',
+    'deficiencia',
+    'rural',
+];
+
+const RESPONSE_HEADERS = {
+    'Cache-Control': 'private, no-store, max-age=0, must-revalidate',
+    'X-Robots-Tag': 'noindex, nofollow, noarchive, nosnippet',
+};
+
+function jsonResponse(body: unknown, status = 200): NextResponse {
+    return NextResponse.json(body, { status, headers: RESPONSE_HEADERS });
+}
+
+function normalizeCourseName(name: string): string {
+    return name
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLocaleLowerCase('pt-BR');
+}
+
+function normalizeRequestedModality(code: unknown): number | null {
+    const value = typeof code === 'number'
+        ? code
+        : typeof code === 'string' && /^\d+$/.test(code.trim())
+            ? Number(code.trim())
+            : Number.NaN;
+    return Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function modalityCodeForScore(score: CutScoreRecord): ModalityCode | null {
+    if (score.modality_code !== null) {
+        const mapped = NUMERIC_MODALITY_CODES[score.modality_code];
+        if (mapped && mapped !== 'other') return mapped;
+    }
+
+    const derived = getModalityCode(score.modality_name) as ModalityCode;
+    return derived === 'other' ? null : derived;
+}
+
+function matchesModality(score: CutScoreRecord, requested: ModalityCode): boolean {
+    const candidate = modalityCodeForScore(score);
+    if (!candidate) return false;
+
+    if (requested === 'deficiencia') {
+        return ['L9', 'L10', 'L13', 'L14', 'deficiencia'].includes(candidate);
+    }
+
+    return candidate === requested;
+}
+
+function matchesExactModality(score: CutScoreRecord, requested: ModalityCode): boolean {
+    return modalityCodeForScore(score) === requested;
+}
+
+function numberOrNull(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') return null;
+    const parsed = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getEffectiveScore(score: CutScoreRecord): EffectiveCutScore | null {
+    const finalScore = numberOrNull(score.cut_score);
+    if (finalScore !== null && finalScore > 0) {
+        return {
+            score: finalScore,
+            type: 'final',
+            capturedAt: score.captured_at,
+            partialDay: null,
+        };
+    }
+
+    const partial = [...(score.partial_scores ?? [])]
+        .map((item) => ({
+            day: numberOrNull(item.day),
+            score: numberOrNull(item.score),
+        }))
+        .filter((item): item is { day: number; score: number } =>
+            item.day !== null && item.score !== null && item.score > 0,
+        )
+        .sort((a, b) => b.day - a.day)[0];
+
+    if (!partial) return null;
+
+    return {
+        score: partial.score,
+        type: 'partial',
+        capturedAt: score.captured_at,
+        partialDay: partial.day,
+    };
+}
+
+function capturedAtTimestamp(value: string | null): number {
+    if (!value) return 0;
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function findReferenceCutScore(
+    scores: CutScoreRecord[],
+    modalityCode: number,
+): { record: CutScoreRecord; effective: EffectiveCutScore } | null {
+    const matches = scores
+        .filter((score) => score.modality_code === modalityCode)
+        .map((record) => ({ record, effective: getEffectiveScore(record) }))
+        .filter((item): item is { record: CutScoreRecord; effective: EffectiveCutScore } =>
+            item.effective !== null,
+        )
+        .sort((a, b) => {
+            if (a.record.year !== b.record.year) return b.record.year - a.record.year;
+            const captureDifference =
+                capturedAtTimestamp(b.record.captured_at) - capturedAtTimestamp(a.record.captured_at);
+            if (captureDifference !== 0) return captureDifference;
+            return (a.record.modality_code ?? Number.MAX_SAFE_INTEGER)
+                - (b.record.modality_code ?? Number.MAX_SAFE_INTEGER);
+        });
+
+    return matches[0] ?? null;
+}
+
+function findCourseCutScore(
+    scores: CutScoreRecord[],
+    modalityCode: number,
+    year: number,
+): { record: CutScoreRecord; effective: EffectiveCutScore } | null {
+    const matches = scores
+        .filter((score) => score.year === year && score.modality_code === modalityCode)
+        .map((record) => ({ record, effective: getEffectiveScore(record) }))
+        .filter((item): item is { record: CutScoreRecord; effective: EffectiveCutScore } =>
+            item.effective !== null,
+        )
+        .sort(
+            (a, b) =>
+                capturedAtTimestamp(b.record.captured_at) - capturedAtTimestamp(a.record.captured_at),
+        );
+
+    return matches[0] ?? null;
+}
+
+function calculateWeightedScore(grades: Grades, weights: CourseWeightsRecord): number | null {
+    const values = {
+        redacao: numberOrNull(weights.peso_red),
+        linguagens: numberOrNull(weights.peso_ling),
+        matematica: numberOrNull(weights.peso_mat),
+        humanas: numberOrNull(weights.peso_ch),
+        natureza: numberOrNull(weights.peso_cn),
+    };
+    const weightValues = Object.values(values);
+    if (weightValues.some((value) => value === null)) return null;
+
+    const completeWeights = values as Record<keyof typeof values, number>;
+    const totalWeight = Object.values(completeWeights).reduce((total, value) => total + value, 0);
+    if (totalWeight <= 0) return null;
+
+    return (
+        grades.redacao * completeWeights.redacao
+        + grades.linguagens * completeWeights.linguagens
+        + grades.matematica * completeWeights.matematica
+        + grades.humanas * completeWeights.humanas
+        + grades.natureza * completeWeights.natureza
+    ) / totalWeight;
+}
+
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const earthRadiusKm = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2)
+        + Math.cos(lat1 * Math.PI / 180)
+        * Math.cos(lat2 * Math.PI / 180)
+        * Math.sin(dLon / 2)
+        * Math.sin(dLon / 2);
+    return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function validGrades(value: unknown): value is Grades {
+    if (!value || typeof value !== 'object') return false;
+    const grades = value as Record<string, unknown>;
+    return ['redacao', 'linguagens', 'humanas', 'natureza', 'matematica'].every((field) =>
+        typeof grades[field] === 'number'
+        && Number.isFinite(grades[field])
+        && (grades[field] as number) >= 0
+        && (grades[field] as number) <= 1000,
+    );
 }
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
-        const { grades, courseName, modalityCode: rawModalityCode, referenceCourseId } = body;
-
-        // Normalize modalityCode: default to 'ampla' when missing,
-        // and convert numeric DB codes to string codes
-        const modalityCode = normalizeModalityCode(rawModalityCode);
-
-        console.log('Radar Simulation Request:', { courseName, modalityCode, rawModalityCode, referenceCourseId });
-
-        if (!grades || !courseName) {
-            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        let parsedBody: unknown;
+        try {
+            parsedBody = await request.json();
+        } catch {
+            return jsonResponse({ error: 'Corpo JSON inválido.' }, 400);
+        }
+        if (!parsedBody || typeof parsedBody !== 'object' || Array.isArray(parsedBody)) {
+            return jsonResponse({ error: 'Corpo da requisição inválido.' }, 400);
         }
 
-        // Get reference course for location-based sorting
-        let refLat: number | null = null;
-        let refLon: number | null = null;
-        let refState: string | null = null;
+        const {
+            grades,
+            courseName,
+            modalityCode: rawModalityCode,
+            referenceCourseId,
+        } = parsedBody as Record<string, unknown>;
 
-        if (referenceCourseId) {
-            const { data: refCourse } = await supabase.request<any[]>(
-                `courses?id=eq.${referenceCourseId}&select=latitude,longitude,state`
-            );
-            if (refCourse && refCourse[0]) {
-                refLat = parseFloat(refCourse[0].latitude);
-                refLon = parseFloat(refCourse[0].longitude);
-                refState = refCourse[0].state;
-            }
+        const modalityCode = normalizeRequestedModality(rawModalityCode);
+        if (!modalityCode) {
+            return jsonResponse({ error: 'Modalidade inválida ou não reconhecida.' }, 400);
+        }
+        if (!validGrades(grades)) {
+            return jsonResponse({ error: 'As cinco notas devem estar entre 0 e 1000.' }, 400);
+        }
+        if (typeof courseName !== 'string' || !courseName.trim()) {
+            return jsonResponse({ error: 'Nome do curso é obrigatório.' }, 400);
+        }
+        if (
+            typeof referenceCourseId !== 'number'
+            || !Number.isInteger(referenceCourseId)
+            || referenceCourseId <= 0
+        ) {
+            return jsonResponse({ error: 'Curso de referência inválido.' }, 400);
         }
 
-        // Search for courses matching the name
-        const selectParams = [
-            'id', 'code', 'name', 'university', 'campus', 'city', 'state', 'degree', 'schedule',
-            'latitude', 'longitude',
-            'course_weights(peso_red,peso_ling,peso_mat,peso_ch,peso_cn,year)',
-            'cut_scores(year,modality_name,modality_code,cut_score,vacancies,partial_scores)'
+        const courseSelect = [
+            'id',
+            'code',
+            'name',
+            'university',
+            'campus',
+            'city',
+            'state',
+            'degree',
+            'schedule',
+            'latitude',
+            'longitude',
+            'course_weights(year,peso_red,peso_ling,peso_mat,peso_ch,peso_cn)',
+            'cut_scores(year,modality_name,modality_code,cut_score,vacancies,partial_scores,captured_at)',
         ].join(',');
 
-        const query = new URLSearchParams({
-            select: selectParams,
-            name: `ilike.%${courseName}%`,
-            limit: '500'
+        const referenceQuery = new URLSearchParams({
+            select: courseSelect,
+            id: `eq.${referenceCourseId}`,
+            limit: '1',
         });
+        const { data: referenceRows, error: referenceError } = await supabase.request<RadarCourse[]>(
+            `courses?${referenceQuery.toString()}`,
+        );
+        const referenceCourse = referenceRows?.[0];
 
-        const { data: courses, error: courseError } = await supabase.request<any[]>(`courses?${query.toString()}`);
+        if (referenceError || !referenceCourse) {
+            return jsonResponse({ error: 'Curso de referência não encontrado.' }, 404);
+        }
+
+        if (normalizeCourseName(courseName) !== normalizeCourseName(referenceCourse.name)) {
+            return jsonResponse({ error: 'O nome informado não corresponde ao curso de referência.' }, 400);
+        }
+
+        const referenceCutScore = findReferenceCutScore(
+            referenceCourse.cut_scores ?? [],
+            modalityCode,
+        );
+        if (!referenceCutScore) {
+            return jsonResponse(
+                { error: 'Não há nota de referência para esta modalidade no curso selecionado.' },
+                422,
+            );
+        }
+
+        const targetYear = referenceCutScore.record.year;
+        const comparisonModalityCode = referenceCutScore.record.modality_code;
+        if (comparisonModalityCode === null) {
+            return jsonResponse({ error: 'A modalidade de referência não pôde ser identificada.' }, 422);
+        }
+        const referenceType = targetYear < new Date().getUTCFullYear() ? 'historical' : null;
+        const verification = getReferenceVerification(
+            referenceCutScore.effective.capturedAt,
+            referenceType,
+        );
+        if (verification !== 'verified') {
+            return jsonResponse({
+                error: 'A referência ainda não foi verificada com a fonte oficial.',
+                code: 'REFERENCE_NOT_VERIFIED',
+                verification,
+            }, 409);
+        }
+        const exactNameQuery = new URLSearchParams({
+            select: courseSelect,
+            name: `eq.${referenceCourse.name}`,
+            limit: '500',
+        });
+        const { data: courseRows, error: courseError } = await supabase.request<RadarCourse[]>(
+            `courses?${exactNameQuery.toString()}`,
+        );
 
         if (courseError) {
-            console.error('Supabase Error:', courseError);
-            throw courseError;
+            console.error('Radar course lookup failed:', courseError);
+            return jsonResponse({ error: 'Não foi possível consultar as ofertas neste momento.' }, 502);
         }
 
-        console.log(`[Radar] Found ${courses?.length} potential courses for "${courseName}"`);
+        const normalizedReferenceName = normalizeCourseName(referenceCourse.name);
+        const refLat = numberOrNull(referenceCourse.latitude);
+        const refLon = numberOrNull(referenceCourse.longitude);
 
-        if (!courses || courses.length === 0) {
-            return NextResponse.json([]);
-        }
+        const results = (courseRows ?? [])
+            .filter((course) =>
+                course.id !== referenceCourseId
+                && normalizeCourseName(course.name) === normalizedReferenceName,
+            )
+            .map((course) => {
+                const weights = (course.course_weights ?? []).find((item) => item.year === targetYear);
+                const cutScore = findCourseCutScore(
+                    course.cut_scores ?? [],
+                    comparisonModalityCode,
+                    targetYear,
+                );
+                if (!weights || !cutScore) return null;
 
-        const debugInfo: any[] = [];
+                const resultReferenceType = targetYear < new Date().getUTCFullYear()
+                    ? 'historical'
+                    : null;
+                const resultVerification = getReferenceVerification(
+                    cutScore.effective.capturedAt,
+                    resultReferenceType,
+                );
+                if (resultVerification !== 'verified') return null;
 
-        // Process each course
-        const results = courses.map((course: any) => {
-            // Skip the reference course itself
-            if (referenceCourseId && course.id === referenceCourseId) {
-                return null;
-            }
+                const userScore = calculateWeightedScore(grades, weights);
+                if (userScore === null) return null;
 
-            // Calculate distance if we have reference coordinates
-            let distance: number | null = null;
-            if (refLat && refLon && course.latitude && course.longitude) {
-                const courseLat = parseFloat(course.latitude);
-                const courseLon = parseFloat(course.longitude);
-                if (!isNaN(courseLat) && !isNaN(courseLon)) {
-                    distance = calculateDistance(refLat, refLon, courseLat, courseLon);
-                }
-            }
+                const courseLat = numberOrNull(course.latitude);
+                const courseLon = numberOrNull(course.longitude);
+                const distance =
+                    refLat !== null
+                    && refLon !== null
+                    && courseLat !== null
+                    && courseLon !== null
+                        ? Math.round(calculateDistance(refLat, refLon, courseLat, courseLon))
+                        : null;
+                const difference = userScore - cutScore.effective.score;
 
-            // Get weights (latest year)
-            const weightsList = course.course_weights || [];
-            const latestWeights = weightsList.sort((a: any, b: any) => b.year - a.year)[0];
-
-            const hasWeights = latestWeights && (
-                latestWeights.pesos ||
-                (latestWeights.peso_red !== undefined && latestWeights.peso_red !== null)
-            );
-
-            if (!hasWeights) {
-                if (debugInfo.length < 10) debugInfo.push({ name: course.name, reason: 'No weights' });
-                return null;
-            }
-
-            const w = latestWeights.pesos || {
-                redacao: latestWeights.peso_red,
-                linguagens: latestWeights.peso_ling,
-                matematica: latestWeights.peso_mat,
-                humanas: latestWeights.peso_ch,
-                natureza: latestWeights.peso_cn
-            };
-
-            const userScore = (
-                (grades.redacao * (w.redacao || 1)) +
-                (grades.linguagens * (w.linguagens || 1)) +
-                (grades.humanas * (w.humanas || 1)) +
-                (grades.natureza * (w.natureza || 1)) +
-                (grades.matematica * (w.matematica || 1))
-            ) / ((w.redacao || 1) + (w.linguagens || 1) + (w.humanas || 1) + (w.natureza || 1) + (w.matematica || 1));
-
-            // Find the LATEST cut score available
-            if (!course.cut_scores || course.cut_scores.length === 0) {
-                if (debugInfo.length < 10) debugInfo.push({ name: course.name, reason: 'No cut_scores array' });
-                return null;
-            }
-
-            // Helper to get effective score (prioritize partials for current year)
-            const getEffectiveScore = (cs: any) => {
-                // For 2026, check partial_scores first (live data)
-                if (cs.partial_scores && cs.partial_scores.length > 0) {
-                    const sorted = [...cs.partial_scores].sort((a: any, b: any) => {
-                        const dayA = parseInt(a.day) || 0;
-                        const dayB = parseInt(b.day) || 0;
-                        return dayB - dayA;
-                    });
-                    if (sorted[0]?.score > 0) return sorted[0].score;
-                }
-                // Fallback to cut_score
-                if (cs.cut_score && cs.cut_score > 0) return cs.cut_score;
-                return 0;
-            };
-
-            // Process all cut scores and find the best match
-            const candidates = course.cut_scores
-                .map((cs: any) => ({
-                    ...cs,
-                    _derivedCode: getModalityCode(cs.modality_name),
-                    _effectiveScore: getEffectiveScore(cs)
-                }))
-                .filter((cs: any) => cs._effectiveScore > 0);
-
-            // Sort years descending: 2026 > 2025 > 2024
-            const relevantYears = Array.from(new Set(candidates.map((c: any) => c.year)))
-                .sort((a: any, b: any) => b - a);
-
-            let finalCutScore = null;
-            let finalYear = 0;
-
-            for (const year of relevantYears) {
-                const yearModalities = candidates.filter((c: any) => c.year === year);
-                let match = null;
-
-                if (modalityCode === 'ampla') {
-                    match = yearModalities.find((m: any) => m.modality_name?.toLowerCase().includes('ampla'));
-                } else if (modalityCode === 'deficiencia') {
-                    match = yearModalities.find((m: any) =>
-                        ['L9', 'L10', 'L13', 'L14', 'deficiencia'].includes(m._derivedCode)
-                    );
-                } else {
-                    match = yearModalities.find((m: any) => m._derivedCode === modalityCode);
-                }
-
-                if (match) {
-                    finalCutScore = match;
-                    finalYear = year as number;
-                    break;
-                }
-            }
-
-            if (!finalCutScore) {
-                if (debugInfo.length < 10) debugInfo.push({
+                return {
+                    courseId: course.id,
+                    courseCode: course.code,
                     name: course.name,
-                    reason: 'No matching cut score',
-                    modalityCode
-                });
-                return null;
-            }
+                    university: course.university,
+                    campus: course.campus,
+                    city: course.city,
+                    state: course.state,
+                    degree: course.degree,
+                    schedule: course.schedule,
+                    userScore,
+                    cutScore: cutScore.effective.score,
+                    cutScoreYear: targetYear,
+                    cutScoreType: cutScore.effective.type,
+                    partialDay: cutScore.effective.partialDay,
+                    capturedAt: cutScore.effective.capturedAt,
+                    difference,
+                    margin: difference,
+                    modalityName: cutScore.record.modality_name,
+                    vacancies: cutScore.record.vacancies ?? 0,
+                    distance,
+                    verification: resultVerification,
+                    sourceUrl: 'https://sisu.mec.gov.br/vagas',
+                    intermediary: 'MeuSISU',
+                };
+            })
+            .filter((result): result is NonNullable<typeof result> => result !== null)
+            .sort((a, b) => {
+                const aAbove = a.difference >= 0;
+                const bAbove = b.difference >= 0;
+                if (aAbove !== bAbove) return aAbove ? -1 : 1;
+                return aAbove
+                    ? a.difference - b.difference
+                    : b.difference - a.difference;
+            });
 
-            const cutScoreValue = finalCutScore._effectiveScore;
-            const difference = userScore - cutScoreValue; // Positive = passing, negative = below
-
-            return {
-                courseId: course.id,
-                courseCode: course.code,
-                name: course.name,
-                university: course.university,
-                campus: course.campus,
-                city: course.city,
-                state: course.state,
-                degree: course.degree,
-                schedule: course.schedule,
-                userScore,
-                cutScore: cutScoreValue,
-                cutScoreYear: finalYear,
-                difference, // Raw difference (can be negative)
-                margin: difference, // Keep for compatibility
-                modalityName: finalCutScore.modality_name,
-                vacancies: finalCutScore.vacancies || 0,
-                distance: distance ? Math.round(distance) : null // Distance in km
-            };
-        })
-            .filter(Boolean);
-
-        // Sort by difference (closest to passing first, then passing)
-        // Smallest absolute difference first, with passing courses prioritized
-        results.sort((a: any, b: any) => {
-            // Both passing: sort by margin ascending (smallest advantage first)
-            if (a.difference >= 0 && b.difference >= 0) {
-                return a.difference - b.difference;
-            }
-            // Both failing: sort by difference descending (closest to passing first)
-            if (a.difference < 0 && b.difference < 0) {
-                return b.difference - a.difference; // Less negative = closer
-            }
-            // One passing, one failing: passing first
-            return b.difference - a.difference;
+        return jsonResponse({
+            results,
+            reference: {
+                courseId: referenceCourse.id,
+                courseName: referenceCourse.name,
+                year: targetYear,
+                modalityCode: String(comparisonModalityCode),
+                modalityName: referenceCutScore.record.modality_name,
+                cutScoreType: referenceCutScore.effective.type,
+                partialDay: referenceCutScore.effective.partialDay,
+                capturedAt: referenceCutScore.effective.capturedAt,
+                verification,
+                sourceUrl: 'https://sisu.mec.gov.br/vagas',
+                intermediary: 'MeuSISU',
+            },
         });
-
-        if (results.length === 0) {
-            console.log('[Radar] No results found. Debug info:', JSON.stringify(debugInfo, null, 2));
-            return NextResponse.json({ results: [], debug: debugInfo });
-        }
-
-        return NextResponse.json(results);
-
     } catch (error) {
-        console.error('Radar API Error:', error);
-        return NextResponse.json({ error: String(error) }, { status: 500 });
+        console.error('Radar API error:', error);
+        return jsonResponse({ error: 'Não foi possível processar o Radar neste momento.' }, 500);
     }
 }

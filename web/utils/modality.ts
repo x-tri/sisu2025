@@ -1,6 +1,6 @@
 export const MODALITY_OPTIONS = [
     { code: 'ampla', name: 'Ampla Concorrência', shortName: 'Ampla' },
-    { code: 'L1', name: 'Escola Pública + Renda ≤ 1,5 SM', shortName: 'L1 (EP+Renda)' },
+    { code: 'L1', name: 'Escola Pública + Renda ≤ 1 salário mínimo per capita', shortName: 'EP + renda' },
     { code: 'L2', name: 'Escola Pública + Renda + PPI', shortName: 'L2 (EP+Renda+PPI)' },
     { code: 'L5', name: 'Escola Pública (Independente de Renda)', shortName: 'L5 (EP)' },
     { code: 'L6', name: 'Escola Pública + PPI (Independente de Renda)', shortName: 'L6 (EP+PPI)' },
@@ -15,6 +15,38 @@ export const MODALITY_OPTIONS = [
     { code: 'deficiencia', name: 'Pessoas com Deficiência (Geral)', shortName: 'PcD' },
     { code: 'rural', name: 'Educação do Campo', shortName: 'Rural' },
 ];
+
+/**
+ * Numeric identifiers currently emitted by the SISU source. They are kept as
+ * the canonical identity; the aliases exist only to support legacy UI labels.
+ * Unknown identifiers must never be interpreted as ampla concorrência.
+ */
+export const OFFICIAL_MODALITY_ALIASES: Record<string, string> = {
+    '41': 'ampla',
+    '682': 'L2',
+    '683': 'L6',
+    '684': 'L13',
+    '685': 'L9',
+    '686': 'L1',
+    '687': 'L5',
+    '689': 'quilombola',
+};
+
+export function canonicalModalityId(
+    modalityCode: string | number | null | undefined,
+    modalityName?: string,
+): string {
+    if (modalityCode !== null && modalityCode !== undefined && String(modalityCode).trim() !== '') {
+        return String(modalityCode);
+    }
+
+    const derived = getModalityCode(modalityName || '');
+    return derived === 'other' ? '' : derived;
+}
+
+export function getModalityAlias(modalityId: string): string {
+    return OFFICIAL_MODALITY_ALIASES[modalityId] || modalityId;
+}
 
 export function getModalityCode(modalityName: string): string {
     if (!modalityName) return 'other';
@@ -38,10 +70,6 @@ export function getModalityCode(modalityName: string): string {
     if (name.includes(' l13')) return 'L13';
     if (name.includes('(l14')) return 'L14';
     if (name.includes(' l14')) return 'L14';
-
-    // Also check for exact matches of the code at start/end if needed, 
-    // but usually they are inside parens like (L1) or simply L1. 
-    // Let's rely on standard text matching below as fallback if precise code not found.
 
     if (name.includes('ampla')) return 'ampla';
 
@@ -94,13 +122,27 @@ export function getModalityCode(modalityName: string): string {
 }
 
 // Function to match user-selected modality to database modality
-export function matchModality<T extends { modality_name: string; modality_code?: string }>(selectedCode: string, availableModalities: T[]): T | null {
-    if (selectedCode === 'ampla') {
+export function matchModality<T extends { modality_name: string; modality_code?: string | number }>(selectedCode: string, availableModalities: T[]): T | null {
+    if (!selectedCode) return null;
+
+    const exactMatch = availableModalities.find((modality) =>
+        modality.modality_code !== undefined &&
+        modality.modality_code !== null &&
+        String(modality.modality_code) === selectedCode
+    );
+    if (exactMatch) return exactMatch;
+
+    // An official numeric id is an exact identity, never a category alias.
+    if (/^\d+$/.test(selectedCode)) return null;
+
+    const selectedAlias = getModalityAlias(selectedCode);
+
+    if (selectedAlias === 'ampla') {
         return availableModalities.find(m => m.modality_name?.toLowerCase().includes('ampla')) || null;
     }
 
     // Generic PCD wildcard: if user selects 'deficiencia', match any specific PCD quota
-    if (selectedCode === 'deficiencia') {
+    if (selectedAlias === 'deficiencia') {
         return availableModalities.find(m => {
             const derivedCode = getModalityCode(m.modality_name);
             return ['L9', 'L10', 'L13', 'L14', 'deficiencia'].includes(derivedCode);
@@ -110,7 +152,7 @@ export function matchModality<T extends { modality_name: string; modality_code?:
     // Try to match by derived code
     for (const mod of availableModalities) {
         const derivedCode = getModalityCode(mod.modality_name);
-        if (derivedCode === selectedCode) {
+        if (derivedCode === selectedAlias) {
             return mod;
         }
     }

@@ -71,7 +71,35 @@
 .actions {
     display: flex;
     justify-content: flex-end;
+    flex-wrap: wrap;
     gap: 0.5rem;
+}
+
+.rememberOption {
+    align-items: flex-start;
+    color: #4b5563;
+    display: flex;
+    font-size: 0.8rem;
+    gap: 0.5rem;
+    line-height: 1.35;
+    margin-bottom: 1rem;
+}
+
+.rememberOption input {
+    margin-top: 0.1rem;
+}
+
+.clearButton {
+    background: transparent;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    color: #4b5563;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
+.clearButton:hover {
+    background: #f3f4f6;
 }
 
 .saveButton {

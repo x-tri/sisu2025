@@ -1,29 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import styles from './CourseDetail.module.css';
 import CourseHeader from './Header';
 import WeightsTable from './WeightsTable';
-import StatsCharts from './StatsCharts';
-import { PartialScores } from './PartialScores';
 import { ApprovedList } from './ApprovedList';
+import DataTrustPanel from '../DataTrustPanel';
 import { useScores } from '../../context/ScoreContext';
-import { useModality, matchModality, getModalityCode } from '../../context/ModalityContext';
+import { useModality } from '../../context/ModalityContext';
+import { calculateWeightedScore } from '../../lib/score-core';
 
 interface CourseDetailViewProps {
     course: any;
 }
 
 export default function CourseDetailView({ course }: CourseDetailViewProps) {
-    const { calculateAverage, scores } = useScores();
-    const { selectedModality, getModalityLabel, setSelectedModality } = useModality(); // Get global state
+    const { scores } = useScores();
+    const { selectedModality, getModalityLabel } = useModality();
     const [activeTab, setActiveTab] = useState('info');
+    const tabOrder = ['info', 'list'];
+    const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const currentIndex = tabOrder.indexOf(activeTab);
+        const nextIndex = event.key === 'Home'
+            ? 0
+            : event.key === 'End'
+                ? tabOrder.length - 1
+                : event.key === 'ArrowRight'
+                    ? (currentIndex + 1) % tabOrder.length
+                    : (currentIndex - 1 + tabOrder.length) % tabOrder.length;
+        const nextTab = tabOrder[nextIndex];
+        setActiveTab(nextTab);
+        window.requestAnimationFrame(() => document.getElementById('course-tab-' + nextTab)?.focus());
+    };
 
     // Extract latest weights (e.g., 2025 or latest available)
-    const latestWeights = course.weights.sort((a: any, b: any) => b.year - a.year)[0];
-
-    // Calculate user's average if weights exist
-    const userAverage = latestWeights ? calculateAverage(latestWeights) : 0;
+    const orderedScores = [...course.cut_scores].sort((a: any, b: any) => b.year - a.year);
 
     // Get latest cut score for comparison based on SELECTED MODALITY
     // We treat 'course.cut_scores' as a flat list logic or year-grouped logic?
@@ -38,33 +51,42 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
     // In page.tsx, we transform it: transformed.cut_scores.push({ year, modality_name, ... })
     // So 'course.cut_scores' IS FLATTENED in page.tsx! Yes.
 
-    const latestCutScore = course.cut_scores
-        .filter((cs: any) => {
-            const match = matchModality(selectedModality, [{ modality_name: cs.modality_name, modality_code: '' }]);
-            return match !== null;
-        })
-        .sort((a: any, b: any) => b.year - a.year)[0];
+    const latestCutScore = orderedScores.find((cs: any) => (
+        selectedModality && String(cs.modality_code ?? '') === selectedModality
+    ));
+    const latestWeights = latestCutScore
+        ? course.weights.find((weights: any) => weights.year === latestCutScore.year)
+        : null;
+    const scoreResult = calculateWeightedScore(scores, latestWeights);
+    const userAverage = scoreResult.average;
 
     // If cut_score is null but we have partial scores, use the LAST partial score
     // This happens when SISU is still in progress (2025)
-    const partialScores = latestCutScore?.partial_scores || [];
-    let cutScoreValue = latestCutScore?.cut_score || 0;
+    const partialScores = [...(latestCutScore?.partial_scores || [])]
+        .sort((left: any, right: any) => Number(left.day) - Number(right.day));
+    let cutScoreValue = typeof latestCutScore?.cut_score === 'number'
+        ? latestCutScore.cut_score
+        : null;
 
-    if (!cutScoreValue && partialScores.length > 0) {
-        // Get the last day's score as the current reference
+    if (cutScoreValue === null && partialScores.length > 0) {
         const lastPartial = partialScores[partialScores.length - 1];
-        cutScoreValue = lastPartial?.score || 0;
+        cutScoreValue = typeof lastPartial?.score === 'number' ? lastPartial.score : null;
     }
 
-    const diff = userAverage - cutScoreValue;
-    const isPassing = diff >= 0;
+    const comparisonAllowed = latestCutScore?.verification === 'verified'
+        && userAverage !== null
+        && cutScoreValue !== null
+        && scoreResult.minimums.status !== 'failed'
+        && scoreResult.minimums.status !== 'not_evaluated';
+    const diff = comparisonAllowed ? userAverage - cutScoreValue : null;
 
     // Vacancies, applicants from the cut score data
-    const vacancies = latestCutScore?.vacancies || 0;
-    const applicants = latestCutScore?.applicants || 0;
+    const vacancies = latestCutScore?.vacancies ?? null;
+    const applicants = latestCutScore?.applicants ?? null;
+    const reference = latestCutScore?.reference ?? null;
 
     return (
-        <main style={{ paddingBottom: '4rem' }}>
+        <div style={{ paddingBottom: '4rem' }}>
             <CourseHeader course={course} />
 
             <div className="container">
@@ -87,11 +109,11 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
                                 Sua média ponderada
                             </span>
                             <span style={{ fontSize: '2rem', fontWeight: 700, color: '#2563eb' }}>
-                                {userAverage.toFixed(2).replace('.', ',')}
+                                {userAverage === null ? 'Indisponível' : userAverage.toFixed(2).replace('.', ',')}
                             </span>
                         </div>
 
-                        {latestCutScore && (
+                        {latestCutScore && cutScoreValue !== null && cutScoreValue > 0 && (
                             <div>
                                 <span style={{ display: 'block', fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>
                                     Nota de corte ({latestCutScore.year} - {getModalityLabel()})
@@ -102,24 +124,33 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
                             </div>
                         )}
 
+                        {comparisonAllowed && diff !== null && (
                         <div>
                             <span style={{ display: 'block', fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>
-                                Situação
+                                Margem para a referência
                             </span>
                             <span style={{
                                 fontSize: '1.25rem',
                                 fontWeight: 600,
-                                color: isPassing ? '#16a34a' : '#dc2626',
+                                color: diff >= 0 ? '#047857' : '#b45309',
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: '0.5rem'
                             }}>
-                                {isPassing ? '✅ Aprovado' : '❌ Reprovado'}
-                                <span style={{ fontSize: '0.875rem', fontWeight: 400, opacity: 0.8 }}>
-                                    ({diff > 0 ? '+' : ''}{diff.toFixed(2).replace('.', ',')})
-                                </span>
+                                {diff >= 0 ? 'Acima' : 'Abaixo'} por {Math.abs(diff).toFixed(2).replace('.', ',')} pontos
                             </span>
                         </div>
+                        )}
+                        {latestCutScore && !comparisonAllowed && (
+                            <div>
+                                <span style={{ display: 'block', fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                                    Margem para a referência
+                                </span>
+                                <span style={{ fontSize: '1rem', fontWeight: 600, color: '#92400e' }}>
+                                    Suspensa até verificação oficial e validação dos pesos e mínimos
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Informações da Modalidade - MeuSISU Style */}
@@ -135,18 +166,18 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
                             <div>
                                 <span style={{ display: 'block', fontSize: '0.75rem', color: '#9ca3af' }}>Vagas</span>
                                 <span style={{ fontSize: '1.25rem', fontWeight: 600, color: '#374151' }}>
-                                    {vacancies || 'N/A'}
+                                    {vacancies ?? 'Não informado'}
                                 </span>
                             </div>
                             <div>
                                 <span style={{ display: 'block', fontSize: '0.75rem', color: '#9ca3af' }}>Inscritos</span>
                                 <span style={{ fontSize: '1.25rem', fontWeight: 600, color: '#374151' }}>
-                                    {applicants || 'Em breve'}
+                                    {applicants ?? 'Não informado'}
                                 </span>
                             </div>
                             <div>
                                 <span style={{ display: 'block', fontSize: '0.75rem', color: '#9ca3af' }}>Bônus</span>
-                                <span style={{ fontSize: '1.25rem', fontWeight: 600, color: '#374151' }}>0%</span>
+                                <span style={{ fontSize: '1.25rem', fontWeight: 600, color: '#374151' }}>Não informado</span>
                             </div>
                         </div>
                     )}
@@ -177,122 +208,66 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
                             </div>
                         </div>
                     )}
+                    {reference && (
+                        <div style={{ marginTop: '1.5rem' }}>
+                            <DataTrustPanel
+                                status={reference.verification.status}
+                                edition={reference.edition}
+                                modalityName={reference.modalityOfficialName}
+                                referenceType={reference.referenceType}
+                                capturedAt={reference.capturedAt}
+                                checkedAt={reference.verification.checkedAt}
+                                sourceUrl={reference.sourceUrl}
+                                intermediary={reference.intermediary}
+                            />
+                        </div>
+                    )}
                 </div>
 
-                <div className={styles.tabs}>
+                <div className={styles.tabs} role="tablist" aria-label="Detalhes do curso">
                     <button
+                        id="course-tab-info"
+                        role="tab"
+                        aria-selected={activeTab === 'info'}
+                        aria-controls="course-panel-info"
+                        tabIndex={activeTab === 'info' ? 0 : -1}
+                        onKeyDown={handleTabKeyDown}
                         className={`${styles.tab} ${activeTab === 'info' ? styles.active : ''}`}
                         onClick={() => setActiveTab('info')}
                     >
                         Informações
                     </button>
                     <button
-                        className={`${styles.tab} ${activeTab === 'stats' ? styles.active : ''}`}
-                        onClick={() => setActiveTab('stats')}
-                    >
-                        Estatísticas
-                    </button>
-                    <button
+                        id="course-tab-list"
+                        role="tab"
+                        aria-selected={activeTab === 'list'}
+                        aria-controls="course-panel-list"
+                        tabIndex={activeTab === 'list' ? 0 : -1}
+                        onKeyDown={handleTabKeyDown}
                         className={`${styles.tab} ${activeTab === 'list' ? styles.active : ''}`}
                         onClick={() => setActiveTab('list')}
                     >
-                        Lista de Aprovados
-                    </button>
-                    <button
-                        className={`${styles.tab} ${activeTab === 'modalities' ? styles.active : ''}`}
-                        onClick={() => setActiveTab('modalities')}
-                    >
-                        Modalidades
+                        Lista da chamada
                     </button>
                 </div>
 
                 {activeTab === 'info' && (
-                    <div className="animate-in fade-in">
+                    <div id="course-panel-info" role="tabpanel" aria-labelledby="course-tab-info" className="animate-in fade-in">
                         <WeightsTable weights={latestWeights} />
                     </div>
                 )}
 
-                {activeTab === 'stats' && (
-                    <div className="animate-in fade-in">
-                        <StatsCharts scores={course.cut_scores} />
-                    </div>
-                )}
-
                 {activeTab === 'list' && (
-                    <div className="animate-in fade-in">
+                    <div id="course-panel-list" role="tabpanel" aria-labelledby="course-tab-list" className="animate-in fade-in">
                         <ApprovedList
                             courseCode={course.code}
-                            cutScore={cutScoreValue}
+                            cutScore={cutScoreValue ?? 0}
                             vacancies={vacancies}
-                            year={latestCutScore?.year || new Date().getFullYear()}
+                            year={latestCutScore?.year ?? new Date().getFullYear()}
                         />
                     </div>
                 )}
-
-                {activeTab === 'modalities' && (
-                    <div className="animate-in fade-in">
-                        <h4 style={{ marginBottom: '1rem', marginTop: '1rem' }}>Todas as Modalidades ({latestCutScore?.year || new Date().getFullYear()})</h4>
-                        <div style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                                <thead>
-                                    <tr style={{ borderBottom: '2px solid #e5e7eb', textAlign: 'left' }}>
-                                        <th style={{ padding: '0.75rem', fontWeight: 600 }}>Modalidade</th>
-                                        <th style={{ padding: '0.75rem', fontWeight: 600 }}>Nota de Corte</th>
-                                        <th style={{ padding: '0.75rem', fontWeight: 600 }}>Vagas</th>
-                                        <th style={{ padding: '0.75rem', fontWeight: 600 }}>Ação</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {/* Get unique modalities for the latest available year */}
-                                    {(() => {
-                                        const latestYear = course.cut_scores.reduce((max: number, cs: any) => Math.max(max, cs.year), 0);
-                                        const modalitiesForYear = course.cut_scores
-                                            .filter((cs: any) => cs.year === latestYear)
-                                            .sort((a: any, b: any) => b.cut_score - a.cut_score);
-
-                                        return modalitiesForYear.map((mod: any, idx: number) => (
-                                            <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                                                <td style={{ padding: '0.75rem', color: '#374151' }}>{mod.modality_name}</td>
-                                                <td style={{ padding: '0.75rem', fontWeight: 600, color: '#111827' }}>
-                                                    {mod.cut_score > 0 ? mod.cut_score.toFixed(2).replace('.', ',') : '-'}
-                                                </td>
-                                                <td style={{ padding: '0.75rem', color: '#6b7280' }}>
-                                                    {mod.vacancies || '-'}
-                                                </td>
-                                                <td style={{ padding: '0.75rem' }}>
-                                                    <button
-                                                        onClick={() => {
-                                                            const code = getModalityCode(mod.modality_name);
-                                                            if (code !== 'other') {
-                                                                setSelectedModality(code);
-                                                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                                                            } else {
-                                                                alert('Esta modalidade específica ainda não está mapeada no filtro global, mas a nota acima é a correta para ela.');
-                                                            }
-                                                        }}
-                                                        style={{
-                                                            fontSize: '0.8rem',
-                                                            color: '#2563eb',
-                                                            cursor: 'pointer',
-                                                            background: 'none',
-                                                            border: 'none',
-                                                            fontWeight: 600,
-                                                            padding: 0
-                                                        }}
-                                                    >
-                                                        Selecionar
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ));
-                                    })()}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
             </div>
-        </main>
+        </div>
     );
 }
-

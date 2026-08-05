@@ -1,7 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import styles from './ShareModal.module.css';
+import {
+    buildScoreShareText,
+    formatScore,
+    formatSignedScore,
+    getScoreMargin,
+} from '../../lib/score-core';
 
 interface ShareModalProps {
     isOpen: boolean;
@@ -17,15 +23,60 @@ interface ShareModalProps {
 export default function ShareModal({ isOpen, onClose, course, userScore }: ShareModalProps) {
     const [activeTab, setActiveTab] = useState<'text' | 'story'>('text');
     const [copied, setCopied] = useState(false);
+    const modalRef = useRef<HTMLDivElement>(null);
+    const closeRef = useRef<HTMLButtonElement>(null);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const previousFocus = document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
+        const frame = window.requestAnimationFrame(() => closeRef.current?.focus());
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                onClose();
+                return;
+            }
+            if (event.key !== 'Tab' || !modalRef.current) return;
+            const focusable = Array.from(modalRef.current.querySelectorAll<HTMLElement>(
+                'button:not([disabled]), textarea, a[href], [tabindex]:not([tabindex="-1"])',
+            ));
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (!first || !last) return;
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.cancelAnimationFrame(frame);
+            document.removeEventListener('keydown', handleKeyDown);
+            previousFocus?.focus();
+        };
+    }, [isOpen, onClose]);
 
     if (!isOpen) return null;
 
-    const isPassing = userScore >= course.cut_score;
-    const diff = userScore - course.cut_score;
-
-    const shareText = isPassing
-        ? `Tô passando em ${course.name} na ${course.university} com nota ${userScore.toFixed(2)} (+${diff.toFixed(2)})! 🚀\n\nAcompanhe no XTRI SISU: xtrisisu.com`
-        : `Minha chance em ${course.name} na ${course.university}: 85%! Nota: ${userScore.toFixed(2)} (${diff.toFixed(2)})\n\nVeja o seu no XTRI SISU: xtrisisu.com`;
+    const margin = getScoreMargin(userScore, course.cut_score);
+    const shareText = buildScoreShareText(course, userScore);
+    const relationClass = margin.relation === 'above'
+        ? styles.above
+        : margin.relation === 'below'
+            ? styles.below
+            : styles.equal;
+    const relationLabel = margin.relation === 'above'
+        ? 'ACIMA DO CORTE DE REFERÊNCIA'
+        : margin.relation === 'below'
+            ? 'ABAIXO DO CORTE DE REFERÊNCIA'
+            : margin.relation === 'equal'
+                ? 'NA NOTA DE CORTE DE REFERÊNCIA'
+                : 'SEM CORTE DE REFERÊNCIA';
 
     const handleCopy = () => {
         navigator.clipboard.writeText(shareText);
@@ -34,22 +85,33 @@ export default function ShareModal({ isOpen, onClose, course, userScore }: Share
     };
 
     return (
-        <div className={styles.overlay} onClick={onClose}>
-            <div className={styles.modal} onClick={e => e.stopPropagation()}>
+        <div className={styles.overlay} role="presentation" onClick={onClose}>
+            <div
+                ref={modalRef}
+                className={styles.modal}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="share-modal-title"
+                onClick={e => e.stopPropagation()}
+            >
                 <div className={styles.header}>
-                    <div className={styles.title}>📱 Compartilhar Resultado</div>
-                    <button className={styles.closeButton} onClick={onClose}>✕</button>
+                    <div className={styles.title} id="share-modal-title">Compartilhar comparação</div>
+                    <button ref={closeRef} className={styles.closeButton} onClick={onClose} aria-label="Fechar">✕</button>
                 </div>
 
                 <div className={styles.content}>
-                    <div className={styles.tabs}>
+                    <div className={styles.tabs} role="tablist" aria-label="Formato de compartilhamento">
                         <button
+                            role="tab"
+                            aria-selected={activeTab === 'text'}
                             className={`${styles.tab} ${activeTab === 'text' ? styles.activeTab : ''}`}
                             onClick={() => setActiveTab('text')}
                         >
                             WhatsApp / Texto
                         </button>
                         <button
+                            role="tab"
+                            aria-selected={activeTab === 'story'}
                             className={`${styles.tab} ${activeTab === 'story' ? styles.activeTab : ''}`}
                             onClick={() => setActiveTab('story')}
                         >
@@ -63,6 +125,7 @@ export default function ShareModal({ isOpen, onClose, course, userScore }: Share
                                 className={styles.textArea}
                                 value={shareText}
                                 readOnly
+                                aria-label="Texto da comparação para compartilhar"
                             />
                             <button className={styles.copyButton} onClick={handleCopy}>
                                 {copied ? 'Copiado! ✅' : 'Copiar Texto'}
@@ -70,17 +133,22 @@ export default function ShareModal({ isOpen, onClose, course, userScore }: Share
                         </div>
                     ) : (
                         <div className={styles.storyWrapper}>
-                            <div className={`${styles.storyCard} ${isPassing ? styles.passing : styles.failing}`}>
+                            <div className={`${styles.storyCard} ${relationClass}`}>
                                 <div className={styles.cardLogo}>XTRI SISU</div>
                                 <div className={styles.cardStatus}>
-                                    {isPassing ? 'NO PÁREO ✅' : 'NA LUTA 💪'}
+                                    {relationLabel}
                                 </div>
                                 <div className={styles.cardScore}>
-                                    {userScore.toFixed(1)}
+                                    {formatScore(userScore)}
                                 </div>
                                 <div className={styles.cardLabel}>
-                                    Sua Nota
+                                    Sua média ponderada
                                 </div>
+                                {margin.points !== null && (
+                                    <div className={styles.cardMargin}>
+                                        Margem: {formatSignedScore(margin.points)} pontos
+                                    </div>
+                                )}
                                 <div className={styles.cardCourse}>
                                     {course.name}
                                 </div>

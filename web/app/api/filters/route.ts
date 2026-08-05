@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const type = searchParams.get('type')
@@ -36,7 +38,8 @@ export async function GET(request: NextRequest) {
         if (type === 'cities') {
             if (!state) return NextResponse.json([], { status: 400 })
 
-            const { data, error } = await supabase.request<any[]>(`courses?select=city&state=eq.${state}`)
+            const params = new URLSearchParams({ select: 'city', state: `eq.${state}` })
+            const { data, error } = await supabase.request<any[]>(`courses?${params.toString()}`)
             if (error) throw error
 
             const cities = Array.from(new Set(data?.map((c: any) => c.city).filter(Boolean))).sort()
@@ -80,6 +83,9 @@ export async function GET(request: NextRequest) {
 
     } catch (error) {
         console.error('Filter API Error:', error)
-        return NextResponse.json({ error: String(error) }, { status: 500 })
+        return NextResponse.json(
+            { error: 'Não foi possível carregar os filtros neste momento.' },
+            { status: 502 }
+        )
     }
 }
