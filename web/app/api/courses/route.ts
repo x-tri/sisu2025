@@ -205,13 +205,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const hasSearchFilters = Boolean(query || course || institution || city || state)
     if (hasSearchFilters) {
-      const result = await supabase.searchCoursesPaginated({
+      const searchFilters = {
         query: query || undefined,
         course: course || undefined,
         institution: institution || undefined,
         city: city || undefined,
         state: state || undefined,
-      }, limit, offset)
+      }
+      const result = query
+        ? await supabase.searchCoursesRankedPaginated(searchFilters, limit, offset)
+        : await supabase.searchCoursesPaginated(searchFilters, limit, offset)
 
       if (result.error) {
         return NextResponse.json(

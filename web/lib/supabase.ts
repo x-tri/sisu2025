@@ -99,20 +99,14 @@ class SupabaseServer {
    * Search courses by name, university, or city
    */
   async searchCourses(query: string, limit = 20) {
-    return this.searchCoursesPaginated({ query }, limit, 0)
+    return this.searchCoursesRankedPaginated({ query }, limit, 0)
   }
 
-  /**
-   * Search courses with exact pagination metadata.
-   *
-   * General query matches course, institution or city. Explicit filters are
-   * combined with AND and do not imply a modality or any other fallback.
-   */
-  async searchCoursesPaginated(
+  private buildCourseSearchParams(
     filters: CourseSearchFilters,
-    limit = 20,
-    offset = 0
-  ) {
+    limit: number,
+    offset: number
+  ): URLSearchParams {
     const params = new URLSearchParams({
       select: 'id,code,name,university,campus,city,state,degree,schedule',
       order: 'name.asc,code.asc',
@@ -150,9 +144,77 @@ class SupabaseServer {
       params.set('state', `eq.${state}`)
     }
 
+    return params
+  }
+
+  /**
+   * Search courses with exact pagination metadata.
+   *
+   * General query matches course, institution or city. Explicit filters are
+   * combined with AND and do not imply a modality or any other fallback.
+   */
+  async searchCoursesPaginated(
+    filters: CourseSearchFilters,
+    limit = 20,
+    offset = 0
+  ) {
+    const params = this.buildCourseSearchParams(filters, limit, offset)
+
     return this.request<CourseSearchItem[]>(`courses?${params}`, {
       headers: { 'Prefer': 'count=exact' },
     })
+  }
+
+  /**
+   * Search with stable relevance pagination.
+   *
+   * Course names that start with the query are returned before matches found
+   * in the middle of a name, institution or city. The two disjoint result
+   * groups preserve exact counts and offsets without loading the whole table.
+   */
+  async searchCoursesRankedPaginated(
+    filters: CourseSearchFilters,
+    limit = 20,
+    offset = 0
+  ): Promise<SupabaseResponse<CourseSearchItem[]>> {
+    const query = filters.query ? normalizeSearchTerm(filters.query) : ''
+    if (!query) {
+      return this.searchCoursesPaginated(filters, limit, offset)
+    }
+
+    const prefixParams = this.buildCourseSearchParams(filters, limit, offset)
+    prefixParams.delete('or')
+    prefixParams.append('name', `ilike.${query}*`)
+
+    const prefixResult = await this.request<CourseSearchItem[]>(`courses?${prefixParams}`, {
+      headers: { 'Prefer': 'count=exact' },
+    })
+    if (prefixResult.error) return prefixResult
+
+    const prefixCourses = prefixResult.data || []
+    const prefixCount = prefixResult.count ?? prefixCourses.length
+    const remainingLimit = Math.max(0, limit - prefixCourses.length)
+    const remainderOffset = Math.max(0, offset - prefixCount)
+    const remainderParams = this.buildCourseSearchParams(
+      filters,
+      remainingLimit,
+      remainderOffset
+    )
+    remainderParams.append('name', `not.ilike.${query}*`)
+
+    const remainderResult = await this.request<CourseSearchItem[]>(`courses?${remainderParams}`, {
+      headers: { 'Prefer': 'count=exact' },
+    })
+    if (remainderResult.error) return remainderResult
+
+    const remainderCourses = remainderResult.data || []
+    const remainderCount = remainderResult.count ?? remainderCourses.length
+
+    return {
+      data: [...prefixCourses, ...remainderCourses],
+      error: null,
+      count: prefixCount + remainderCount,
+    }
   }
 
   /**

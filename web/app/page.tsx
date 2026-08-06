@@ -387,7 +387,10 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<CourseSearchItem[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [searchLoadingMore, setSearchLoadingMore] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [searchTotal, setSearchTotal] = useState(0);
+  const [searchHasNext, setSearchHasNext] = useState(false);
   const [catalogResults, setCatalogResults] = useState<CourseSearchItem[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState('');
@@ -566,6 +569,9 @@ export default function Home() {
       setSearchResults([]);
       setSearchError('');
       setSearchLoading(false);
+      setSearchLoadingMore(false);
+      setSearchTotal(0);
+      setSearchHasNext(false);
       return;
     }
 
@@ -573,12 +579,18 @@ export default function Home() {
     const timer = window.setTimeout(() => {
       setSearchLoading(true);
       setSearchError('');
-      const params = new URLSearchParams({ q: query, limit: '8' });
+      const params = new URLSearchParams({ q: query, limit: '30', offset: '0' });
       fetchJson<CourseSearchResponse>('/api/courses?' + params.toString(), controller.signal)
-        .then(response => setSearchResults(response.courses))
+        .then(response => {
+          setSearchResults(response.courses);
+          setSearchTotal(response.total);
+          setSearchHasNext(response.pagination.hasNextPage);
+        })
         .catch((error: Error) => {
           if (error.name !== 'AbortError') {
             setSearchResults([]);
+            setSearchTotal(0);
+            setSearchHasNext(false);
             setSearchError(error.message);
           }
         })
@@ -885,6 +897,38 @@ export default function Home() {
       if (error instanceof Error && error.name !== 'AbortError') setCatalogError(error.message);
     } finally {
       if (!controller.signal.aborted) setCatalogLoading(false);
+    }
+  };
+
+  const loadMoreSearchResults = async () => {
+    const query = searchQuery.trim();
+    if (query.length < 2 || searchLoading || searchLoadingMore || !searchHasNext) return;
+
+    const controller = new AbortController();
+    const params = new URLSearchParams({
+      q: query,
+      limit: '30',
+      offset: String(searchResults.length),
+    });
+
+    setSearchLoadingMore(true);
+    setSearchError('');
+    try {
+      const response = await fetchJson<CourseSearchResponse>(
+        '/api/courses?' + params.toString(),
+        controller.signal,
+      );
+      setSearchResults(previous => {
+        const unique = new Map(previous.map(course => [course.id, course]));
+        for (const course of response.courses) unique.set(course.id, course);
+        return Array.from(unique.values());
+      });
+      setSearchTotal(response.total);
+      setSearchHasNext(response.pagination.hasNextPage);
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') setSearchError(error.message);
+    } finally {
+      setSearchLoadingMore(false);
     }
   };
 
@@ -1345,11 +1389,29 @@ export default function Home() {
                 )}
 
                 {visibleCourses.length > 0 && (
-                  <div className={styles.resultsGrid}>
-                    {visibleCourses.map(course => (
-                      <CourseResultCard key={course.id} course={course} onSelect={chooseSearchResult} />
-                    ))}
-                  </div>
+                  <>
+                    <div className={styles.resultsGrid}>
+                      {visibleCourses.map(course => (
+                        <CourseResultCard key={course.id} course={course} onSelect={chooseSearchResult} />
+                      ))}
+                    </div>
+                    {hasActiveSearch && (
+                      <p className={styles.resultsCount}>
+                        Exibindo {visibleCourses.length.toLocaleString('pt-BR')} de {searchTotal.toLocaleString('pt-BR')} ofertas encontradas
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {hasActiveSearch && searchHasNext && (
+                  <button
+                    type="button"
+                    className={styles.loadMore}
+                    disabled={searchLoadingMore}
+                    onClick={loadMoreSearchResults}
+                  >
+                    {searchLoadingMore ? 'Carregando...' : 'Ver mais resultados'}
+                  </button>
                 )}
 
                 {!hasActiveSearch && catalogHasNext && (

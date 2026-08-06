@@ -26,6 +26,39 @@ const UNKNOWN_INSTITUTION_COURSE: CourseSearchItem = {
   university: 'Universidade Federal do Maranhão',
 }
 
+const BIOMEDICINE_COURSE: CourseSearchItem = {
+  ...UFRN_COURSE,
+  id: 3000,
+  code: 3000,
+  name: 'Biomedicina',
+  university: 'Universidade Federal de Pernambuco',
+  city: 'Recife',
+  state: 'PE',
+}
+
+test('busca ranqueada prioriza nomes iniciados pelo termo antes de Biomedicina', async context => {
+  const endpoints: string[] = []
+  context.mock.method(supabase, 'request', async (endpoint: string) => {
+    endpoints.push(endpoint)
+    const params = new URLSearchParams(endpoint.split('?')[1])
+    const nameFilters = params.getAll('name')
+
+    if (nameFilters.includes('ilike.medicina*')) {
+      return { data: [UFRN_COURSE], error: null, count: 73 }
+    }
+
+    assert.ok(nameFilters.includes('not.ilike.medicina*'))
+    return { data: [BIOMEDICINE_COURSE], error: null, count: 112 }
+  })
+
+  const result = await supabase.searchCoursesRankedPaginated({ query: 'medicina' }, 2, 0)
+
+  assert.equal(result.error, null)
+  assert.equal(result.count, 185)
+  assert.deepEqual(result.data?.map(course => course.name), ['Medicina', 'Biomedicina'])
+  assert.equal(endpoints.length, 2)
+})
+
 test('GET /api/courses expõe somente siglas do registro institucional verificado', async context => {
   context.mock.method(supabase, 'searchCoursesPaginated', async () => ({
     data: [UFRN_COURSE, UNKNOWN_INSTITUTION_COURSE],
