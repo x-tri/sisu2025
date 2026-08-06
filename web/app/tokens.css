@@ -7,10 +7,10 @@
   /* ----------------------------------------
      Cores Primárias
      ---------------------------------------- */
-  --color-primary: #f59e0b;
-  --color-primary-light: #fbbf24;
-  --color-primary-dark: #d97706;
-  --color-primary-subtle: rgba(245, 158, 11, 0.1);
+  --color-primary: #0529ff;
+  --color-primary-light: #435eff;
+  --color-primary-dark: #0019c2;
+  --color-primary-subtle: rgba(5, 41, 255, 0.1);
   
   /* ----------------------------------------
      Cores Semânticas
@@ -49,16 +49,16 @@
      Cores de Fundo
      ---------------------------------------- */
   --bg-primary: #ffffff;
-  --bg-secondary: var(--gray-50);
-  --bg-tertiary: var(--gray-100);
+  --bg-secondary: #f8f9fb;
+  --bg-tertiary: #f9fafb;
   --bg-dark: #1a1a1a;
   --bg-dark-hover: #262626;
   
   /* ----------------------------------------
      Cores de Texto
      ---------------------------------------- */
-  --text-primary: var(--gray-900);
-  --text-secondary: var(--gray-600);
+  --text-primary: #2c2e30;
+  --text-secondary: #4a4949;
   --text-tertiary: var(--gray-500);
   --text-inverse: #ffffff;
   --text-muted: var(--gray-400);
@@ -99,7 +99,7 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
-  --shadow-colored: 0 4px 14px rgba(245, 158, 11, 0.25);
+  --shadow-colored: 0 4px 14px rgba(5, 41, 255, 0.2);
   
   /* ----------------------------------------
      Tipografia
@@ -171,7 +171,7 @@
   
   /* Container principal */
   --container-padding: var(--space-4);
-  --container-max-width: 1400px;
+  --container-max-width: 64rem;
 }
 
 /* ----------------------------------------

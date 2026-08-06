@@ -25,7 +25,7 @@ export const BROAD_CUTOFF = 801.46;
 export const L1_CUTOFF = 769.86;
 
 const sourceUrl = 'https://sisu.mec.gov.br/vagas';
-const intermediaryUrl = 'https://meusisu.com/';
+const intermediaryUrl = 'https://xtri.online/';
 const capturedAt = '2026-01-22T08:30:00.000Z';
 const checkedAt = '2026-01-22T09:00:00.000Z';
 
@@ -53,7 +53,7 @@ function reference(
       enem: null,
     },
     sourceUrl,
-    intermediary: 'MeuSISU',
+    intermediary: 'XTRI',
     intermediaryUrl,
     verification: {
       status: 'verified',
@@ -126,10 +126,133 @@ export const COURSE_DETAIL_FIXTURE = {
     capturedAt,
     sourceUrl,
     intermediary: {
-      name: 'MeuSISU',
+      name: 'XTRI',
       url: intermediaryUrl,
     },
     verification: 'verified',
+  },
+};
+
+export const COURSE_STATISTICS_FIXTURE = {
+  courseCode: MEDICINE_COURSE.code,
+  modality: {
+    id: L1_MODALITY_ID,
+    name: L1_MODALITY_NAME,
+    family: 'public-school-low-income',
+  },
+  partialSeries: [
+    {
+      edition: 2025,
+      semester: null,
+      points: [
+        { day: 1, score: 758.2 },
+        { day: 2, score: 762.4 },
+        { day: 3, score: 765.1 },
+      ],
+    },
+    {
+      edition: 2026,
+      semester: null,
+      points: [
+        { day: 1, score: 760.45 },
+        { day: 2, score: 765.8 },
+        { day: 3, score: 769.86 },
+      ],
+    },
+  ],
+  cutoffHistory: [
+    {
+      edition: 2024,
+      semester: null,
+      cutoff: 754.2,
+      effectiveCutoff: 754.2,
+      referenceType: 'final',
+      partialDay: null,
+      applicants: 95,
+      vacancies: 12,
+      capturedAt,
+      modalityName: L1_MODALITY_NAME,
+    },
+    {
+      edition: 2025,
+      semester: null,
+      cutoff: 765.1,
+      effectiveCutoff: 765.1,
+      referenceType: 'final',
+      partialDay: null,
+      applicants: 108,
+      vacancies: 12,
+      capturedAt,
+      modalityName: L1_MODALITY_NAME,
+    },
+    {
+      edition: 2026,
+      semester: null,
+      cutoff: L1_CUTOFF,
+      effectiveCutoff: L1_CUTOFF,
+      referenceType: 'final',
+      partialDay: null,
+      applicants: 120,
+      vacancies: 12,
+      capturedAt,
+      modalityName: L1_MODALITY_NAME,
+    },
+  ],
+  approvedScoreSummary: [
+    {
+      edition: 2024,
+      semester: 1,
+      admissionCall: 1,
+      count: 12,
+      mean: 771.32,
+      median: 770.45,
+      min: 754.2,
+      max: 792.14,
+    },
+    {
+      edition: 2025,
+      semester: 1,
+      admissionCall: 1,
+      count: 12,
+      mean: 776.88,
+      median: 775.9,
+      min: 765.1,
+      max: 798.05,
+    },
+  ],
+  approvedAreaAverages: [],
+  generatedAt: checkedAt,
+};
+
+const UNVERIFIED_L1_REFERENCE: CourseReference = {
+  ...L1_REFERENCE,
+  verification: { status: 'unverified', checkedAt },
+};
+
+const UNVERIFIED_BROAD_REFERENCE: CourseReference = {
+  ...BROAD_REFERENCE,
+  verification: { status: 'unverified', checkedAt },
+};
+
+const UNVERIFIED_COURSE_DETAIL_FIXTURE = {
+  ...COURSE_DETAIL_FIXTURE,
+  cut_scores: COURSE_DETAIL_FIXTURE.cut_scores.map(edition => ({
+    ...edition,
+    modalities: edition.modalities.map(modality => {
+      const referenceForModality = modality.code === Number(L1_MODALITY_ID)
+        ? UNVERIFIED_L1_REFERENCE
+        : UNVERIFIED_BROAD_REFERENCE;
+      return {
+        ...modality,
+        verification: referenceForModality.verification,
+        reference: referenceForModality,
+      };
+    }),
+  })),
+  references: [UNVERIFIED_BROAD_REFERENCE, UNVERIFIED_L1_REFERENCE],
+  provenance: {
+    ...COURSE_DETAIL_FIXTURE.provenance,
+    verification: 'unverified' as const,
   },
 };
 
@@ -139,7 +262,7 @@ export const COVERAGE_FIXTURE: CourseCoverageResponse = {
   verification: 'verified',
   sourceUrl,
   intermediary: {
-    name: 'MeuSISU',
+    name: 'XTRI',
     url: intermediaryUrl,
   },
   coverage: {
@@ -202,13 +325,16 @@ async function fulfillJson(route: Route, body: unknown, status = 200): Promise<v
 
 export interface ApiMockOptions {
   coverageFailures?: number;
+  holdCoverageFailure?: boolean;
   coverageTimeoutFailures?: number;
   emptySearch?: boolean;
   racingSearch?: boolean;
+  unverifiedReferences?: boolean;
 }
 
 export interface ApiMockState {
   coverageAttempts: () => number;
+  releaseCoverage: () => void;
   searchQueries: () => string[];
 }
 
@@ -217,6 +343,7 @@ export async function installApiMocks(
   options: ApiMockOptions = {},
 ): Promise<ApiMockState> {
   let coverageAttempts = 0;
+  let coverageReleased = false;
   const searchQueries: string[] = [];
 
   await page.route('**/api/**', async (route) => {
@@ -233,6 +360,9 @@ export async function installApiMocks(
 
     if (url.pathname === '/api/courses/coverage') {
       coverageAttempts += 1;
+      if (options.holdCoverageFailure && !coverageReleased) {
+        return fulfillJson(route, { error: 'Falha simulada de cobertura.' }, 500);
+      }
       if (coverageAttempts <= (options.coverageTimeoutFailures ?? 0)) {
         await new Promise((resolve) => setTimeout(resolve, 12_500));
         return fulfillJson(route, COVERAGE_FIXTURE);
@@ -244,7 +374,14 @@ export async function installApiMocks(
     }
 
     if (url.pathname === `/api/courses/${MEDICINE_COURSE.code}`) {
-      return fulfillJson(route, COURSE_DETAIL_FIXTURE);
+      return fulfillJson(
+        route,
+        options.unverifiedReferences ? UNVERIFIED_COURSE_DETAIL_FIXTURE : COURSE_DETAIL_FIXTURE,
+      );
+    }
+
+    if (url.pathname === `/api/courses/${MEDICINE_COURSE.code}/statistics`) {
+      return fulfillJson(route, COURSE_STATISTICS_FIXTURE);
     }
 
     if (url.pathname === '/api/courses') {
@@ -264,7 +401,64 @@ export async function installApiMocks(
     }
 
     if (url.pathname === '/api/simulate/radar' && request.method() === 'POST') {
+      if (options.unverifiedReferences) {
+        const requestBody = request.postDataJSON() as { discoveryOnly?: boolean };
+        const discoveryOnly = requestBody.discoveryOnly === true;
+        return fulfillJson(route, {
+          mode: discoveryOnly ? 'discovery' : 'comparison',
+          comparison: discoveryOnly
+            ? { available: false, reason: 'GRADES_MISSING' }
+            : { available: true },
+          reference: {
+            courseId: MEDICINE_COURSE.id,
+            courseName: MEDICINE_COURSE.name,
+            year: 2026,
+            modalityCode: L1_MODALITY_ID,
+            modalityName: L1_MODALITY_NAME,
+            cutScoreType: 'final',
+            partialDay: null,
+            capturedAt,
+            verification: 'unverified',
+            sourceUrl,
+            intermediary: 'XTRI',
+          },
+          results: [
+            {
+              courseId: 3003,
+              courseCode: 67890,
+              name: 'Medicina',
+              university: 'UFMS',
+              campus: 'Campo Grande',
+              city: 'Campo Grande',
+              state: 'MS',
+              degree: 'Bacharelado',
+              schedule: 'Integral',
+              edition: 2026,
+              modalityId: L1_MODALITY_ID,
+              modalityName: L1_MODALITY_NAME,
+              comparisonAvailable: !discoveryOnly,
+              ...(!discoveryOnly ? {
+                userScore: 770,
+                margin: 2,
+                difference: 1.86,
+              } : {}),
+              cutScore: 768,
+              cutScoreYear: 2026,
+              cutScoreType: 'final',
+              partialDay: null,
+              capturedAt,
+              vacancies: 20,
+              distance: 225,
+              verification: 'unverified',
+              sourceUrl,
+              intermediary: 'XTRI',
+            },
+          ],
+        });
+      }
       return fulfillJson(route, {
+        mode: 'comparison',
+        comparison: { available: true },
         reference: {
           courseId: MEDICINE_COURSE.id,
           courseName: MEDICINE_COURSE.name,
@@ -276,7 +470,7 @@ export async function installApiMocks(
           capturedAt,
           verification: 'verified',
           sourceUrl,
-          intermediary: 'MeuSISU',
+          intermediary: 'XTRI',
         },
         results: [
           {
@@ -289,6 +483,9 @@ export async function installApiMocks(
             state: 'MS',
             degree: 'Bacharelado',
             schedule: 'Integral',
+            edition: 2026,
+            modalityId: L1_MODALITY_ID,
+            comparisonAvailable: true,
             userScore: 770,
             cutScore: 768,
             cutScoreYear: 2026,
@@ -302,7 +499,7 @@ export async function installApiMocks(
             distance: 225,
             verification: 'verified',
             sourceUrl,
-            intermediary: 'MeuSISU',
+            intermediary: 'XTRI',
           },
         ],
       });
@@ -313,6 +510,9 @@ export async function installApiMocks(
 
   return {
     coverageAttempts: () => coverageAttempts,
+    releaseCoverage: () => {
+      coverageReleased = true;
+    },
     searchQueries: () => [...searchQueries],
   };
 }

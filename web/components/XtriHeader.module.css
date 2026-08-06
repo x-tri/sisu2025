@@ -1,0 +1,186 @@
+/* Cabeçalho principal da experiência XTRI SISU. */
+.header {
+  background: #f8f9fb;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 300;
+}
+
+.nav {
+  align-items: center;
+  display: flex;
+  height: 64px;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: 64rem;
+  padding: 0 1rem;
+}
+
+.brand {
+  align-items: center;
+  color: #0529ff;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 1.35rem;
+  font-weight: 800;
+  gap: 0.55rem;
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.brand img {
+  height: 34px;
+  object-fit: contain;
+  width: 34px;
+}
+
+.desktopLinks {
+  align-items: center;
+  display: flex;
+  gap: 1.5rem;
+  margin-left: auto;
+  margin-right: 1.75rem;
+}
+
+.desktopLinks a {
+  border-bottom: 2px solid transparent;
+  color: #4a4949;
+  font-size: 1rem;
+  line-height: 1.5;
+  padding: 0.15rem 0;
+}
+
+.desktopLinks a:hover,
+.desktopLinks a:focus-visible {
+  border-bottom-color: #dadada;
+  color: #2c2e30;
+}
+
+.desktopLinks .activeLink {
+  border-bottom-color: #0529ff;
+  color: #2c2e30;
+  font-weight: 600;
+}
+
+.actions {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+}
+
+.scoresButton {
+  align-items: center;
+  background: #0529ff;
+  border: 1px solid #0019c2;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.875rem;
+  font-weight: 500;
+  gap: 0.5rem;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0.5rem 1rem;
+  white-space: nowrap;
+}
+
+.scoresButton:hover {
+  background: #0019c2;
+}
+
+.menuButton {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0.375rem;
+  color: #4b5563;
+  display: none;
+  height: 40px;
+  justify-content: center;
+  padding: 0.5rem;
+  width: 40px;
+}
+
+.menuButton:hover {
+  background: #e5e7eb;
+}
+
+.mobileMenu {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .brand span {
+    display: none;
+  }
+
+  .brand img {
+    height: 36px;
+    width: 36px;
+  }
+
+  .desktopLinks {
+    display: none;
+  }
+
+  .actions {
+    gap: 0.6rem;
+  }
+
+  .menuButton {
+    display: inline-flex;
+  }
+
+  .mobileMenu {
+    background: #f8f9fb;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    padding: 0 1rem;
+    pointer-events: none;
+    transition: max-height 300ms ease, opacity 300ms ease, padding 300ms ease;
+  }
+
+  .mobileMenuOpen {
+    max-height: 280px;
+    opacity: 1;
+    padding-bottom: 1rem;
+    padding-top: 1rem;
+    pointer-events: auto;
+  }
+
+  .mobileMenu a {
+    border-radius: 0.25rem;
+    color: #4a4949;
+    font-size: 0.95rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .mobileMenu a:hover,
+  .mobileMenu a:focus-visible {
+    background: #e5e7eb;
+    color: #2c2e30;
+  }
+
+  .mobileMenu .mobileActive {
+    background: #0529ff;
+    color: #fff;
+    font-weight: 600;
+  }
+}
+
+@media (max-width: 350px) {
+  .nav {
+    padding: 0 0.75rem;
+  }
+
+  .scoresButton {
+    padding-inline: 0.75rem;
+  }
+}

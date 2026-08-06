@@ -16,6 +16,7 @@ import {
 
 interface ScoreContextType {
     scores: Scores;
+    hasScores: boolean;
     setScore: (subject: ScoreSubject, value: number) => boolean;
     setScores: (scores: Scores) => boolean;
     clearScores: () => void;
@@ -40,6 +41,7 @@ function removePersistedScores(): void {
 
 export function ScoreProvider({ children }: { children: ReactNode }) {
     const [scores, setScoresState] = useState<Scores>(createDefaultScores);
+    const [hasScores, setHasScores] = useState(false);
     const [rememberScores, setRememberScoresState] = useState(false);
 
     useEffect(() => {
@@ -47,6 +49,7 @@ export function ScoreProvider({ children }: { children: ReactNode }) {
             const stored = readPersistedScores(localStorage.getItem(SCORE_STORAGE_KEY));
             if (stored.status === 'valid') {
                 setScoresState(stored.scores);
+                setHasScores(true);
                 setRememberScoresState(true);
             } else if (stored.status !== 'empty') {
                 removePersistedScores();
@@ -68,6 +71,7 @@ export function ScoreProvider({ children }: { children: ReactNode }) {
         if (!isValidScore(value)) return false;
         const nextScores = { ...scores, [subject]: value };
         setScoresState(nextScores);
+        setHasScores(true);
         if (rememberScores) persistScores(nextScores);
         return true;
     };
@@ -76,6 +80,7 @@ export function ScoreProvider({ children }: { children: ReactNode }) {
         const validation = validateScores(newScores);
         if (!validation.valid) return false;
         setScoresState(validation.scores);
+        setHasScores(true);
         if (rememberScores) persistScores(validation.scores);
         return true;
     };
@@ -91,6 +96,7 @@ export function ScoreProvider({ children }: { children: ReactNode }) {
 
     const clearScores = (): void => {
         setScoresState(createDefaultScores());
+        setHasScores(false);
         setRememberScoresState(false);
         removePersistedScores();
     };
@@ -102,6 +108,7 @@ export function ScoreProvider({ children }: { children: ReactNode }) {
     return (
         <ScoreContext.Provider value={{
             scores,
+            hasScores,
             setScore,
             setScores,
             clearScores,

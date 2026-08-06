@@ -1,116 +1,759 @@
+.detailRoot {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e4e8ef;
+    border-radius: 1rem;
+    background: #f5f7fb;
+    color: #172033;
+}
+
+.detailContainer,
+.headerInner {
+    width: min(100%, 1180px);
+    min-width: 0;
+    margin: 0 auto;
+    padding-right: 1rem;
+    padding-left: 1rem;
+}
+
 .header {
-    background: white;
-    padding: 2rem 0;
-    border-bottom: 1px solid #e5e7eb;
-    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid #dce3ee;
+    background: #ffffff;
+}
+
+.header::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 0.3rem;
+    background: #0b57d0;
+    content: '';
+}
+
+.headerEyebrow,
+.eyebrow {
+    display: block;
+    color: #0b57d0;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.075em;
+    line-height: 1.35;
+    text-transform: uppercase;
 }
 
 .university {
-    font-size: 1rem;
-    color: #6b7280;
-    font-weight: 500;
-    margin-bottom: 0.5rem;
+    margin-top: 0.55rem;
+    color: #5b6474;
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.5;
 }
 
 .title {
-    font-size: 2rem;
+    margin: 0.35rem 0 0;
+    color: #153f85;
+    font-size: clamp(1.45rem, 7vw, 2.1rem);
     font-weight: 800;
-    color: #2563eb;
-    margin-bottom: 1rem;
-    line-height: 1.2;
+    letter-spacing: -0.035em;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+
+.degree {
+    display: block;
+    margin-top: 0.3rem;
+    color: #687386;
+    font-size: 0.58em;
+    font-weight: 600;
+    letter-spacing: 0;
 }
 
 .badges {
     display: flex;
-    gap: 0.5rem;
     flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 1rem;
 }
 
 .badge {
-    background: #f3f4f6;
-    padding: 0.25rem 0.75rem;
-    border-radius: 99px;
-    font-size: 0.875rem;
-    color: #111827;
-    border: 1px solid #e5e7eb;
+    max-width: 100%;
+    padding: 0.38rem 0.68rem;
+    border: 1px solid #dce3ee;
+    border-radius: 999px;
+    background: #f7f9fc;
+    color: #465268;
+    font-size: 0.75rem;
+    font-weight: 650;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.detailContainer {
+    padding-top: 1rem;
+    padding-bottom: 1.5rem;
+}
+
+.simulationCard,
+.tabPanel {
+    min-width: 0;
+    border: 1px solid #dfe5ee;
+    border-radius: 0.85rem;
+    background: #ffffff;
+    box-shadow: 0 2px 10px rgba(21, 63, 133, 0.055);
+}
+
+.simulationCard {
+    padding: 1rem;
+}
+
+.simulationHeading,
+.sectionHeading,
+.yearCardHeader,
+.tableHeading {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.simulationHeading h3,
+.sectionHeading h3,
+.sectionTitle {
+    margin: 0.2rem 0 0;
+    color: #172033;
+    font-size: 1.08rem;
+    font-weight: 750;
+    letter-spacing: -0.015em;
+    line-height: 1.3;
+}
+
+.verificationPill,
+.statusDotLabel {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.38rem;
+    border-radius: 999px;
+    font-weight: 750;
+    line-height: 1.25;
+    white-space: nowrap;
+}
+
+.verificationPill {
+    padding: 0.42rem 0.65rem;
+    font-size: 0.69rem;
+}
+
+.verificationPill.verified,
+.statusDotLabel.verified {
+    background: #e8f7ef;
+    color: #17663a;
+}
+
+.verificationPill.unverified,
+.statusDotLabel.unverified {
+    background: #fff4d8;
+    color: #80570b;
+}
+
+.verificationPill.stale,
+.statusDotLabel.stale {
+    background: #fff0e5;
+    color: #9a4d0c;
+}
+
+.verificationPill.conflict,
+.statusDotLabel.conflict {
+    background: #fdebec;
+    color: #9f2732;
+}
+
+.modalityName {
+    margin: 0.8rem 0 0;
+    padding: 0.75rem;
+    border-left: 3px solid #0b57d0;
+    border-radius: 0 0.55rem 0.55rem 0;
+    background: #f0f5ff;
+    color: #33415c;
+    font-size: 0.82rem;
+    font-weight: 650;
+    line-height: 1.5;
+}
+
+.scoreGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.65rem;
+    margin-top: 1rem;
+}
+
+.scoreMetric {
+    display: flex;
+    min-width: 0;
+    min-height: 8.2rem;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0.9rem;
+    border: 1px solid #e4e8ef;
+    border-radius: 0.7rem;
+    background: #fbfcfe;
+}
+
+.scoreMetric > span {
+    color: #667085;
+    font-size: 0.69rem;
+    font-weight: 750;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+}
+
+.scoreMetric strong {
+    display: block;
+    margin-top: 0.4rem;
+    color: #172033;
+    font-size: clamp(1.25rem, 8vw, 1.8rem);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+}
+
+.scoreMetric .primaryScore {
+    color: #0b57d0;
+}
+
+.scoreMetric .marginScore {
+    color: #17663a;
+}
+
+.scoreMetric .suspendedScore {
+    color: #80570b;
+    font-size: 1.2rem;
+    letter-spacing: -0.01em;
+}
+
+.scoreMetric small {
+    display: block;
+    margin-top: 0.45rem;
+    color: #788397;
+    font-size: 0.72rem;
+    line-height: 1.4;
+}
+
+.comparisonNotice {
+    margin: 0.8rem 0 0;
+    padding: 0.75rem 0.8rem;
+    border: 1px solid #f0dca8;
+    border-radius: 0.6rem;
+    background: #fffaec;
+    color: #684d18;
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.offerFacts,
+.statisticsGrid,
+.yearFacts {
+    display: grid;
+    margin: 0;
+}
+
+.offerFacts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    margin-top: 1rem;
+    overflow: hidden;
+    border: 1px solid #e4e8ef;
+    border-radius: 0.7rem;
+}
+
+.offerFacts > div {
+    min-width: 0;
+    padding: 0.75rem;
+    border-bottom: 1px solid #e4e8ef;
+}
+
+.offerFacts > div:nth-child(odd) {
+    border-right: 1px solid #e4e8ef;
+}
+
+.offerFacts > div:nth-last-child(-n + 2) {
+    border-bottom: 0;
+}
+
+.offerFacts dt,
+.statisticsGrid dt,
+.yearFacts dt {
+    color: #788397;
+    font-size: 0.67rem;
+    font-weight: 750;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+}
+
+.offerFacts dd,
+.statisticsGrid dd,
+.yearFacts dd {
+    margin: 0.28rem 0 0;
+    color: #29344a;
+    font-weight: 750;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.offerFacts dd {
+    font-size: 0.82rem;
 }
 
 .tabs {
     display: flex;
-    gap: 1rem;
-    border-bottom: 1px solid #e5e7eb;
-    margin-bottom: 2rem;
+    min-width: 0;
+    margin-top: 1rem;
+    overflow-x: auto;
+    border: 1px solid #dfe5ee;
+    border-radius: 0.75rem;
+    background: #ffffff;
+    scrollbar-width: thin;
 }
 
 .tab {
-    background: none;
-    border: none;
-    padding: 1rem 0;
-    font-size: 1rem;
-    color: #6b7280;
-    font-weight: 500;
     position: relative;
-    cursor: pointer;
+    flex: 1 0 auto;
+    min-height: 3.15rem;
+    padding: 0.75rem 0.9rem;
+    border: 0;
+    border-right: 1px solid #e8ecf2;
+    background: transparent;
+    color: #667085;
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.tab:last-child {
+    border-right: 0;
+}
+
+.tab:hover {
+    background: #f6f8fc;
+    color: #153f85;
 }
 
 .tab.active {
-    color: #2563eb;
+    background: #edf4ff;
+    color: #0b57d0;
 }
 
 .tab.active::after {
-    content: '';
     position: absolute;
-    bottom: -1px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: #2563eb;
+    right: 0.75rem;
+    bottom: 0;
+    left: 0.75rem;
+    height: 3px;
+    border-radius: 999px 999px 0 0;
+    background: #0b57d0;
+    content: '';
 }
 
-.sectionTitle {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: #111827;
+.tab:focus-visible {
+    z-index: 1;
+    outline: 3px solid #2563eb;
+    outline-offset: -3px;
+}
+
+.tabPanel {
+    margin-top: 0.75rem;
+    padding: 1rem;
+}
+
+.sectionHeading {
+    flex-direction: column;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid #e8ecf2;
+}
+
+.sectionHeading p {
+    max-width: 34rem;
+    margin: 0;
+    color: #6f7a8e;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.yearGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.7rem;
+    margin-top: 1rem;
+}
+
+.yearCard {
+    min-width: 0;
+    padding: 0.9rem;
+    border: 1px solid #e1e6ee;
+    border-radius: 0.7rem;
+    background: #fbfcfe;
+}
+
+.yearCardHeader > strong {
+    color: #153f85;
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+}
+
+.statusDotLabel {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.64rem;
+}
+
+.yearFacts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+}
+
+.yearFacts dd {
+    font-size: 0.82rem;
+}
+
+.weightsSection {
+    min-width: 0;
+    margin-top: 1.2rem;
+}
+
+.tableHeading {
+    align-items: center;
+    margin-bottom: 0.65rem;
+}
+
+.tableHeading > span {
+    padding: 0.28rem 0.5rem;
+    border-radius: 999px;
+    background: #edf4ff;
+    color: #0b57d0;
+    font-size: 0.67rem;
+    font-weight: 750;
 }
 
 .tableContainer {
-    background: white;
-    border-radius: 0.5rem;
-    border: 1px solid #e5e7eb;
-    overflow: hidden;
-    margin-bottom: 2rem;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    border: 1px solid #e1e6ee;
+    border-radius: 0.7rem;
+    background: #ffffff;
+    -webkit-overflow-scrolling: touch;
 }
 
 .table {
     width: 100%;
+    min-width: 36rem;
     border-collapse: collapse;
 }
 
 .table th,
 .table td {
-    padding: 1rem;
+    padding: 0.72rem 0.8rem;
+    border-bottom: 1px solid #e8ecf2;
+    color: #3f4b61;
+    font-size: 0.76rem;
+    line-height: 1.4;
     text-align: left;
-    border-bottom: 1px solid #e5e7eb;
+}
+
+.table tr:last-child td {
+    border-bottom: 0;
 }
 
 .table th {
-    background: #f9fafb;
-    font-weight: 500;
-    color: #6b7280;
-    font-size: 0.875rem;
+    background: #f6f8fb;
+    color: #667085;
+    font-size: 0.68rem;
+    font-weight: 750;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
 }
 
 .scoreValue {
-    font-weight: 600;
-    color: #111827;
+    color: #172033 !important;
+    font-weight: 750;
+}
+
+.tableEmpty,
+.panelEmpty,
+.trustUnavailable,
+.emptyState {
+    border: 1px dashed #b9c4d4;
+    border-radius: 0.7rem;
+    background: #f8fafc;
+    color: #5e6b80;
+    font-size: 0.8rem;
+    line-height: 1.55;
+}
+
+.tableEmpty,
+.trustUnavailable,
+.emptyState {
+    padding: 1rem;
+}
+
+.emptyState {
+    text-align: center;
+}
+
+.tableNote {
+    margin: 0.55rem 0 0;
+    color: #788397;
+    font-size: 0.7rem;
+    line-height: 1.45;
+}
+
+.statisticsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-top: 1rem;
+}
+
+.statisticsGrid > div {
+    min-width: 0;
+    padding: 0.85rem;
+    border: 1px solid #e1e6ee;
+    border-radius: 0.7rem;
+    background: #fbfcfe;
+}
+
+.statisticsGrid dd {
+    font-size: 1.05rem;
+}
+
+.partialSection {
+    margin-top: 1.2rem;
+}
+
+.partialSection h4,
+.methodNote h4 {
+    margin: 0;
+    color: #29344a;
+    font-size: 0.9rem;
+    font-weight: 750;
+}
+
+.partialGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin-top: 0.7rem;
+}
+
+.partialCard {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    padding: 0.75rem;
+    border: 1px solid #e1e6ee;
+    border-radius: 0.65rem;
+    background: #f7f9fc;
+}
+
+.partialCard > span {
+    color: #6f7a8e;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.partialCard strong {
+    margin-top: 0.25rem;
+    color: #153f85;
+    font-size: 1.02rem;
+}
+
+.partialCard small {
+    margin-top: 0.3rem;
+    color: #788397;
+    font-size: 0.66rem;
+    line-height: 1.35;
+}
+
+.panelEmpty {
+    margin: 0.7rem 0 0;
+    padding: 0.8rem;
+}
+
+.trustUnavailable {
+    margin-top: 1rem;
+}
+
+.methodNote {
+    margin-top: 1rem;
+    padding: 0.9rem;
+    border: 1px solid #dce5f3;
+    border-radius: 0.7rem;
+    background: #f3f7fd;
+}
+
+.methodNote ul {
+    display: grid;
+    gap: 0.42rem;
+    margin: 0.65rem 0 0;
+    padding-left: 1.15rem;
+}
+
+.methodNote li {
+    color: #506079;
+    font-size: 0.76rem;
+    line-height: 1.45;
 }
 
 .chartContainer {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-    border: 1px solid #e5e7eb;
-    height: 400px;
-    margin-bottom: 2rem;
+    width: 100%;
+    min-width: 0;
+    height: 20rem;
+    margin: 0.8rem 0 1.2rem;
+    padding: 0.75rem 0.4rem 0.4rem;
+    border: 1px solid #e1e6ee;
+    border-radius: 0.7rem;
+    background: #ffffff;
+}
+
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (min-width: 560px) {
+    .detailContainer,
+    .headerInner {
+        padding-right: 1.25rem;
+        padding-left: 1.25rem;
+    }
+
+    .header {
+        padding: 1.8rem 0;
+    }
+
+    .degree {
+        display: inline;
+        margin: 0;
+    }
+
+    .scoreGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .scoreMetric:first-child {
+        grid-column: 1 / -1;
+    }
+
+    .yearGrid,
+    .partialGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 760px) {
+    .detailContainer {
+        padding-top: 1.25rem;
+        padding-bottom: 2rem;
+    }
+
+    .simulationCard,
+    .tabPanel {
+        padding: 1.25rem;
+    }
+
+    .scoreGrid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .scoreMetric:first-child {
+        grid-column: auto;
+    }
+
+    .offerFacts {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .offerFacts > div,
+    .offerFacts > div:nth-child(odd),
+    .offerFacts > div:nth-last-child(-n + 2) {
+        border-right: 1px solid #e4e8ef;
+        border-bottom: 0;
+    }
+
+    .offerFacts > div:last-child {
+        border-right: 0;
+    }
+
+    .sectionHeading {
+        align-items: flex-end;
+        flex-direction: row;
+    }
+
+    .sectionHeading p {
+        text-align: right;
+    }
+
+    .yearGrid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .statisticsGrid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .partialGrid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 359px) {
+    .simulationHeading,
+    .yearCardHeader,
+    .tableHeading {
+        flex-direction: column;
+    }
+
+    .verificationPill,
+    .statusDotLabel {
+        white-space: normal;
+    }
+
+    .offerFacts,
+    .statisticsGrid,
+    .yearFacts,
+    .partialGrid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .offerFacts > div,
+    .offerFacts > div:nth-child(odd),
+    .offerFacts > div:nth-last-child(-n + 2) {
+        border-right: 0;
+        border-bottom: 1px solid #e4e8ef;
+    }
+
+    .offerFacts > div:last-child {
+        border-bottom: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tab {
+        scroll-behavior: auto;
+        transition: none;
+    }
 }

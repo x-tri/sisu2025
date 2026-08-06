@@ -329,14 +329,13 @@ export async function POST(request: NextRequest) {
             courseName,
             modalityCode: rawModalityCode,
             referenceCourseId,
+            discoveryOnly: rawDiscoveryOnly,
         } = parsedBody as Record<string, unknown>;
 
         const modalityCode = normalizeRequestedModality(rawModalityCode);
+        const discoveryOnly = rawDiscoveryOnly === true;
         if (!modalityCode) {
             return jsonResponse({ error: 'Modalidade inválida ou não reconhecida.' }, 400);
-        }
-        if (!validGrades(grades)) {
-            return jsonResponse({ error: 'As cinco notas devem estar entre 0 e 1000.' }, 400);
         }
         if (typeof courseName !== 'string' || !courseName.trim()) {
             return jsonResponse({ error: 'Nome do curso é obrigatório.' }, 400);
@@ -404,13 +403,12 @@ export async function POST(request: NextRequest) {
             referenceCutScore.effective.capturedAt,
             referenceType,
         );
-        if (verification !== 'verified') {
-            return jsonResponse({
-                error: 'A referência ainda não foi verificada com a fonte oficial.',
-                code: 'REFERENCE_NOT_VERIFIED',
-                verification,
-            }, 409);
-        }
+        const validatedGrades = validGrades(grades) ? grades : null;
+        // Verification is provenance metadata, not a statement that the stored
+        // cutoff is missing. A personalized comparison is available whenever
+        // the caller supplied valid grades; each candidate is still required
+        // to have weights from the same edition and a compatible cutoff stage.
+        const comparisonAvailable = !discoveryOnly && validatedGrades !== null;
         const exactNameQuery = new URLSearchParams({
             select: courseSelect,
             name: `eq.${referenceCourse.name}`,
@@ -429,19 +427,25 @@ export async function POST(request: NextRequest) {
         const refLat = numberOrNull(referenceCourse.latitude);
         const refLon = numberOrNull(referenceCourse.longitude);
 
-        const results = (courseRows ?? [])
+        const candidates = (courseRows ?? [])
             .filter((course) =>
                 course.id !== referenceCourseId
                 && normalizeCourseName(course.name) === normalizedReferenceName,
             )
             .map((course) => {
-                const weights = (course.course_weights ?? []).find((item) => item.year === targetYear);
                 const cutScore = findCourseCutScore(
                     course.cut_scores ?? [],
                     comparisonModalityCode,
                     targetYear,
                 );
-                if (!weights || !cutScore) return null;
+                if (!cutScore) return null;
+
+                const sameReferenceStage = cutScore.effective.type === referenceCutScore.effective.type
+                    && (
+                        cutScore.effective.type !== 'partial'
+                        || cutScore.effective.partialDay === referenceCutScore.effective.partialDay
+                    );
+                if (!sameReferenceStage) return null;
 
                 const resultReferenceType = targetYear < new Date().getUTCFullYear()
                     ? 'historical'
@@ -450,10 +454,6 @@ export async function POST(request: NextRequest) {
                     cutScore.effective.capturedAt,
                     resultReferenceType,
                 );
-                if (resultVerification !== 'verified') return null;
-
-                const userScore = calculateWeightedScore(grades, weights);
-                if (userScore === null) return null;
 
                 const courseLat = numberOrNull(course.latitude);
                 const courseLon = numberOrNull(course.longitude);
@@ -464,45 +464,110 @@ export async function POST(request: NextRequest) {
                     && courseLon !== null
                         ? Math.round(calculateDistance(refLat, refLon, courseLat, courseLon))
                         : null;
-                const difference = userScore - cutScore.effective.score;
 
                 return {
-                    courseId: course.id,
-                    courseCode: course.code,
-                    name: course.name,
-                    university: course.university,
-                    campus: course.campus,
-                    city: course.city,
-                    state: course.state,
-                    degree: course.degree,
-                    schedule: course.schedule,
-                    userScore,
-                    cutScore: cutScore.effective.score,
-                    cutScoreYear: targetYear,
-                    cutScoreType: cutScore.effective.type,
-                    partialDay: cutScore.effective.partialDay,
-                    capturedAt: cutScore.effective.capturedAt,
-                    difference,
-                    margin: difference,
-                    modalityName: cutScore.record.modality_name,
-                    vacancies: cutScore.record.vacancies ?? 0,
+                    course,
+                    cutScore,
                     distance,
-                    verification: resultVerification,
-                    sourceUrl: 'https://sisu.mec.gov.br/vagas',
-                    intermediary: 'MeuSISU',
+                    resultVerification,
                 };
             })
-            .filter((result): result is NonNullable<typeof result> => result !== null)
-            .sort((a, b) => {
-                const aAbove = a.difference >= 0;
-                const bAbove = b.difference >= 0;
-                if (aAbove !== bAbove) return aAbove ? -1 : 1;
-                return aAbove
-                    ? a.difference - b.difference
-                    : b.difference - a.difference;
-            });
+            .filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null);
+
+        const discoveryResults = candidates
+            .map(({ course, cutScore, distance, resultVerification }) => ({
+                courseId: course.id,
+                courseCode: course.code,
+                name: course.name,
+                university: course.university,
+                campus: course.campus,
+                city: course.city,
+                state: course.state,
+                degree: course.degree,
+                schedule: course.schedule,
+                edition: targetYear,
+                modalityId: String(comparisonModalityCode),
+                modalityName: cutScore.record.modality_name,
+                comparisonAvailable: false as const,
+                cutScore: cutScore.effective.score,
+                cutScoreYear: targetYear,
+                cutScoreType: cutScore.effective.type,
+                partialDay: cutScore.effective.partialDay,
+                capturedAt: cutScore.effective.capturedAt,
+                vacancies: cutScore.record.vacancies ?? 0,
+                distance,
+                verification: resultVerification,
+                sourceUrl: 'https://sisu.mec.gov.br/vagas',
+                intermediary: 'XTRI',
+            }))
+            .sort((left, right) => (
+                (left.university || '').localeCompare(right.university || '', 'pt-BR')
+                || (left.city || '').localeCompare(right.city || '', 'pt-BR')
+            ));
+
+        const comparisonResults = comparisonAvailable && validatedGrades
+            ? candidates
+                .map(({ course, cutScore, distance, resultVerification }) => {
+                    const weights = (course.course_weights ?? []).find((item) => item.year === targetYear);
+                    if (!weights) return null;
+
+                    const userScore = calculateWeightedScore(validatedGrades, weights);
+                    if (userScore === null) return null;
+                    const difference = userScore - cutScore.effective.score;
+
+                    return {
+                        courseId: course.id,
+                        courseCode: course.code,
+                        name: course.name,
+                        university: course.university,
+                        campus: course.campus,
+                        city: course.city,
+                        state: course.state,
+                        degree: course.degree,
+                        schedule: course.schedule,
+                        edition: targetYear,
+                        modalityId: String(comparisonModalityCode),
+                        userScore,
+                        cutScore: cutScore.effective.score,
+                        cutScoreYear: targetYear,
+                        cutScoreType: cutScore.effective.type,
+                        partialDay: cutScore.effective.partialDay,
+                        capturedAt: cutScore.effective.capturedAt,
+                        difference,
+                        margin: difference,
+                        modalityName: cutScore.record.modality_name,
+                        vacancies: cutScore.record.vacancies ?? 0,
+                        distance,
+                        comparisonAvailable: true as const,
+                        verification: resultVerification,
+                        sourceUrl: 'https://sisu.mec.gov.br/vagas',
+                        intermediary: 'XTRI',
+                    };
+                })
+                .filter((result): result is NonNullable<typeof result> => result !== null)
+                .sort((a, b) => {
+                    const aAbove = a.difference >= 0;
+                    const bAbove = b.difference >= 0;
+                    if (aAbove !== bAbove) return aAbove ? -1 : 1;
+                    return aAbove
+                        ? a.difference - b.difference
+                        : b.difference - a.difference;
+                })
+            : [];
+
+        const mode = comparisonAvailable ? 'comparison' : 'discovery';
+        const results = comparisonAvailable ? comparisonResults : discoveryResults;
+        const reason = !validatedGrades
+            ? 'GRADES_MISSING'
+            : discoveryOnly
+                ? 'DISCOVERY_ONLY'
+                : 'COMPARISON_SUSPENDED';
 
         return jsonResponse({
+            mode,
+            comparison: comparisonAvailable
+                ? { available: true }
+                : { available: false, reason },
             results,
             reference: {
                 courseId: referenceCourse.id,
@@ -515,7 +580,7 @@ export async function POST(request: NextRequest) {
                 capturedAt: referenceCutScore.effective.capturedAt,
                 verification,
                 sourceUrl: 'https://sisu.mec.gov.br/vagas',
-                intermediary: 'MeuSISU',
+                intermediary: 'XTRI',
             },
         });
     } catch (error) {

@@ -1,0 +1,101 @@
+.card {
+  background: #fff;
+  border: 1px solid #dadada;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  color: #2c2e30;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+  min-width: 0;
+  padding: 1.5rem;
+  text-align: left;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  width: 100%;
+}
+
+.card:hover {
+  border-color: #aab5f9;
+  box-shadow: 0 4px 8px rgb(0 0 0 / 0.12);
+  transform: translateY(-1px);
+}
+
+.heading {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.heading strong {
+  color: #2c2e30;
+  font-size: 1.25rem;
+  line-height: 1.35;
+}
+
+.heading > span {
+  color: #4a4949;
+  font-size: 1rem;
+}
+
+.details {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.details > span {
+  align-items: flex-start;
+  color: #4a4949;
+  display: flex;
+  gap: 0.5rem;
+  line-height: 1.45;
+  min-width: 0;
+}
+
+.details svg {
+  flex: 0 0 auto;
+  margin-top: 0.15rem;
+}
+
+.details span span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.referenceBlock {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: auto;
+}
+
+.referenceValue {
+  background: rgb(249 115 22 / 0.13);
+  border-bottom: 2px solid #f97316;
+  color: #2c2e30;
+  display: inline;
+  font-weight: 500;
+  line-height: 1.45;
+  padding: 0 0.25rem;
+}
+
+.referenceBlock small {
+  color: #6b7280;
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 767px) {
+  .card {
+    padding: 1rem;
+  }
+
+  .heading strong {
+    font-size: 1.125rem;
+  }
+
+  .heading > span,
+  .details > span {
+    font-size: 0.94rem;
+  }
+}

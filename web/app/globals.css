@@ -1,3 +1,9 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/inter/800.css';
+
 /* XTRI SISU 2026 - Global Styles */
 
 /* Importar Design Tokens */
@@ -22,8 +28,8 @@ body {
 
 body {
   font-family: var(--font-sans);
-  background: linear-gradient(135deg, #fef9e7 0%, #fdf6e3 50%, #f5f0e1 100%);
-  color: #1a1a1a;
+  background: #f8f9fb;
+  color: #2c2e30;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -38,7 +44,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 [tabindex]:focus-visible {
-  outline: 3px solid #2563eb;
+  outline: 3px solid #0529ff;
   outline-offset: 3px;
 }
 
@@ -48,7 +54,7 @@ a {
 }
 
 .container {
-  max-width: 1400px;
+  max-width: 64rem;
   margin: 0 auto;
   padding: 0 1rem;
 }
@@ -58,7 +64,7 @@ a {
   position: absolute;
   top: -40px;
   left: 0;
-  background: #f59e0b;
+  background: #0529ff;
   color: white;
   padding: 8px 16px;
   z-index: 9999;

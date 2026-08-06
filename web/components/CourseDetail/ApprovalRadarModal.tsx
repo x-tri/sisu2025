@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './ApprovalRadar.module.css';
 import { useScores } from '../../context/ScoreContext';
 import { useModality } from '../../context/ModalityContext';
+import type { VerificationStatus } from '../../types/course';
 
 type CutScoreType = 'final' | 'partial';
 
@@ -28,7 +29,7 @@ interface RadarResult {
     modalityName: string;
     vacancies?: number;
     distance?: number | null;
-    verification: 'verified';
+    verification: VerificationStatus;
     sourceUrl: string;
     intermediary: string;
 }
@@ -42,7 +43,7 @@ interface RadarReference {
     cutScoreType: CutScoreType;
     partialDay: number | null;
     capturedAt: string | null;
-    verification: 'verified';
+    verification: VerificationStatus;
     sourceUrl: string;
     intermediary: string;
 }
@@ -62,6 +63,13 @@ interface ApprovalRadarProps {
     referenceState?: string;
     modalityName?: string;
 }
+
+const VERIFICATION_LABELS: Record<VerificationStatus, string> = {
+    verified: 'Verificado',
+    unverified: 'Disponível na base XTRI',
+    stale: 'Captura desatualizada',
+    conflict: 'Divergente',
+};
 
 function formatDifference(diff: number): string {
     const formatted = Math.abs(diff).toFixed(2).replace('.', ',');
@@ -297,7 +305,7 @@ export default function ApprovalRadarModal({
                                     <span>Edição {reference.year}</span>
                                     <span>{formatScoreType(reference.cutScoreType, reference.partialDay)}</span>
                                     <span>{modalityName || getModalityLabel()}</span>
-                                    <span>Verificado</span>
+                                    <span>{VERIFICATION_LABELS[reference.verification]}</span>
                                     <span>
                                         {referenceCapturedAt ? (
                                             <>
@@ -309,7 +317,7 @@ export default function ApprovalRadarModal({
                                         ) : 'Captura não informada'}
                                     </span>
                                     <a href={reference.sourceUrl} target="_blank" rel="noopener noreferrer">
-                                        SISU/MEC via {reference.intermediary}
+                                        Fonte SISU/MEC · processado pela {reference.intermediary}
                                     </a>
                                 </div>
                             )}
@@ -383,9 +391,9 @@ export default function ApprovalRadarModal({
                                                             </>
                                                         ) : 'Captura não informada'}
                                                     </span>
-                                                    <span>Verificado</span>
+                                                    <span>{VERIFICATION_LABELS[result.verification]}</span>
                                                     <a href={result.sourceUrl} target="_blank" rel="noopener noreferrer">
-                                                        SISU/MEC via {result.intermediary}
+                                                        Fonte SISU/MEC · processado pela {result.intermediary}
                                                     </a>
                                                 </div>
 

@@ -342,7 +342,7 @@ export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
                 </div>
             </div>
 
-            {/* Course Preview Card - MeuSISU Style */}
+            {/* Prévia da oferta no padrão visual XTRI. */}
             {selectedCourseDetails && !loading.details && (
                 <div className={styles.coursePreview}>
                     <div className={styles.previewHeader}>

@@ -1,6 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import {
+  AlertTriangle,
+  Building2,
+  ChevronDown,
+  Clock3,
+  MapPinned,
+  RefreshCw,
+  ShieldCheck,
+  X,
+} from 'lucide-react';
 import { useScores } from '../context/ScoreContext';
 import { useModality } from '../context/ModalityContext';
 import { calculateWeightedScore, type CourseWeights, validateScores } from '../lib/score-core';
@@ -8,8 +18,13 @@ import { getEffectiveCutoff, selectLatestReference } from '../lib/course-selecti
 import CourseDetailView from '../components/CourseDetail/CourseDetailView';
 import ProbabilityGauge from '../components/CourseDetail/ProbabilityGauge';
 import ApprovalRadarModal from '../components/CourseDetail/ApprovalRadarModal';
+import NearbyOffersPanel from '../components/CourseDetail/NearbyOffersPanel';
+import CourseStatisticsPanel from '../components/CourseDetail/CourseStatisticsPanel';
 import ShareModal from '../components/CourseDetail/ShareModal';
 import DataTrustPanel from '../components/DataTrustPanel';
+import CourseResultCard from '../components/CourseResultCard';
+import XtriHeader from '../components/XtriHeader';
+import ScoreModal from '../components/ScoreModal';
 import type {
   CourseCoverageResponse,
   CourseProvenance,
@@ -157,13 +172,15 @@ interface CourseData {
   cut_scores: Array<Record<string, unknown>>;
 }
 
-const SCORE_FIELDS = [
-  { key: 'redacao', label: 'Redação' },
-  { key: 'linguagens', label: 'Linguagens' },
-  { key: 'matematica', label: 'Matemática' },
-  { key: 'humanas', label: 'Ciências Humanas' },
-  { key: 'natureza', label: 'Ciências da Natureza' },
-] as const;
+type OfferDetailTab = 'years' | 'statistics' | 'nearby';
+
+const OFFER_DETAIL_TAB_ORDER: OfferDetailTab[] = ['years', 'statistics', 'nearby'];
+
+const OFFER_DETAIL_TAB_LABELS: Record<OfferDetailTab, string> = {
+  years: 'Informações por ano',
+  statistics: 'Estatísticas',
+  nearby: 'Ofertas próximas',
+};
 
 const WEIGHT_LABELS: Array<[keyof EnemWeights['pesos'], string]> = [
   ['redacao', 'Redação'],
@@ -325,6 +342,7 @@ function toCourseDetailData(data: CourseApiResponse): CourseData {
 export default function Home() {
   const {
     scores,
+    hasScores,
     setScores,
     clearScores,
     rememberScores,
@@ -335,6 +353,7 @@ export default function Home() {
   const [showRadar, setShowRadar] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [activeDetailTab, setActiveDetailTab] = useState<OfferDetailTab>('years');
   const [filterError, setFilterError] = useState('');
   const [detailsError, setDetailsError] = useState('');
   const [scoreError, setScoreError] = useState('');
@@ -380,6 +399,15 @@ export default function Home() {
   const [searchResults, setSearchResults] = useState<CourseSearchItem[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [catalogResults, setCatalogResults] = useState<CourseSearchItem[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState('');
+  const [catalogPage, setCatalogPage] = useState(1);
+  const [catalogHasNext, setCatalogHasNext] = useState(false);
+  const [catalogTotal, setCatalogTotal] = useState(0);
+  const [noticeVisible, setNoticeVisible] = useState(true);
+  const catalogMoreController = useRef<AbortController | null>(null);
+  const detailTabsId = useId();
 
   useEffect(() => {
     if (!showScoreInput) return;
@@ -393,6 +421,7 @@ export default function Home() {
   }, [scores, showScoreInput]);
 
   useEffect(() => {
+    catalogMoreController.current?.abort();
     const controller = new AbortController();
     setFilterError('');
 
@@ -576,6 +605,38 @@ export default function Home() {
   }, [searchQuery]);
 
   useEffect(() => {
+    const controller = new AbortController();
+    const params = new URLSearchParams({ limit: '30', page: '1' });
+    if (filters.state) params.set('state', filters.state);
+    if (filters.city) params.set('city', filters.city);
+    if (filters.institution) params.set('institution', filters.institution);
+
+    setCatalogLoading(true);
+    setCatalogError('');
+    setCatalogPage(1);
+    fetchJson<CourseSearchResponse>('/api/courses?' + params.toString(), controller.signal)
+      .then(response => {
+        setCatalogResults(response.courses);
+        setCatalogTotal(response.total);
+        setCatalogHasNext(response.pagination.hasNextPage);
+      })
+      .catch((error: Error) => {
+        if (error.name !== 'AbortError') {
+          setCatalogResults([]);
+          setCatalogError(error.message);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCatalogLoading(false);
+      });
+
+    return () => {
+      controller.abort();
+      catalogMoreController.current?.abort();
+    };
+  }, [filterReloadKey, filters.city, filters.institution, filters.state]);
+
+  useEffect(() => {
     if (!filters.course) {
       setCourseResponse(null);
       setCoursePreview(null);
@@ -584,6 +645,7 @@ export default function Home() {
       setDetailsError('');
       setModalityNotice('');
       setShowDetails(false);
+      setActiveDetailTab('years');
       return;
     }
 
@@ -596,6 +658,7 @@ export default function Home() {
     setModalityNotice('');
     setCoursePreview(null);
     setShowDetails(false);
+    setActiveDetailTab('years');
 
     fetchJson<CourseApiResponse>('/api/courses/' + selectedCourse.code, controller.signal)
       .then(data => {
@@ -682,14 +745,10 @@ export default function Home() {
     () => calculateWeightedScore(scores, coursePreview?.weights),
     [coursePreview?.weights, scores],
   );
-  const hasEnteredScores = Object.values(scores).some(score => score > 0);
-  const simpleAverage = hasEnteredScores
-    ? (scores.redacao + scores.linguagens + scores.matematica + scores.humanas + scores.natureza) / 5
-    : null;
-  const userAverage = scoreResult.average;
+  const userAverage = hasScores ? scoreResult.average : null;
   const comparisonAllowed = Boolean(
     coursePreview
-    && coursePreview.verification === 'verified'
+    && coursePreview.verification !== 'conflict'
     && userAverage !== null
     && scoreResult.minimums.status !== 'failed'
     && scoreResult.minimums.status !== 'not_evaluated',
@@ -701,6 +760,27 @@ export default function Home() {
     () => courseResponse ? toCourseDetailData(courseResponse) : null,
     [courseResponse],
   );
+  const latestCourseEdition = useMemo(() => {
+    if (!courseResponse?.references.length) return null;
+    return Math.max(...courseResponse.references.map(reference => reference.edition));
+  }, [courseResponse]);
+  const handleDetailTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const currentIndex = OFFER_DETAIL_TAB_ORDER.indexOf(activeDetailTab);
+    const nextIndex = event.key === 'Home'
+      ? 0
+      : event.key === 'End'
+        ? OFFER_DETAIL_TAB_ORDER.length - 1
+        : event.key === 'ArrowRight'
+          ? (currentIndex + 1) % OFFER_DETAIL_TAB_ORDER.length
+          : (currentIndex - 1 + OFFER_DETAIL_TAB_ORDER.length) % OFFER_DETAIL_TAB_ORDER.length;
+    const nextTab = OFFER_DETAIL_TAB_ORDER[nextIndex];
+    setActiveDetailTab(nextTab);
+    window.requestAnimationFrame(() => {
+      document.getElementById(`${detailTabsId}-tab-${nextTab}`)?.focus();
+    });
+  };
 
   const handleSaveScores = () => {
     const parsed = {
@@ -745,6 +825,18 @@ export default function Home() {
     setSearchQuery('');
     setSearchResults([]);
     setSelectedModality('');
+    window.history.replaceState(null, '', `/?courseCode=${result.code}`);
+    window.setTimeout(() => document.getElementById('results')?.scrollIntoView({ block: 'start' }), 0);
+  };
+
+  const selectCourseFromDropdown = (courseId: string) => {
+    setFilters(previous => ({ ...previous, course: courseId }));
+    setSearchQuery('');
+    setSearchResults([]);
+    setSelectedModality('');
+    const course = options.courses.find(option => String(option.id) === courseId);
+    window.history.replaceState(null, '', course ? `/?courseCode=${course.code}` : window.location.pathname);
+    window.setTimeout(() => document.getElementById('results')?.scrollIntoView({ block: 'start' }), 0);
   };
 
   const clearSelectedCourse = () => {
@@ -753,226 +845,94 @@ export default function Home() {
     setAvailableModalities([]);
     setSelectedModality('');
     setShowDetails(false);
+    setActiveDetailTab('years');
   };
 
+  const backToResults = () => {
+    setFilters(previous => ({ ...previous, course: '' }));
+    clearSelectedCourse();
+    window.history.replaceState(null, '', window.location.pathname);
+    window.setTimeout(() => document.getElementById('results')?.scrollIntoView({ block: 'start' }), 0);
+  };
+
+  const loadMoreCourses = async () => {
+    if (catalogLoading || !catalogHasNext) return;
+    catalogMoreController.current?.abort();
+    const controller = new AbortController();
+    catalogMoreController.current = controller;
+    const nextPage = catalogPage + 1;
+    const params = new URLSearchParams({ limit: '30', page: String(nextPage) });
+    if (filters.state) params.set('state', filters.state);
+    if (filters.city) params.set('city', filters.city);
+    if (filters.institution) params.set('institution', filters.institution);
+
+    setCatalogLoading(true);
+    setCatalogError('');
+    try {
+      const response = await fetchJson<CourseSearchResponse>(
+        '/api/courses?' + params.toString(),
+        controller.signal,
+      );
+      setCatalogResults(previous => {
+        const unique = new Map(previous.map(course => [course.id, course]));
+        for (const course of response.courses) unique.set(course.id, course);
+        return Array.from(unique.values());
+      });
+      setCatalogPage(nextPage);
+      setCatalogTotal(response.total);
+      setCatalogHasNext(response.pagination.hasNextPage);
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') setCatalogError(error.message);
+    } finally {
+      if (!controller.signal.aborted) setCatalogLoading(false);
+    }
+  };
+
+  const hasActiveSearch = searchQuery.trim().length >= 2;
+  const visibleCourses = hasActiveSearch ? searchResults : catalogResults;
+  const visibleCoursesLoading = hasActiveSearch ? searchLoading : catalogLoading;
+  const visibleCoursesError = hasActiveSearch ? searchError : catalogError;
+
   return (
-    <main className={styles.main}>
-      <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <div className={styles.logoContainer}>
-            <img src="/xtri-logo.png" alt="" className={styles.logoImage} />
-            <h1 className={styles.logo}>XTRI SISU</h1>
-          </div>
-          <a
-            className={styles.officialLink}
-            href="https://sisu.mec.gov.br/vagas"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Consultar SISU/MEC
-          </a>
-        </div>
-      </header>
+    <>
+      <XtriHeader onOpenScores={() => setShowScoreInput(true)} />
 
-      <section className={styles.hero} aria-labelledby="hero-title">
-        <h2 id="hero-title" className={styles.heroTitle}>
-          Referências do SISU
-          <span className={styles.heroHighlight}> com origem identificada</span>
-        </h2>
-        <p className={styles.heroSubtitle}>
-          Compare suas notas somente quando edição, modalidade, pesos e fonte puderem ser conferidos.
-          Classificações parciais não garantem seleção.
-        </p>
-      </section>
-
-      <section className={styles.statsBar} aria-label="Cobertura medida da base">
-        <div className={styles.statItem}>
-          <span className={styles.statNumber}>
-            {systemStats.totalCourses ? systemStats.totalCourses.toLocaleString('pt-BR') : '—'}
-          </span>
-          <span className={styles.statLabel}>Ofertas</span>
-        </div>
-        <div className={styles.statItem}>
-          <span className={styles.statNumber}>
-            {systemStats.totalUniversities ? systemStats.totalUniversities.toLocaleString('pt-BR') : '—'}
-          </span>
-          <span className={styles.statLabel}>Instituições</span>
-        </div>
-        <div className={styles.statItem}>
-          <span className={styles.statNumber}>{systemStats.totalStates || '—'}</span>
-          <span className={styles.statLabel}>UFs cobertas</span>
-        </div>
-        <div className={styles.statItem}>
-          <span className={styles.statNumber}>{simpleAverage === null ? '—' : formatScore(simpleAverage)}</span>
-          <span className={styles.statLabel}>Média simples</span>
-        </div>
-      </section>
-
-      {systemStats.missingStates.length > 0 && (
-        <p className={styles.coverageNote}>
-          UFs ainda ausentes da cobertura: {systemStats.missingStates.join(', ')}.
-        </p>
-      )}
-
-      {filterError && (
-        <div className={styles.globalError} role="alert">
-          <span>{filterError}</span>
-          <button type="button" onClick={() => setFilterReloadKey(value => value + 1)}>
-            Tentar novamente
-          </button>
-        </div>
-      )}
-
-      <div className={styles.content}>
-        <aside className={styles.sidebar} aria-label="Minhas notas">
-          <div className={styles.scoreCard}>
-            <div className={styles.scoreCardHeader}>
-              <h3>Suas notas do ENEM</h3>
-              {!showScoreInput && (
-                <button
-                  type="button"
-                  className={styles.editButton}
-                  onClick={() => setShowScoreInput(true)}
-                >
-                  Editar
-                </button>
-              )}
+      <main id="top" className={styles.main}>
+        {!courseResponse && (
+        <section className={styles.filtersSection} aria-labelledby="filters-title">
+          <div className={styles.shell}>
+            <div className={styles.filtersIntro}>
+              <p id="filters-title" className={styles.filtersTitle}>Filtre pelas suas preferências:</p>
+              <p>Insira uma universidade, lugar ou curso para ver os resultados correspondentes</p>
             </div>
 
-            {showScoreInput ? (
-              <div className={styles.scoreInputs}>
-                {SCORE_FIELDS.map(field => (
-                  <div className={styles.inputGroup} key={field.key}>
-                    <label htmlFor={'score-' + field.key}>{field.label}</label>
-                    <input
-                      id={'score-' + field.key}
-                      type="number"
-                      inputMode="decimal"
-                      min="0"
-                      max="1000"
-                      step="0.01"
-                      value={tempScores[field.key]}
-                      onChange={event => setTempScores(previous => ({
-                        ...previous,
-                        [field.key]: event.target.value,
-                      }))}
-                      placeholder="0 a 1000"
-                      aria-invalid={Boolean(scoreError)}
-                    />
-                  </div>
-                ))}
-                {scoreError && <p className={styles.scoreError} role="alert">{scoreError}</p>}
-                <button type="button" className={styles.saveButton} onClick={handleSaveScores}>
-                  Usar estas notas
-                </button>
-              </div>
-            ) : (
-              <div className={styles.scoreDisplay}>
-                {SCORE_FIELDS.map(field => (
-                  <div className={styles.scoreRow} key={field.key}>
-                    <span>{field.label}</span>
-                    <strong>{hasEnteredScores ? formatScore(scores[field.key]) : '—'}</strong>
-                  </div>
-                ))}
-                <div className={styles.scoreDivider} />
-                <div className={styles.scoreRow}>
-                  <span>Média simples</span>
-                  <strong className={styles.averageHighlight}>
-                    {simpleAverage === null ? '—' : formatScore(simpleAverage)}
-                  </strong>
-                </div>
-              </div>
-            )}
-
-            <label className={styles.rememberOption}>
-              <input
-                type="checkbox"
-                checked={rememberScores}
-                onChange={event => setRememberScores(event.target.checked)}
-              />
-              <span>Lembrar neste dispositivo por 30 dias</span>
-            </label>
-            <button
-              type="button"
-              className={styles.clearScoresButton}
-              onClick={() => {
-                clearScores();
-                setScoreError('');
-                setTempScores({
-                  redacao: '',
-                  linguagens: '',
-                  matematica: '',
-                  humanas: '',
-                  natureza: '',
-                });
-              }}
-            >
-              Limpar minhas notas
-            </button>
-            <p className={styles.privacyNote}>
-              Por padrão, as notas ficam somente na memória desta aba.
-            </p>
-          </div>
-        </aside>
-
-        <section className={styles.searchSection} aria-labelledby="course-search-title">
-          <div className={styles.searchCard}>
-            <h3 id="course-search-title">Encontre uma oferta</h3>
-
-            <div className={styles.primarySearch}>
-              <label htmlFor="main-course-search">Curso, instituição ou cidade</label>
-              <input
-                id="main-course-search"
-                type="search"
-                value={searchQuery}
-                onChange={event => setSearchQuery(event.target.value)}
-                placeholder="Ex.: Medicina, UFGD ou Dourados"
-                autoComplete="off"
-                aria-describedby="search-help"
-              />
-              <span id="search-help">Digite ao menos 2 caracteres.</span>
-              {searchLoading && <p className={styles.inlineStatus} role="status">Buscando...</p>}
-              {searchError && <p className={styles.inlineError} role="alert">{searchError}</p>}
-              {!searchLoading && searchQuery.trim().length >= 2 && !searchError && searchResults.length === 0 && (
-                <p className={styles.inlineStatus} role="status">Nenhuma oferta encontrada.</p>
-              )}
-              {searchResults.length > 0 && (
-                <ul className={styles.searchResults} aria-label="Resultados da busca">
-                  {searchResults.map(result => (
-                    <li key={result.id}>
-                      <button type="button" onClick={() => chooseSearchResult(result)}>
-                        <strong>{result.name}</strong>
-                        <span>
-                          {[result.university, result.city, result.state].filter(Boolean).join(' · ')}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <details className={styles.secondaryFilters}>
-              <summary>Filtrar por localização</summary>
-              <div className={styles.filterGrid}>
-                <div className={styles.filterGroup}>
-                  <label htmlFor="state-filter">UF</label>
+            <div className={styles.filterGrid}>
+              <div className={styles.filterField}>
+                <label className={styles.srOnly} htmlFor="state-filter">Estado</label>
+                <div className={styles.controlWrap}>
                   <select
                     id="state-filter"
+                    aria-label="Estado"
                     value={filters.state}
                     onChange={event => {
                       setFilters({ state: event.target.value, city: '', institution: '', course: '' });
+                      setSearchQuery('');
                       clearSelectedCourse();
                     }}
                   >
-                    <option value="">Selecione</option>
+                    <option value="">Estado</option>
                     {options.states.map(state => <option key={state} value={state}>{state}</option>)}
                   </select>
+                  <ChevronDown size={18} aria-hidden="true" />
                 </div>
-                <div className={styles.filterGroup}>
-                  <label htmlFor="city-filter">Cidade</label>
+              </div>
+
+              <div className={styles.filterField}>
+                <label className={styles.srOnly} htmlFor="city-filter">Cidade</label>
+                <div className={styles.controlWrap}>
                   <select
                     id="city-filter"
+                    aria-label="Cidade"
                     value={filters.city}
                     disabled={!filters.state}
                     onChange={event => {
@@ -982,17 +942,23 @@ export default function Home() {
                         institution: '',
                         course: '',
                       }));
+                      setSearchQuery('');
                       clearSelectedCourse();
                     }}
                   >
-                    <option value="">{loadingFilters.cities ? 'Carregando...' : 'Selecione'}</option>
+                    <option value="">{loadingFilters.cities ? 'Carregando...' : 'Cidade'}</option>
                     {options.cities.map(city => <option key={city} value={city}>{city}</option>)}
                   </select>
+                  <ChevronDown size={18} aria-hidden="true" />
                 </div>
-                <div className={styles.filterGroup}>
-                  <label htmlFor="institution-filter">Instituição</label>
+              </div>
+
+              <div className={styles.filterField}>
+                <label className={styles.srOnly} htmlFor="institution-filter">Instituição</label>
+                <div className={styles.controlWrap}>
                   <select
                     id="institution-filter"
+                    aria-label="Instituição"
                     value={filters.institution}
                     disabled={!filters.city}
                     onChange={event => {
@@ -1001,284 +967,580 @@ export default function Home() {
                         institution: event.target.value,
                         course: '',
                       }));
+                      setSearchQuery('');
                       clearSelectedCourse();
                     }}
                   >
-                    <option value="">{loadingFilters.institutions ? 'Carregando...' : 'Selecione'}</option>
+                    <option value="">{loadingFilters.institutions ? 'Carregando...' : 'Instituição'}</option>
                     {options.institutions.map(institution => (
                       <option key={institution} value={institution}>{institution}</option>
                     ))}
                   </select>
+                  <ChevronDown size={18} aria-hidden="true" />
                 </div>
-                <div className={styles.filterGroup}>
-                  <label htmlFor="course-filter">Oferta</label>
+              </div>
+
+              <div className={styles.filterField}>
+                <label className={styles.srOnly} htmlFor="course-filter">Curso</label>
+                <div className={styles.controlWrap}>
                   <select
                     id="course-filter"
+                    aria-label="Curso"
                     value={filters.course}
-                    disabled={!filters.institution}
-                    onChange={event => {
-                      setFilters(previous => ({ ...previous, course: event.target.value }));
-                      clearSelectedCourse();
-                    }}
+                    disabled={!filters.institution || loadingFilters.courses}
+                    onChange={event => selectCourseFromDropdown(event.target.value)}
                   >
-                    <option value="">{loadingFilters.courses ? 'Carregando...' : 'Selecione'}</option>
+                    <option value="">
+                      {loadingFilters.courses
+                        ? 'Carregando cursos...'
+                        : filters.institution && options.courses.length === 0
+                          ? 'Nenhum curso disponível'
+                          : 'Curso'}
+                    </option>
                     {options.courses.map(course => (
-                      <option key={course.id} value={course.id}>
-                        {course.name}
-                        {course.degree ? ' — ' + course.degree : ''}
-                        {course.schedule ? ' — ' + course.schedule : ''}
+                      <option key={course.id} value={String(course.id)}>
+                        {[course.name, course.degree, course.schedule].filter(Boolean).join(' · ')} ({course.code})
                       </option>
                     ))}
                   </select>
+                  <ChevronDown size={18} aria-hidden="true" />
                 </div>
+              </div>
+            </div>
+
+            <details className={styles.directSearch}>
+              <summary>Buscar diretamente por curso, instituição ou cidade</summary>
+              <div className={styles.courseSearchField}>
+                <label className={styles.srOnly} htmlFor="main-course-search">
+                  Curso, instituição ou cidade
+                </label>
+                <div className={styles.searchControl}>
+                  <input
+                    id="main-course-search"
+                    type="search"
+                    value={searchQuery}
+                    onChange={event => setSearchQuery(event.target.value)}
+                    placeholder="Digite ao menos 2 caracteres"
+                    autoComplete="off"
+                    aria-describedby="search-help"
+                    aria-expanded={searchResults.length > 0}
+                  />
+                </div>
+                <span id="search-help" className={styles.srOnly}>
+                  Busca livre em cursos, instituições e cidades de toda a cobertura.
+                </span>
+
+                {hasActiveSearch && (
+                  <div className={styles.searchPopover}>
+                    {searchLoading && <p className={styles.inlineStatus} role="status">Buscando...</p>}
+                    {searchError && <p className={styles.inlineError} role="alert">{searchError}</p>}
+                    {!searchLoading && !searchError && searchResults.length === 0 && (
+                      <p className={styles.inlineStatus} role="status">Nenhuma oferta encontrada.</p>
+                    )}
+                    {searchResults.length > 0 && (
+                      <ul className={styles.searchResults} aria-label="Resultados da busca">
+                        {searchResults.map(result => (
+                          <li key={result.id}>
+                            <button type="button" onClick={() => chooseSearchResult(result)}>
+                              <strong>{result.name}</strong>
+                              <span>{[result.university, result.city, result.state].filter(Boolean).join(' · ')}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
               </div>
             </details>
 
-            {courseResponse && (
-              <div className={styles.modalitySection}>
-                <div className={styles.filterGroup}>
-                  <label htmlFor="modality-filter">Modalidade oficial com referência nesta edição</label>
-                  <select
-                    id="modality-filter"
-                    value={selectedModality}
-                    onChange={event => setSelectedModality(event.target.value)}
-                  >
-                    <option value="">Confirme sua modalidade</option>
-                    {availableModalities.map(modality => (
-                      <option key={modality.id} value={modality.id}>{modality.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <details className={styles.modalityAssistant}>
-                  <summary>Como confirmar minha modalidade?</summary>
-                  <p>
-                    Confira escola pública, renda de até 1 salário mínimo per capita, pertencimento
-                    étnico-racial, condição de pessoa com deficiência e critérios específicos da instituição.
-                    Este assistente não decide por você.
-                  </p>
-                  <a
-                    href="https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/lei/l14723.htm"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Ver critérios da Lei 14.723/2023
-                  </a>
-                </details>
-              </div>
-            )}
+            <div className={styles.modalityIntro}>
+              <p className={styles.modalityTitle}>Veja dados para sua modalidade:</p>
+              <p>Insira suas notas e confirme a modalidade oficial para ver as melhores referências para você</p>
+            </div>
 
-            {loadingFilters.details && (
-              <div className={styles.loadingPreview} role="status" aria-live="polite">
-                <div className={styles.spinner} aria-hidden="true" />
-                <p>Carregando a oferta e suas referências...</p>
-              </div>
-            )}
-
-            {detailsError && (
-              <div className={styles.errorState} role="alert">
-                <p>{detailsError}</p>
-                <button type="button" onClick={() => setDetailsReloadKey(value => value + 1)}>
-                  Tentar novamente
-                </button>
-              </div>
-            )}
-
-            {!loadingFilters.details && courseResponse && !selectedModality && !modalityNotice && (
-              <div className={styles.emptyState} role="status">
-                Confirme uma das modalidades oficiais disponíveis para ver a referência correspondente.
-              </div>
-            )}
-
-            {modalityNotice && <div className={styles.emptyState} role="status">{modalityNotice}</div>}
-
-            {coursePreview && !loadingFilters.details && (
-              <article className={styles.coursePreview}>
-                <div className={styles.previewHeader}>
-                  <div>
-                    <h4>{coursePreview.name}</h4>
-                    <p>{coursePreview.university}</p>
-                  </div>
-                  <span className={styles.previewDegree}>{coursePreview.degree}</span>
-                </div>
-
-                <div className={styles.previewInfo}>
-                  <span>{[coursePreview.campus, coursePreview.city, coursePreview.state].filter(Boolean).join(' · ')}</span>
-                  <span>Turno: {coursePreview.schedule}</span>
-                  {coursePreview.highest_weight && (
-                    <span>Maior peso em {coursePreview.weights_year}: {coursePreview.highest_weight}</span>
-                  )}
-                </div>
-
-                <section className={styles.resultSection} aria-labelledby="result-title">
-                  <h5 id="result-title">Resumo da comparação</h5>
-                  <div className={styles.resultGrid}>
-                    <div>
-                      <span>Sua nota ponderada</span>
-                      <strong>{userAverage === null ? 'Indisponível' : formatScore(userAverage)}</strong>
-                      <small>
-                        {coursePreview.weights_year
-                          ? 'Pesos da edição ' + coursePreview.weights_year
-                          : 'Pesos da mesma edição não disponíveis'}
-                      </small>
-                    </div>
-                    <div>
-                      <span>Última referência</span>
-                      <strong>{formatScore(coursePreview.cut_score)}</strong>
-                      <small>{coursePreview.cut_score_type} · edição {coursePreview.cut_score_year}</small>
-                    </div>
-                    <div>
-                      <span>Margem verificável</span>
-                      <strong>{margin === null ? 'Suspensa' : (margin > 0 ? '+' : '') + formatScore(margin)}</strong>
-                      <small>
-                        {margin === null
-                          ? 'Liberada somente após conferência oficial'
-                          : margin >= 0 ? 'pontos acima da referência' : 'pontos abaixo da referência'}
-                      </small>
-                    </div>
-                  </div>
-                  {comparisonAllowed && userAverage !== null && (
-                    <ProbabilityGauge userScore={userAverage} cutScore={coursePreview.cut_score} />
-                  )}
-                  {!comparisonAllowed && (
-                    <p className={styles.comparisonBlocked}>
-                      Nenhum veredito foi produzido: esta referência ainda não está verificada, os pesos estão
-                      indisponíveis ou algum requisito mínimo não pôde ser confirmado.
-                    </p>
-                  )}
-                </section>
-
-                <section className={styles.requirementsSection} aria-labelledby="requirements-title">
-                  <h5 id="requirements-title">Requisitos mínimos da edição</h5>
-                  {coursePreview.minimums && Object.values(coursePreview.minimums).some(value => value !== null) ? (
-                    <dl className={styles.minimumsGrid}>
-                      {[
-                        ['Redação', coursePreview.minimums.redacao],
-                        ['Linguagens', coursePreview.minimums.linguagens],
-                        ['Matemática', coursePreview.minimums.matematica],
-                        ['Humanas', coursePreview.minimums.humanas],
-                        ['Natureza', coursePreview.minimums.natureza],
-                        ['Média ENEM', coursePreview.minimums.enem],
-                      ].map(([label, value]) => (
-                        <div key={String(label)}>
-                          <dt>{label}</dt>
-                          <dd>{typeof value === 'number' ? formatScore(value) : 'Não exigido'}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  ) : (
-                    <p className={styles.sectionEmpty}>Mínimos da mesma edição não informados.</p>
-                  )}
-                  {scoreResult.minimums.status === 'failed' && (
-                    <p className={styles.minimumWarning} role="alert">
-                      Uma ou mais notas estão abaixo do mínimo informado. A margem permanece suspensa.
-                    </p>
-                  )}
-                </section>
-
-                <section className={styles.trendSection} aria-labelledby="trend-title">
-                  <h5 id="trend-title">Tendência e parciais</h5>
-                  {coursePreview.activeData.partial_scores.length > 0 ? (
-                    <>
-                      <p className={styles.trendSummary}>{getDailyTrend(coursePreview.activeData)}</p>
-                      <div className={styles.dailyCutsList}>
-                        {coursePreview.activeData.partial_scores.map(partial => (
-                          <div key={partial.day} className={styles.dailyCutRow}>
-                            <span className={styles.dailyCutDay}>Dia {partial.day}</span>
-                            <strong className={styles.dailyCutScore}>{formatScore(partial.score)}</strong>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <p className={styles.sectionEmpty}>Não há sequência de parciais para esta referência.</p>
-                  )}
-                </section>
-
-                <DataTrustPanel
-                  status={coursePreview.reference.verification.status}
-                  edition={coursePreview.reference.edition}
-                  modalityName={coursePreview.reference.modalityOfficialName}
-                  referenceType={coursePreview.reference.referenceType}
-                  capturedAt={coursePreview.reference.capturedAt}
-                  checkedAt={coursePreview.reference.verification.checkedAt}
-                  sourceUrl={coursePreview.reference.sourceUrl}
-                  intermediary={coursePreview.reference.intermediary}
-                />
-
-                <div className={styles.actionButtons}>
-                  <button
-                    type="button"
-                    className={styles.compareButton}
-                    disabled={!comparisonAllowed}
-                    onClick={() => setShowRadar(true)}
-                  >
-                    Radar de ofertas
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.shareButton}
-                    disabled={!comparisonAllowed}
-                    onClick={() => setShowShare(true)}
-                  >
-                    Compartilhar comparação
-                  </button>
-                </div>
-                {!comparisonAllowed && (
-                  <p className={styles.actionHint}>
-                    Radar e compartilhamento ficam indisponíveis enquanto a referência não estiver verificada.
-                  </p>
-                )}
-
-                <button
-                  type="button"
-                  className={styles.viewButton}
-                  onClick={() => {
-                    setShowDetails(true);
-                    window.setTimeout(() => {
-                      document.getElementById('course-details')?.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start',
-                      });
-                    }, 50);
-                  }}
+            <div className={styles.modalityControl}>
+              <label className={styles.srOnly} htmlFor="modality-filter">
+                Modalidade oficial com referência nesta edição
+              </label>
+              <div className={styles.controlWrap}>
+                <select
+                  id="modality-filter"
+                  aria-label="Modalidade oficial com referência nesta edição"
+                  value={selectedModality}
+                  disabled={!courseResponse || availableModalities.length === 0}
+                  onChange={event => setSelectedModality(event.target.value)}
                 >
-                  Ver detalhes da oferta
-                </button>
-              </article>
+                  <option value="">
+                    {courseResponse ? 'Modalidade' : 'Selecione uma oferta antes da modalidade'}
+                  </option>
+                  {availableModalities.map(modality => (
+                    <option key={modality.id} value={modality.id}>{modality.name}</option>
+                  ))}
+                </select>
+                <ChevronDown size={18} aria-hidden="true" />
+              </div>
+            </div>
+
+            {courseResponse && (
+              <details className={styles.modalityAssistant}>
+                <summary>Como confirmar minha modalidade?</summary>
+                <p>
+                  Confira escola pública, renda de até 1 salário mínimo per capita, pertencimento
+                  étnico-racial, condição de pessoa com deficiência e critérios específicos da instituição.
+                  O sistema nunca decide ou substitui a modalidade por você.
+                </p>
+                <a
+                  href="https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/lei/l14723.htm"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Ver critérios oficiais
+                </a>
+              </details>
             )}
           </div>
         </section>
-      </div>
+        )}
 
-      {showDetails && detailCourse && (
-        <section id="course-details" className={styles.inlineDetails} aria-labelledby="details-title">
-          <div className={styles.inlineDetailsHeader}>
-            <h2 id="details-title">Detalhes da oferta</h2>
-            <button type="button" className={styles.closeButton} onClick={() => setShowDetails(false)}>
-              Fechar
+        {!courseResponse && filterError && (
+          <div className={styles.globalError} role="alert">
+            <span>{filterError}</span>
+            <button type="button" onClick={() => setFilterReloadKey(value => value + 1)}>
+              <RefreshCw size={16} aria-hidden="true" />
+              Tentar novamente
             </button>
           </div>
-          <CourseDetailView course={detailCourse} />
-        </section>
-      )}
+        )}
 
-      <footer className={styles.footer}>
-        <p className={styles.disclaimer}>
-          As referências são capturadas por meio do MeuSISU/CloudFront e identificadas individualmente com
-          edição, modalidade e horário. Dados parciais não garantem seleção. Confirme sempre no{' '}
-          <a href="https://sisu.mec.gov.br/vagas" target="_blank" rel="noopener noreferrer">
-            portal oficial do SISU/MEC
-          </a>.
-        </p>
-        <div className={styles.contacts}>
-          <a href="https://instagram.com/xandaoxtri" target="_blank" rel="noopener noreferrer">
-            @xandaoxtri
-          </a>
-          <span className={styles.contactDivider}>•</span>
-          <a href="mailto:contato@xtri.online">contato@xtri.online</a>
-        </div>
-        <p>© {new Date().getFullYear()} XTRI SISU — referências para acompanhamento</p>
-      </footer>
+        {!courseResponse && noticeVisible && (
+          <section className={styles.noticeArea}>
+            <div className={styles.shell}>
+              <div className={styles.trustNotice}>
+                <button
+                  type="button"
+                  className={styles.noticeClose}
+                  aria-label="Dispensar aviso"
+                  onClick={() => setNoticeVisible(false)}
+                >
+                  <X size={18} aria-hidden="true" />
+                </button>
+                <p className={styles.noticeTitle}>Importante!</p>
+                <p>
+                  As referências exibidas identificam edição, modalidade, captura, intermediário e status
+                  de verificação. Dados parciais não garantem seleção; confirme sempre no portal oficial.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section id="results" className={styles.resultsSection} aria-labelledby="results-title">
+          <div className={styles.shell}>
+            {courseResponse ? (
+              <div className={styles.selectedView}>
+                <div className={styles.selectedTopbar}>
+                  <button type="button" className={styles.backButton} onClick={backToResults}>
+                    Voltar aos resultados
+                  </button>
+                  <span>Código SISU {courseResponse.course.code}</span>
+                </div>
+
+                <div className={styles.selectedHeading}>
+                  <h2>{courseResponse.course.name}</h2>
+                  <p>{courseResponse.course.degree || 'Grau não informado'}</p>
+                  <div>
+                    <span><Building2 size={18} aria-hidden="true" />{[courseResponse.course.university, courseResponse.course.campus].filter(Boolean).join(' | ')}</span>
+                    <span><MapPinned size={18} aria-hidden="true" />{[courseResponse.course.city, courseResponse.course.state].filter(Boolean).join(', ')}</span>
+                    <span><Clock3 size={18} aria-hidden="true" />{courseResponse.course.schedule || 'Turno não informado'}</span>
+                  </div>
+                </div>
+
+                <div className={styles.detailTabs} role="tablist" aria-label="Seções da oferta">
+                  {OFFER_DETAIL_TAB_ORDER.map(tab => (
+                    <button
+                      key={tab}
+                      id={`${detailTabsId}-tab-${tab}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeDetailTab === tab}
+                      aria-controls={`${detailTabsId}-panel-${tab}`}
+                      tabIndex={activeDetailTab === tab ? 0 : -1}
+                      className={activeDetailTab === tab ? styles.activeDetailTab : undefined}
+                      onClick={() => setActiveDetailTab(tab)}
+                      onKeyDown={handleDetailTabKeyDown}
+                    >
+                      {OFFER_DETAIL_TAB_LABELS[tab]}
+                    </button>
+                  ))}
+                </div>
+
+                {loadingFilters.details && (
+                  <div className={styles.catalogState} role="status" aria-live="polite">
+                    <span className={styles.spinner} aria-hidden="true" />
+                    Carregando a oferta e suas referências...
+                  </div>
+                )}
+
+                {detailsError && (
+                  <div className={styles.errorState} role="alert">
+                    <p>{detailsError}</p>
+                    <button type="button" onClick={() => setDetailsReloadKey(value => value + 1)}>
+                      Tentar novamente
+                    </button>
+                  </div>
+                )}
+
+                {!loadingFilters.details && !detailsError && activeDetailTab !== 'statistics' && (
+                  <>
+                    <div className={styles.detailNotice}>
+                      <AlertTriangle size={17} aria-hidden="true" />
+                      Pesos, mínimos e referências podem mudar entre edições. Confira os indicadores de origem e verificação.
+                    </div>
+
+                    <div id="year-info" className={styles.editionBar}>
+                      {latestCourseEdition || 'Edição não informada'} (Única - 1ª)
+                    </div>
+
+                    <div className={styles.selectedModalityControl}>
+                      <label htmlFor="selected-modality-filter">Modalidade:</label>
+                      <div className={styles.controlWrap}>
+                        <select
+                          id="selected-modality-filter"
+                          aria-label="Modalidade oficial com referência nesta edição"
+                          value={selectedModality}
+                          disabled={availableModalities.length === 0}
+                          onChange={event => setSelectedModality(event.target.value)}
+                        >
+                          <option value="">Modalidade</option>
+                          {availableModalities.map(modality => (
+                            <option key={modality.id} value={modality.id}>{modality.name}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={18} aria-hidden="true" />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {!loadingFilters.details && activeDetailTab !== 'statistics' && !selectedModality && !modalityNotice && (
+                  <div className={styles.selectionPrompt} role="status">
+                    Selecione acima uma modalidade oficial desta oferta. Nenhum valor de Ampla será usado
+                    como substituto.
+                  </div>
+                )}
+
+                {modalityNotice && <div className={styles.selectionPrompt} role="status">{modalityNotice}</div>}
+
+                {!loadingFilters.details && !detailsError && activeDetailTab === 'years' && (
+                  <section
+                    id={`${detailTabsId}-panel-years`}
+                    role="tabpanel"
+                    aria-labelledby={`${detailTabsId}-tab-years`}
+                    className={styles.detailTabPanel}
+                  >
+                    {coursePreview ? (
+                      <>
+                        <section className={styles.comparisonCard} aria-labelledby="result-title">
+                          <h3 id="result-title">Resumo da comparação</h3>
+                          <div className={styles.resultGrid}>
+                            <div>
+                              <span>Sua nota ponderada</span>
+                              <strong>{userAverage === null ? 'Indisponível' : formatScore(userAverage)}</strong>
+                              <small>
+                                {coursePreview.weights_year
+                                  ? 'Pesos da edição ' + coursePreview.weights_year
+                                  : 'Pesos da mesma edição não disponíveis'}
+                              </small>
+                            </div>
+                            <div>
+                              <span>Última referência</span>
+                              <strong>{formatScore(coursePreview.cut_score)}</strong>
+                              <small>{coursePreview.cut_score_type} · edição {coursePreview.cut_score_year}</small>
+                            </div>
+                            <div>
+                              <span>Diferença para a referência</span>
+                              <strong>
+                                {margin === null ? 'Indisponível' : (margin > 0 ? '+' : '') + formatScore(margin)}
+                              </strong>
+                              <small>
+                                {margin === null
+                                  ? 'Preencha notas válidas e atenda aos mínimos para comparar'
+                                  : margin >= 0 ? 'pontos acima da referência' : 'pontos abaixo da referência'}
+                              </small>
+                            </div>
+                          </div>
+                          {comparisonAllowed && userAverage !== null && (
+                            <ProbabilityGauge userScore={userAverage} cutScore={coursePreview.cut_score} />
+                          )}
+                          {!comparisonAllowed && (
+                            <p className={styles.comparisonBlocked}>
+                              A nota de corte está disponível. Para calcular sua diferença, informe todas as notas,
+                              use os pesos da mesma edição e atenda às notas mínimas publicadas.
+                            </p>
+                          )}
+                        </section>
+
+                        <div className={styles.detailColumns}>
+                          <section className={styles.infoCard} aria-labelledby="requirements-title">
+                            <h3 id="requirements-title">Pesos e notas mínimas</h3>
+                            {coursePreview.minimums && Object.values(coursePreview.minimums).some(value => value !== null) ? (
+                              <dl className={styles.minimumsGrid}>
+                                {[
+                                  ['Redação', coursePreview.minimums.redacao],
+                                  ['Linguagens', coursePreview.minimums.linguagens],
+                                  ['Matemática', coursePreview.minimums.matematica],
+                                  ['Humanas', coursePreview.minimums.humanas],
+                                  ['Natureza', coursePreview.minimums.natureza],
+                                  ['Média ENEM', coursePreview.minimums.enem],
+                                ].map(([label, value]) => (
+                                  <div key={String(label)}>
+                                    <dt>{label}</dt>
+                                    <dd>{typeof value === 'number' ? formatScore(value) : 'Não exigido'}</dd>
+                                  </div>
+                                ))}
+                              </dl>
+                            ) : (
+                              <p className={styles.sectionEmpty}>Mínimos da mesma edição não informados.</p>
+                            )}
+                            {scoreResult.minimums.status === 'failed' && (
+                              <p className={styles.minimumWarning} role="alert">
+                                Uma ou mais notas estão abaixo do mínimo informado. A margem permanece suspensa.
+                              </p>
+                            )}
+                          </section>
+
+                          <section className={styles.infoCard} aria-labelledby="trend-title">
+                            <h3 id="trend-title">Notas parciais</h3>
+                            {coursePreview.activeData.partial_scores.length > 0 ? (
+                              <>
+                                <p className={styles.trendSummary}>{getDailyTrend(coursePreview.activeData)}</p>
+                                <div className={styles.partialGrid}>
+                                  {coursePreview.activeData.partial_scores.map(partial => (
+                                    <span key={partial.day}>
+                                      {partial.day}º dia: <strong>{formatScore(partial.score)}</strong>
+                                    </span>
+                                  ))}
+                                </div>
+                              </>
+                            ) : (
+                              <p className={styles.sectionEmpty}>Não há sequência de parciais para esta referência.</p>
+                            )}
+                          </section>
+                        </div>
+
+                        <DataTrustPanel
+                          status={coursePreview.reference.verification.status}
+                          edition={coursePreview.reference.edition}
+                          modalityName={coursePreview.reference.modalityOfficialName}
+                          referenceType={coursePreview.reference.referenceType}
+                          capturedAt={coursePreview.reference.capturedAt}
+                          checkedAt={coursePreview.reference.verification.checkedAt}
+                          sourceUrl={coursePreview.reference.sourceUrl}
+                          intermediary={coursePreview.reference.intermediary}
+                        />
+
+                        <div className={styles.actionButtons}>
+                          <button
+                            type="button"
+                            className={styles.primaryAction}
+                            disabled={!comparisonAllowed}
+                            onClick={() => setShowRadar(true)}
+                          >
+                            Radar de ofertas
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.secondaryAction}
+                            disabled={!comparisonAllowed}
+                            onClick={() => setShowShare(true)}
+                          >
+                            Compartilhar comparação
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.textAction}
+                            onClick={() => setShowDetails(value => !value)}
+                          >
+                            {showDetails ? 'Ocultar informações por ano' : 'Ver informações por ano'}
+                          </button>
+                        </div>
+
+                        {showDetails && detailCourse && (
+                          <div className={styles.expandedDetails}>
+                            <CourseDetailView course={detailCourse} />
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className={styles.tabEmptyState} role="status">
+                        Selecione uma modalidade oficial para ver a comparação, os pesos e a proveniência.
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                {!loadingFilters.details && !detailsError && activeDetailTab === 'statistics' && (
+                  <section
+                    id={`${detailTabsId}-panel-statistics`}
+                    role="tabpanel"
+                    aria-labelledby={`${detailTabsId}-tab-statistics`}
+                    className={styles.detailTabPanel}
+                  >
+                    {courseResponse ? (
+                      <CourseStatisticsPanel
+                        courseCode={courseResponse.course.code}
+                        selectedModality={selectedModality}
+                        availableModalities={availableModalities}
+                        onModalityChange={setSelectedModality}
+                      />
+                    ) : (
+                      <div className={styles.tabEmptyState} role="status">
+                        Selecione uma modalidade oficial para ver estatísticas da mesma referência.
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                {!loadingFilters.details && !detailsError && activeDetailTab === 'nearby' && (
+                  <section
+                    id={`${detailTabsId}-panel-nearby`}
+                    role="tabpanel"
+                    aria-labelledby={`${detailTabsId}-tab-nearby`}
+                    className={styles.detailTabPanel}
+                  >
+                    {coursePreview ? (
+                      <NearbyOffersPanel
+                        comparisonEnabled={comparisonAllowed}
+                        courseName={coursePreview.name}
+                        referenceCourseId={coursePreview.id}
+                        modalityName={coursePreview.reference.modalityOfficialName}
+                        referenceCity={coursePreview.city}
+                        referenceState={coursePreview.state}
+                        onOpenFullRadar={() => setShowRadar(true)}
+                      />
+                    ) : (
+                      <div className={styles.tabEmptyState} role="status">
+                        Selecione uma modalidade oficial para buscar outras ofertas do mesmo curso.
+                      </div>
+                    )}
+                  </section>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className={styles.resultsHeader}>
+                  <div>
+                    <h2 id="results-title">Resultados</h2>
+                    <p role="region" aria-label="Cobertura medida da base">
+                      {hasActiveSearch
+                        ? 'Ofertas correspondentes à sua busca'
+                        : systemStats.totalCourses > 0
+                          ? [
+                              `${systemStats.totalCourses.toLocaleString('pt-BR')} ofertas`,
+                              `${systemStats.totalUniversities.toLocaleString('pt-BR')} instituições`,
+                              `${systemStats.totalStates} UFs`,
+                              systemStats.missingStates.length > 0
+                                ? `faltam ${systemStats.missingStates.join(', ')}`
+                                : null,
+                            ].filter(Boolean).join(' · ')
+                          : catalogTotal > 0
+                            ? catalogTotal.toLocaleString('pt-BR') + ' ofertas na cobertura atual'
+                            : 'Carregando a cobertura medida da base…'}
+                    </p>
+                  </div>
+                  <a href="https://sisu.mec.gov.br/vagas" target="_blank" rel="noopener noreferrer">
+                    <ShieldCheck size={17} aria-hidden="true" />
+                    Fonte oficial
+                  </a>
+                </div>
+
+                {visibleCoursesError && (
+                  <div className={styles.errorState} role="alert">
+                    <p>{visibleCoursesError}</p>
+                    <button type="button" onClick={() => setFilterReloadKey(value => value + 1)}>
+                      Tentar novamente
+                    </button>
+                  </div>
+                )}
+
+                {visibleCoursesLoading && visibleCourses.length === 0 && (
+                  <div className={styles.catalogState} role="status">
+                    <span className={styles.spinner} aria-hidden="true" />
+                    Carregando ofertas...
+                  </div>
+                )}
+
+                {!visibleCoursesLoading && !visibleCoursesError && visibleCourses.length === 0 && (
+                  <div className={styles.emptyCatalog} role="status">
+                    <AlertTriangle size={22} aria-hidden="true" />
+                    Nenhuma oferta encontrada para estes filtros.
+                  </div>
+                )}
+
+                {visibleCourses.length > 0 && (
+                  <div className={styles.resultsGrid}>
+                    {visibleCourses.map(course => (
+                      <CourseResultCard key={course.id} course={course} onSelect={chooseSearchResult} />
+                    ))}
+                  </div>
+                )}
+
+                {!hasActiveSearch && catalogHasNext && (
+                  <button
+                    type="button"
+                    className={styles.loadMore}
+                    disabled={catalogLoading}
+                    onClick={loadMoreCourses}
+                  >
+                    {catalogLoading ? 'Carregando...' : 'Ver mais'}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        </section>
+
+        <footer id="about" className={styles.footer}>
+          <div className={styles.shell}>
+            <p>
+              O XTRI SISU organiza referências para acompanhamento. Classificações parciais não garantem
+              seleção e nenhuma modalidade é escolhida automaticamente.
+            </p>
+            <div>
+              <a href="https://sisu.mec.gov.br/vagas" target="_blank" rel="noopener noreferrer">SISU/MEC</a>
+              <a href="mailto:contato@xtri.online">contato@xtri.online</a>
+              <a href="https://instagram.com/xandaoxtri" target="_blank" rel="noopener noreferrer">@xandaoxtri</a>
+            </div>
+          </div>
+        </footer>
+      </main>
+
+      <ScoreModal
+        isOpen={showScoreInput}
+        edition={systemStats.latestEdition}
+        values={tempScores}
+        error={scoreError}
+        rememberScores={rememberScores}
+        onChange={setTempScores}
+        onRememberChange={setRememberScores}
+        onClear={() => {
+          clearScores();
+          setScoreError('');
+          setTempScores({
+            redacao: '',
+            linguagens: '',
+            matematica: '',
+            humanas: '',
+            natureza: '',
+          });
+        }}
+        onClose={() => {
+          setScoreError('');
+          setShowScoreInput(false);
+        }}
+        onSave={handleSaveScores}
+      />
 
       {coursePreview && comparisonAllowed && (
         <ApprovalRadarModal
@@ -1299,6 +1561,6 @@ export default function Home() {
           userScore={userAverage}
         />
       )}
-    </main>
+    </>
   );
 }

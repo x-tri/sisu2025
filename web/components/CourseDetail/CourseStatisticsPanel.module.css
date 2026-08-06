@@ -1,0 +1,298 @@
+.panel {
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.modalityControl {
+    display: grid;
+    gap: 0.5rem;
+    max-width: none;
+}
+
+.modalityControl label {
+    color: #2c2e30;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.modalityControl > div {
+    background: #fff;
+    border: 1px solid #dadada;
+    border-radius: 0.5rem;
+    position: relative;
+}
+
+.modalityControl select {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: #2c2e30;
+    font: inherit;
+    min-height: 2.5rem;
+    outline: 0;
+    padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+    width: 100%;
+}
+
+.modalityControl > div::after {
+    border-bottom: 1.5px solid #4a4949;
+    border-right: 1.5px solid #4a4949;
+    content: '';
+    height: 0.45rem;
+    pointer-events: none;
+    position: absolute;
+    right: 0.9rem;
+    top: 0.85rem;
+    transform: rotate(45deg);
+    width: 0.45rem;
+}
+
+.modalityControl > div:focus-within {
+    border-color: #435eff;
+    box-shadow: 0 0 0 2px rgb(67 94 255 / 0.2);
+}
+
+.chartCard,
+.summarySection {
+    background: #fff;
+    border: 1px solid #dadada;
+    border-radius: 0.5rem;
+    min-width: 0;
+    padding: 1.5rem;
+}
+
+.chartCard h3,
+.summarySection h3 {
+    color: #2c2e30;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.45;
+    margin: 0 0 1rem;
+}
+
+.chartViewport,
+.chartScroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+}
+
+.chartViewport::-webkit-scrollbar,
+.chartScroll::-webkit-scrollbar {
+    display: none;
+}
+
+.partialChart {
+    height: 14.625rem;
+    min-width: 20rem;
+    width: 100%;
+}
+
+.wideChart {
+    height: 14.625rem;
+    min-width: 45rem;
+    width: 100%;
+}
+
+.cutoffChart {
+    height: 14.625rem;
+    min-width: 44rem;
+    width: 100%;
+}
+
+.chartNote,
+.provenance,
+.emptyChart {
+    color: #64748b;
+    font-size: 0.75rem;
+    line-height: 1.55;
+    margin: 0.85rem 0 0;
+}
+
+.emptyChart {
+    display: grid;
+    min-height: 9rem;
+    place-items: center;
+    text-align: center;
+}
+
+.summaryHeading {
+    align-items: flex-start;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+}
+
+.summaryHeading h3 {
+    margin-bottom: 0;
+}
+
+.summaryHeading p {
+    color: #64748b;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    margin: 0;
+}
+
+.summaryGrid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 1rem 0 0;
+}
+
+.summaryGrid > div {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    min-width: 0;
+    padding: 0.75rem;
+}
+
+.summaryGrid dt {
+    color: #64748b;
+    font-size: 0.68rem;
+    line-height: 1.35;
+}
+
+.summaryGrid dd {
+    color: #202124;
+    font-size: 1rem;
+    font-weight: 800;
+    margin: 0.25rem 0 0;
+    overflow-wrap: anywhere;
+}
+
+.provenance {
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 0.5rem;
+    color: #3730a3;
+    padding: 0.7rem;
+}
+
+.loadingState,
+.errorState,
+.emptySelection {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #dadada;
+    border-radius: 0.5rem;
+    display: flex;
+    gap: 0.75rem;
+    min-height: 10rem;
+    padding: 1rem;
+}
+
+.loadingState {
+    color: #4a4949;
+    justify-content: center;
+}
+
+.emptySelection {
+    color: #4a4949;
+    justify-content: center;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.spinner {
+    animation: spin 800ms linear infinite;
+    border: 3px solid #d1d5db;
+    border-radius: 50%;
+    border-top-color: #435eff;
+    height: 1.25rem;
+    width: 1.25rem;
+}
+
+.errorState {
+    color: #991b1b;
+    justify-content: space-between;
+}
+
+.errorState h3 {
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.errorState p {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    margin: 0.25rem 0 0;
+}
+
+.errorState button {
+    background: #fff;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    color: inherit;
+    flex: 0 0 auto;
+    font-weight: 600;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.85rem;
+}
+
+.srOnly {
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 767px) {
+    .partialChart :global(.recharts-label-list) {
+        display: none;
+    }
+
+    .partialChart,
+    .wideChart,
+    .cutoffChart {
+        height: 11.5rem;
+    }
+
+    .chartCard,
+    .summarySection {
+        padding: 1rem;
+    }
+
+    .modalityControl {
+        max-width: none;
+    }
+
+    .summaryHeading {
+        display: grid;
+        gap: 0.35rem;
+    }
+
+    .summaryGrid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 359px) {
+    .summaryGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .chartCard,
+    .summarySection {
+        padding: 0.85rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spinner {
+        animation: none;
+    }
+}

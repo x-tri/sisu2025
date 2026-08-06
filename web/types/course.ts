@@ -73,6 +73,9 @@ export interface CourseSearchItem {
   state: string | null
   degree: string | null
   schedule: string | null
+  universityAcronym?: string | null
+  weightSummary?: string | null
+  reference?: CourseReference | null
 }
 
 export interface PaginationMetadata {

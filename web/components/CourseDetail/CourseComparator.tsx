@@ -195,7 +195,7 @@ export default function CourseComparator({ baseCourse, userScore, isOpen, onClos
                                             </span>
                                         </div>
 
-                                        {userScore > 0 && baseDetails.cut_score !== null && baseDetails.verification === 'verified' && (
+                                        {userScore > 0 && baseDetails.cut_score !== null && baseDetails.verification !== 'conflict' && (
                                             <div className={`${styles.metricRow} ${styles.userScoreRow}`}>
                                                 <span className={styles.metricLabel}>Margem para a referência</span>
                                                 <span className={`${styles.metricValue} ${userScore >= baseDetails.cut_score ? styles.passing : styles.failing}`}>
@@ -246,7 +246,7 @@ export default function CourseComparator({ baseCourse, userScore, isOpen, onClos
                                             </span>
                                         </div>
 
-                                        {userScore > 0 && compDetails.cut_score !== null && compDetails.verification === 'verified' && (
+                                        {userScore > 0 && compDetails.cut_score !== null && compDetails.verification !== 'conflict' && (
                                             <div className={`${styles.metricRow} ${styles.userScoreRow}`}>
                                                 <span className={styles.metricLabel}>Margem para a referência</span>
                                                 <span className={`${styles.metricValue} ${userScore >= compDetails.cut_score ? styles.passing : styles.failing}`}>

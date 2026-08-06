@@ -1,6 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { installApiMocks } from './fixtures/api';
-import { selectVerifiedL1Course } from './fixtures/flows';
+import { enterValidScores, selectVerifiedL1Course } from './fixtures/flows';
 
 const viewports = [
   { name: 'mobile-320', width: 320, height: 568 },
@@ -10,25 +10,39 @@ const viewports = [
   { name: 'desktop', width: 1440, height: 900 },
 ] as const;
 
+async function expectNoHorizontalOverflow(page: Page): Promise<void> {
+  const dimensions = await page.evaluate(() => ({
+    documentClientWidth: document.documentElement.clientWidth,
+    documentScrollWidth: document.documentElement.scrollWidth,
+    bodyClientWidth: document.body.clientWidth,
+    bodyScrollWidth: document.body.scrollWidth,
+  }));
+
+  expect(dimensions.documentScrollWidth, JSON.stringify(dimensions)).toBeLessThanOrEqual(
+    dimensions.documentClientWidth,
+  );
+  expect(dimensions.bodyScrollWidth, JSON.stringify(dimensions)).toBeLessThanOrEqual(
+    dimensions.bodyClientWidth,
+  );
+}
+
 for (const viewport of viewports) {
   test(`${viewport.name}: não cria rolagem horizontal`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await installApiMocks(page);
     await page.goto('/');
     await selectVerifiedL1Course(page);
+    await enterValidScores(page);
 
-    const dimensions = await page.evaluate(() => ({
-      documentClientWidth: document.documentElement.clientWidth,
-      documentScrollWidth: document.documentElement.scrollWidth,
-      bodyClientWidth: document.body.clientWidth,
-      bodyScrollWidth: document.body.scrollWidth,
-    }));
+    await expectNoHorizontalOverflow(page);
 
-    expect(dimensions.documentScrollWidth, JSON.stringify(dimensions)).toBeLessThanOrEqual(
-      dimensions.documentClientWidth,
-    );
-    expect(dimensions.bodyScrollWidth, JSON.stringify(dimensions)).toBeLessThanOrEqual(
-      dimensions.bodyClientWidth,
-    );
+    const tablist = page.getByRole('tablist', { name: 'Seções da oferta' });
+    await tablist.getByRole('tab', { name: 'Estatísticas' }).click();
+    await expect(page.getByRole('tabpanel', { name: 'Estatísticas' })).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+
+    await tablist.getByRole('tab', { name: 'Ofertas próximas' }).click();
+    await expect(page.getByRole('tabpanel', { name: 'Ofertas próximas' })).toContainText('UFMS');
+    await expectNoHorizontalOverflow(page);
   });
 }

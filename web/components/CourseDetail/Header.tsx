@@ -15,20 +15,26 @@ interface HeaderProps {
 
 export default function CourseHeader({ course }: HeaderProps) {
     return (
-        <div className={styles.header}>
-            <div className="container">
+        <header className={styles.header}>
+            <div className={styles.headerInner}>
+                <span className={styles.headerEyebrow}>Detalhes da oferta</span>
                 <div className={styles.university}>
-                    {course.university} - {course.campus}
+                    {[course.university, course.campus].filter(Boolean).join(' · ')}
                 </div>
                 <h2 className={styles.title}>
-                    {course.name} <span style={{ fontWeight: 400, color: '#6b7280' }}>({course.degree})</span>
+                    {course.name}
+                    {course.degree && <span className={styles.degree}> {course.degree}</span>}
                 </h2>
-                <div className={styles.badges}>
-                    <span className={styles.badge}>{course.city} - {course.state}</span>
-                    <span className={styles.badge}>{course.schedule}</span>
-                    <span className={styles.badge}>Código: {course.code}</span>
+                <div className={styles.badges} aria-label="Dados da oferta">
+                    {(course.city || course.state) && (
+                        <span className={styles.badge}>
+                            {[course.city, course.state].filter(Boolean).join(' — ')}
+                        </span>
+                    )}
+                    {course.schedule && <span className={styles.badge}>{course.schedule}</span>}
+                    <span className={styles.badge}>Código {course.code}</span>
                 </div>
             </div>
-        </div>
+        </header>
     );
 }

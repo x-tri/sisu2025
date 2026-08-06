@@ -1,5 +1,6 @@
 'use client';
 
+import { useId } from 'react';
 import styles from './DataTrustPanel.module.css';
 import type { VerificationStatus } from '../types/course';
 
@@ -22,12 +23,12 @@ const STATUS_COPY: Record<VerificationStatus, { label: string; description: stri
         description: 'Os identificadores e valores desta referência coincidem com a consulta oficial informada.',
     },
     unverified: {
-        label: 'Conferência oficial pendente',
-        description: 'A origem foi identificada, mas esta captura ainda não foi reconciliada automaticamente com o SISU/MEC.',
+        label: 'Disponível na base XTRI',
+        description: 'Esta referência foi importada e armazenada pela XTRI com a edição e a modalidade indicadas. O corte pode ser consultado e comparado com os pesos da mesma edição.',
     },
     stale: {
-        label: 'Dados possivelmente desatualizados',
-        description: 'A última captura ultrapassou a janela de atualização esperada. Use o valor apenas como histórico.',
+        label: 'Histórico na base XTRI',
+        description: 'Esta captura não pertence à janela ativa do SISU. O valor continua disponível como histórico da edição indicada.',
     },
     conflict: {
         label: 'Divergência detectada',
@@ -56,6 +57,7 @@ export default function DataTrustPanel({
     sourceUrl,
     intermediary,
 }: DataTrustPanelProps) {
+    const titleId = useId();
     const copy = STATUS_COPY[status];
     const referenceLabel = referenceType === 'final'
         ? 'Final'
@@ -64,9 +66,9 @@ export default function DataTrustPanel({
             : 'Parcial';
 
     return (
-        <section className={`${styles.panel} ${styles[status]}`} aria-labelledby="data-trust-title">
+        <section className={`${styles.panel} ${styles[status]}`} aria-labelledby={titleId}>
             <div className={styles.headingRow}>
-                <h5 id="data-trust-title">Confiabilidade desta referência</h5>
+                <h5 id={titleId}>Origem desta referência</h5>
                 <span className={styles.statusBadge}>{copy.label}</span>
             </div>
             <p className={styles.description}>{copy.description}</p>
@@ -89,16 +91,16 @@ export default function DataTrustPanel({
                     <dd>{formatDate(capturedAt)}</dd>
                 </div>
                 <div>
-                    <dt>Verificada em</dt>
+                    <dt>Metadados gerados em</dt>
                     <dd>{formatDate(checkedAt)}</dd>
                 </div>
                 <div>
-                    <dt>Origem</dt>
+                    <dt>Fonte para conferência</dt>
                     <dd>
                         <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
                             SISU/MEC
                         </a>
-                        {intermediary ? ` via ${intermediary}` : ''}
+                        {intermediary ? ` · processado pela ${intermediary}` : ''}
                     </dd>
                 </div>
             </dl>

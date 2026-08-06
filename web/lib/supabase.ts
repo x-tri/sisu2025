@@ -160,6 +160,7 @@ class SupabaseServer {
    */
   async getCourses(limit = 50, offset = 0) {
     const params = new URLSearchParams({
+      select: 'id,code,name,university,campus,city,state,degree,schedule',
       order: 'name',
       limit: String(limit),
       offset: String(offset),
@@ -168,6 +169,45 @@ class SupabaseServer {
     return this.request<Course[]>(`courses?${params}`, {
       headers: { 'Prefer': 'count=exact' },
     })
+  }
+
+  /**
+   * Load the exact Ampla-concorrência references used by result-card previews.
+   * The modality id is explicit; callers must not replace a missing row with a
+   * different modality.
+   */
+  async getCoursePreviewCutScores(courseIds: number[], modalityCode = 41) {
+    const ids = courseIds.filter(id => Number.isInteger(id) && id > 0)
+    if (ids.length === 0) {
+      return { data: [] as CutScore[], error: null }
+    }
+
+    const params = new URLSearchParams({
+      select: 'id,course_id,year,modality_code,modality_name,cut_score,applicants,vacancies,captured_at,partial_scores',
+      course_id: `in.(${ids.join(',')})`,
+      modality_code: `eq.${modalityCode}`,
+      order: 'year.desc,captured_at.desc',
+      limit: String(Math.min(ids.length * 12, 1000)),
+    })
+
+    return this.request<CutScore[]>(`cut_scores?${params}`)
+  }
+
+  /** Load weights for the same editions represented in result-card previews. */
+  async getCoursePreviewWeights(courseIds: number[]) {
+    const ids = courseIds.filter(id => Number.isInteger(id) && id > 0)
+    if (ids.length === 0) {
+      return { data: [] as CourseWeights[], error: null }
+    }
+
+    const params = new URLSearchParams({
+      select: 'id,course_id,year,peso_red,peso_ling,peso_mat,peso_ch,peso_cn,min_red,min_ling,min_mat,min_ch,min_cn,min_enem',
+      course_id: `in.(${ids.join(',')})`,
+      order: 'year.desc',
+      limit: String(Math.min(ids.length * 8, 1000)),
+    })
+
+    return this.request<CourseWeights[]>(`course_weights?${params}`)
   }
 
   /**
@@ -185,11 +225,13 @@ class SupabaseServer {
   }
 
   /**
-   * Fetch all course geography fields in API-sized batches. The exact total in
-   * Content-Range is also used by the coverage endpoint.
+   * Fetch all course geography fields in API-sized batches. We deliberately
+   * avoid `count=exact` here: on the production PostgREST instance that count
+   * can exceed the statement timeout even though the paginated rows are fast.
+   * Walking until the first short page still produces the exact row total.
    */
   async getCourseCoverageRows(batchSize = 1000) {
-    const getBatch = (offset: number, withCount = false) => {
+    const getBatch = (offset: number) => {
       const params = new URLSearchParams({
         select: 'id,state,city,university',
         order: 'id.asc',
@@ -197,39 +239,44 @@ class SupabaseServer {
         offset: String(offset),
       })
 
-      return this.request<CourseCoverageRow[]>(`courses?${params}`, withCount
-        ? { headers: { 'Prefer': 'count=exact' } }
-        : {})
+      return this.request<CourseCoverageRow[]>(`courses?${params}`)
     }
 
-    const firstBatch = await getBatch(0, true)
-    if (firstBatch.error || !firstBatch.data) {
-      return firstBatch
-    }
+    const rows: CourseCoverageRow[] = []
+    const concurrency = 4
+    let offset = 0
 
-    const total = firstBatch.count ?? firstBatch.data.length
-    const offsets: number[] = []
-    for (let offset = batchSize; offset < total; offset += batchSize) {
-      offsets.push(offset)
-    }
+    while (offset < 100_000) {
+      const offsets = Array.from(
+        { length: concurrency },
+        (_, index) => offset + index * batchSize
+      )
+      const batches = await Promise.all(offsets.map(getBatch))
+      const failedBatch = batches.find(batch => batch.error || !batch.data)
 
-    const remainingBatches = await Promise.all(offsets.map(offset => getBatch(offset)))
-    const failedBatch = remainingBatches.find(batch => batch.error || !batch.data)
-    if (failedBatch) {
-      return {
-        data: null,
-        error: failedBatch.error || 'Incomplete course coverage response',
-        count: total,
+      if (failedBatch) {
+        return {
+          data: null,
+          error: failedBatch.error || 'Incomplete course coverage response',
+          count: rows.length,
+        }
       }
+
+      for (const batch of batches) {
+        const data = batch.data || []
+        rows.push(...data)
+        if (data.length < batchSize) {
+          return { data: rows, error: null, count: rows.length }
+        }
+      }
+
+      offset += concurrency * batchSize
     }
 
     return {
-      data: [
-        ...firstBatch.data,
-        ...remainingBatches.flatMap(batch => batch.data || []),
-      ],
-      error: null,
-      count: total,
+      data: null,
+      error: 'Course coverage exceeded the safe pagination limit',
+      count: rows.length,
     }
   }
 

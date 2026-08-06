@@ -7,8 +7,8 @@ import type {
   ReferenceVerification,
 } from '@/types/course'
 
-const DEFAULT_MEUSISU_API_URL = 'https://d3hf41n0t98fq2.cloudfront.net/api'
 const OFFICIAL_SISU_SOURCE_URL = 'https://sisu.mec.gov.br/vagas'
+const XTRI_DATA_URL = 'https://xtri.online'
 const STALE_AFTER_MS = 36 * 60 * 60 * 1000
 
 function isValidReferenceScore(value: unknown): value is number {
@@ -16,12 +16,6 @@ function isValidReferenceScore(value: unknown): value is number {
     && Number.isFinite(value)
     && value >= 0
     && value <= 1000
-}
-
-function getCaptureUrl(courseCode: number): string {
-  const baseUrl = process.env.MEUSISU_API_URL || DEFAULT_MEUSISU_API_URL
-  const params = new URLSearchParams({ courseCode: String(courseCode) })
-  return `${baseUrl.replace(/\/$/, '')}/getCourseData?${params.toString()}`
 }
 
 function getReferenceType(
@@ -125,8 +119,8 @@ export function buildCourseReference(
       enem: weights.min_enem,
     } : null,
     sourceUrl: OFFICIAL_SISU_SOURCE_URL,
-    intermediary: 'MeuSISU',
-    intermediaryUrl: getCaptureUrl(courseCode),
+    intermediary: 'XTRI',
+    intermediaryUrl: XTRI_DATA_URL,
     verification: {
       status: getReferenceVerification(score.captured_at || null, referenceType, now),
       checkedAt: now.toISOString(),
@@ -135,7 +129,7 @@ export function buildCourseReference(
 }
 
 export function buildCourseProvenance(
-  courseCode: number,
+  _courseCode: number,
   references: CourseReference[],
   now: Date = new Date()
 ): CourseProvenance {
@@ -149,8 +143,8 @@ export function buildCourseProvenance(
     capturedAt,
     sourceUrl: OFFICIAL_SISU_SOURCE_URL,
     intermediary: {
-      name: 'MeuSISU',
-      url: getCaptureUrl(courseCode),
+      name: 'XTRI',
+      url: XTRI_DATA_URL,
     },
     verification: references.some(reference => reference.verification.status === 'unverified')
       ? 'unverified'
