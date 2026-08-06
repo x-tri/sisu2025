@@ -19,11 +19,13 @@ const UFRN_COURSE: CourseSearchItem = {
   schedule: 'Integral',
 }
 
-const UNKNOWN_INSTITUTION_COURSE: CourseSearchItem = {
+const UFMA_COURSE: CourseSearchItem = {
   ...UFRN_COURSE,
   id: 9999,
   code: 9999,
   university: 'Universidade Federal do Maranhão',
+  city: 'São Luís',
+  state: 'MA',
 }
 
 const BIOMEDICINE_COURSE: CourseSearchItem = {
@@ -59,9 +61,9 @@ test('busca ranqueada prioriza nomes iniciados pelo termo antes de Biomedicina',
   assert.equal(endpoints.length, 2)
 })
 
-test('GET /api/courses expõe somente siglas do registro institucional verificado', async context => {
+test('GET /api/courses expõe siglas do catálogo institucional', async context => {
   context.mock.method(supabase, 'searchCoursesPaginated', async () => ({
-    data: [UFRN_COURSE, UNKNOWN_INSTITUTION_COURSE],
+    data: [UFRN_COURSE, UFMA_COURSE],
     error: null,
     count: 2,
   }))
@@ -83,15 +85,14 @@ test('GET /api/courses expõe somente siglas do registro institucional verificad
   assert.equal(response.status, 200)
   assert.equal(body.courses[0]?.universityAcronym, 'UFRN')
   assert.notEqual(body.courses[0]?.universityAcronym, 'UFRGN')
-  assert.equal(body.courses[1]?.universityAcronym, null)
+  assert.equal(body.courses[1]?.universityAcronym, 'UFMA')
 })
 
-test('GET /api/courses encontra ofertas ao buscar pela sigla UFRN', async context => {
-  context.mock.method(supabase, 'searchCoursesPaginated', async filters => {
-    assert.equal(filters.query, undefined)
-    assert.equal(filters.institution, 'Universidade Federal do Rio Grande do Norte')
+test('GET /api/courses encontra ofertas ao buscar pela sigla UFMA', async context => {
+  context.mock.method(supabase, 'searchCourseCatalog', async (query: string) => {
+    assert.equal(query, 'UFMA')
     return {
-      data: [UFRN_COURSE],
+      data: [UFMA_COURSE],
       error: null,
       count: 1,
     }
@@ -105,13 +106,13 @@ test('GET /api/courses encontra ofertas ao buscar pela sigla UFRN', async contex
     error: null,
   }))
 
-  const request = new NextRequest('http://localhost/api/courses?q=UFRN&limit=30')
+  const request = new NextRequest('http://localhost/api/courses?q=UFMA&limit=30')
   const response = await GET(request)
   const body = await response.json() as CourseSearchResponse
 
   assert.equal(response.status, 200)
-  assert.equal(body.query, 'UFRN')
+  assert.equal(body.query, 'UFMA')
   assert.equal(body.total, 1)
-  assert.equal(body.courses[0]?.universityAcronym, 'UFRN')
-  assert.equal(body.courses[0]?.university, 'Universidade Federal do Rio Grande do Norte')
+  assert.equal(body.courses[0]?.universityAcronym, 'UFMA')
+  assert.equal(body.courses[0]?.university, 'Universidade Federal do Maranhão')
 })

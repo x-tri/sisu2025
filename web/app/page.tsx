@@ -953,14 +953,14 @@ export default function Home() {
             <div className={styles.filtersIntro}>
               <p className={styles.filtersEyebrow}>XTRI SISU</p>
               <h1 id="filters-title" className={styles.filtersTitle}>Encontre sua próxima possibilidade</h1>
-              <p>Busque um curso, universidade ou cidade e compare referências oficiais com clareza.</p>
+              <p>Busque um curso, sigla de instituição, cidade ou estado e compare referências oficiais com clareza.</p>
             </div>
 
             <div className={styles.directSearch}>
               <p className={styles.directSearchTitle}>Busca rápida</p>
               <div className={styles.courseSearchField}>
                 <label className={styles.srOnly} htmlFor="main-course-search">
-                  Curso, instituição ou cidade
+                  Curso, instituição, cidade ou estado
                 </label>
                 <div className={styles.searchControl}>
                   <input
@@ -968,7 +968,7 @@ export default function Home() {
                     type="search"
                     value={searchQuery}
                     onChange={event => setSearchQuery(event.target.value)}
-                    placeholder="Ex.: Medicina, UFRN ou Natal"
+                    placeholder="Ex.: Medicina, UFMA, Maranhão ou São Luís"
                     autoComplete="off"
                     aria-describedby="search-help"
                     aria-expanded={searchResults.length > 0}

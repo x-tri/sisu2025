@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { buildCourseReference } from '@/lib/course-reference'
 import {
-  resolveOfficialInstitutionNameByAcronym,
   resolveUniversityAcronym,
 } from '@/lib/institution-acronyms'
 import type {
@@ -140,7 +139,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const searchParams = request.nextUrl.searchParams
   const rawQuery = searchParams.get('q')?.trim() || ''
   const query = rawQuery.length >= 2 ? rawQuery : ''
-  const institutionFromAcronym = resolveOfficialInstitutionNameByAcronym(query)
   const course = searchParams.get('course')?.trim() || ''
   const institution = searchParams.get('institution')?.trim() || ''
   const city = searchParams.get('city')?.trim() || ''
@@ -210,14 +208,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const hasSearchFilters = Boolean(query || course || institution || city || state)
     if (hasSearchFilters) {
       const searchFilters = {
-        query: institutionFromAcronym ? undefined : query || undefined,
+        query: undefined,
         course: course || undefined,
-        institution: institutionFromAcronym || institution || undefined,
+        institution: institution || undefined,
         city: city || undefined,
         state: state || undefined,
       }
-      const result = query && !institutionFromAcronym
-        ? await supabase.searchCoursesRankedPaginated(searchFilters, limit, offset)
+      const result = query
+        ? await supabase.searchCourseCatalog(query, limit, offset)
         : await supabase.searchCoursesPaginated(searchFilters, limit, offset)
 
       if (result.error) {

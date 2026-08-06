@@ -11,72 +11,64 @@ export async function GET(request: NextRequest) {
     const university = searchParams.get('university')
 
     try {
+        if (!['states', 'cities', 'universities', 'courses'].includes(type || '')) {
+            return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
+        }
+        if (type === 'cities' && !state) return NextResponse.json([], { status: 400 })
+        if (type === 'universities' && (!state || !city)) {
+            return NextResponse.json([], { status: 400 })
+        }
+        if (type === 'courses' && (!state || !city || !university)) {
+            return NextResponse.json([], { status: 400 })
+        }
+
+        const catalogResult = await supabase.getCourseCatalog()
+        if (catalogResult.error || !catalogResult.data) throw new Error(catalogResult.error || 'Catalog unavailable')
+        const courses = catalogResult.data
+
         if (type === 'states') {
-            // Get all DISTINCT states - need to paginate to get all 8000+ courses
-            let allStates = new Set<string>();
-            let offset = 0;
-            const limit = 1000;
-
-            while (true) {
-                const { data, error } = await supabase.request<any[]>(`courses?select=state&state=not.is.null&limit=${limit}&offset=${offset}`)
-                if (error) throw error
-
-                if (!data || data.length === 0) break;
-
-                data.forEach((c: any) => {
-                    if (c.state) allStates.add(c.state);
-                });
-
-                if (data.length < limit) break;
-                offset += limit;
-            }
-
-            const states = Array.from(allStates).sort()
+            const states = Array.from(new Set(courses.map(course => course.state).filter(Boolean))).sort()
             return NextResponse.json(states)
         }
 
         if (type === 'cities') {
-            if (!state) return NextResponse.json([], { status: 400 })
-
-            const params = new URLSearchParams({ select: 'city', state: `eq.${state}` })
-            const { data, error } = await supabase.request<any[]>(`courses?${params.toString()}`)
-            if (error) throw error
-
-            const cities = Array.from(new Set(data?.map((c: any) => c.city).filter(Boolean))).sort()
+            const cities = Array.from(new Set(
+                courses
+                    .filter(course => course.state === state)
+                    .map(course => course.city)
+                    .filter((city): city is string => Boolean(city))
+            )).sort((left, right) => left.localeCompare(right, 'pt-BR'))
             return NextResponse.json(cities)
         }
 
         if (type === 'universities') {
-            if (!state || !city) return NextResponse.json([], { status: 400 })
-
-            // Note: 'university' field might be null, but we need university name.
-            // Also checking headers. 
-            // We use query params in URL for filtering
-            const params = new URLSearchParams()
-            params.append('state', `eq.${state}`)
-            params.append('city', `eq.${city}`)
-
-            const { data, error } = await supabase.request<any[]>(`courses?select=university&${params.toString()}`)
-            if (error) throw error
-
-            const universities = Array.from(new Set(data?.map((c: any) => c.university).filter(Boolean))).sort()
+            const universities = Array.from(new Set(
+                courses
+                    .filter(course => course.state === state && course.city === city)
+                    .map(course => course.university)
+                    .filter((institution): institution is string => Boolean(institution))
+            )).sort((left, right) => left.localeCompare(right, 'pt-BR'))
             return NextResponse.json(universities)
         }
 
         if (type === 'courses') {
-            if (!state || !city || !university) return NextResponse.json([], { status: 400 })
+            const matchingCourses = courses
+                .filter(course => (
+                    course.state === state
+                    && course.city === city
+                    && course.university === university
+                ))
+                .map(({ id, code, name, degree, campus, schedule }) => ({
+                    id,
+                    code,
+                    name,
+                    degree,
+                    campus,
+                    schedule,
+                }))
+                .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'))
 
-            const params = new URLSearchParams()
-            params.append('state', `eq.${state}`)
-            params.append('city', `eq.${city}`)
-            params.append('university', `eq.${university}`)
-
-            // Return id, code, name, degree
-            const { data, error } = await supabase.request<any[]>(`courses?select=id,code,name,degree,campus,schedule&${params.toString()}`)
-            if (error) throw error
-
-            // Return full objects, sorted by name
-            return NextResponse.json(data?.sort((a: any, b: any) => a.name.localeCompare(b.name)))
+            return NextResponse.json(matchingCourses)
         }
 
         return NextResponse.json({ error: 'Invalid type' }, { status: 400 })

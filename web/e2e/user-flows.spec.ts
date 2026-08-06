@@ -25,7 +25,7 @@ test('exibe estado vazio da busca', async ({ page }) => {
   await installApiMocks(page, { emptySearch: true });
   await page.goto('/');
   await openDirectSearch(page);
-  await page.getByLabel('Curso, instituição ou cidade').fill('Odontologia');
+  await page.getByLabel('Curso, instituição, cidade ou estado').fill('Odontologia');
 
   await expect(page.getByText('Nenhuma oferta encontrada.', { exact: true })).toBeVisible();
   await expect(page.getByRole('list', { name: 'Resultados da busca' })).toHaveCount(0);
@@ -56,7 +56,7 @@ test('leva do plano direto para uma nova busca com um clique', async ({ page }) 
 
   await page.getByRole('button', { name: 'Curso, universidade ou cidade' }).click();
 
-  await expect(page.getByRole('searchbox', { name: 'Curso, instituição ou cidade' })).toBeFocused();
+  await expect(page.getByRole('searchbox', { name: 'Curso, instituição, cidade ou estado' })).toBeFocused();
 });
 
 test('recupera a cobertura após resposta 500 e retry', async ({ page }) => {
@@ -95,7 +95,7 @@ test('ignora a resposta antiga em uma corrida de busca', async ({ page }) => {
   const mockState = await installApiMocks(page, { racingSearch: true });
   await page.goto('/');
   await openDirectSearch(page);
-  const search = page.getByLabel('Curso, instituição ou cidade');
+  const search = page.getByLabel('Curso, instituição, cidade ou estado');
 
   await search.fill('Med');
   await expect.poll(() => mockState.searchQueries()).toContain('med');

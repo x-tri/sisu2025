@@ -18,7 +18,7 @@ export async function selectVerifiedL1Course(page: Page): Promise<void> {
 }
 
 export async function openDirectSearch(page: Page): Promise<void> {
-  await expect(page.getByLabel('Curso, instituição ou cidade')).toBeVisible();
+  await expect(page.getByLabel('Curso, instituição, cidade ou estado')).toBeVisible();
 }
 
 export async function enterValidScores(page: Page): Promise<void> {

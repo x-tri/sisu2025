@@ -4,6 +4,7 @@
  */
 
 import type { CourseSearchItem } from '@/types/course'
+import { searchCourseCatalog as searchCatalog } from '@/lib/course-catalog-search'
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://sisymqzxvuktdcbsbpbp.supabase.co'
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || ''
@@ -36,6 +37,9 @@ export interface LatestCutScoreMetadata {
 
 type CoverageTable = 'course_weights' | 'cut_scores'
 
+const COURSE_CATALOG_CACHE_MS = 5 * 60 * 1000
+const COURSE_CATALOG_PAGE_SIZE = 1000
+
 function normalizeSearchTerm(value: string): string {
   return value
     .replace(/[(),%*"']/g, ' ')
@@ -54,6 +58,8 @@ function getCutScoreIdentity(score: CutScore): string {
 class SupabaseServer {
   private url: string
   private headers: Record<string, string>
+  private courseCatalogCache: { data: CourseSearchItem[]; expiresAt: number } | null = null
+  private courseCatalogRequest: Promise<SupabaseResponse<CourseSearchItem[]>> | null = null
 
   constructor() {
     this.url = SUPABASE_URL
@@ -93,6 +99,63 @@ class SupabaseServer {
     } catch (error) {
       return { data: null, error: String(error) }
     }
+  }
+
+  /** Load every course once and reuse the catalog for complete, normalized search. */
+  async getCourseCatalog(): Promise<SupabaseResponse<CourseSearchItem[]>> {
+    if (this.courseCatalogCache && this.courseCatalogCache.expiresAt > Date.now()) {
+      return {
+        data: this.courseCatalogCache.data,
+        error: null,
+        count: this.courseCatalogCache.data.length,
+      }
+    }
+
+    if (this.courseCatalogRequest) return this.courseCatalogRequest
+
+    this.courseCatalogRequest = (async () => {
+      const courses: CourseSearchItem[] = []
+
+      for (let offset = 0; ; offset += COURSE_CATALOG_PAGE_SIZE) {
+        const params = new URLSearchParams({
+          select: 'id,code,name,university,campus,city,state,degree,schedule',
+          order: 'id.asc',
+          limit: String(COURSE_CATALOG_PAGE_SIZE),
+          offset: String(offset),
+        })
+        const result = await this.request<CourseSearchItem[]>(`courses?${params}`)
+        if (result.error) return { data: null, error: result.error }
+
+        const page = result.data || []
+        courses.push(...page)
+        if (page.length < COURSE_CATALOG_PAGE_SIZE) break
+      }
+
+      this.courseCatalogCache = {
+        data: courses,
+        expiresAt: Date.now() + COURSE_CATALOG_CACHE_MS,
+      }
+      return { data: courses, error: null, count: courses.length }
+    })()
+
+    try {
+      return await this.courseCatalogRequest
+    } finally {
+      this.courseCatalogRequest = null
+    }
+  }
+
+  /** Search the complete catalog without accent, alias or 1,000-row truncation gaps. */
+  async searchCourseCatalog(
+    query: string,
+    limit = 20,
+    offset = 0
+  ): Promise<SupabaseResponse<CourseSearchItem[]>> {
+    const catalog = await this.getCourseCatalog()
+    if (catalog.error || !catalog.data) return catalog
+
+    const result = searchCatalog(catalog.data, query, limit, offset)
+    return { data: result.courses, error: null, count: result.total }
   }
 
   /**
