@@ -4,7 +4,7 @@
 
 **Monitoramento do SISU 2026 em Tempo Real** - Compare suas notas e descubra suas chances de aprovação.
 
-🌐 **Acesse**: [https://xtrisisu.app](https://xtrisisu.app)
+🌐 **Acesse**: [https://xtrisisu.com](https://xtrisisu.com)
 
 ---
 
@@ -50,12 +50,12 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_KEY=your-service-key
 ```
 
-### Deploy no Vercel
+### Deploy no Coolify
 
-1. Importe o repositório no Vercel
-2. Configure **Root Directory**: `web`
+1. Conecte o repositório ao aplicativo `sisu-frontend` no Coolify
+2. Configure a branch `main` e o diretório-base `/web`
 3. Adicione as variáveis de ambiente
-4. Deploy!
+4. Publique em `xtrisisu.com`
 
 ## 📁 Estrutura
 
@@ -96,7 +96,7 @@ sisu2025/
 
 - **Frontend**: Next.js 14, React 18, TypeScript
 - **Backend**: Supabase (PostgreSQL)
-- **Deploy**: Vercel
+- **Deploy**: Coolify em VPS Hostinger
 - **Estilo**: CSS Modules
 
 ## 📅 Timeline SISU 2026

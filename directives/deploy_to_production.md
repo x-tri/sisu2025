@@ -1,7 +1,7 @@
 # Deploy to Production
 
 ## Goal
-Deploy the SISU web application to Vercel production environment.
+Deploy the SISU web application to the Coolify production environment at `xtrisisu.com`.
 
 ## When to Run
 - After merging features to `main` branch
@@ -10,7 +10,8 @@ Deploy the SISU web application to Vercel production environment.
 ## Prerequisites
 - All changes committed and pushed to `main`
 - Local build passes (`npm run build`)
-- Vercel project connected to GitHub repo
+- Coolify application `sisu-frontend` connected to the GitHub repository
+- Production domain configured as `xtrisisu.com`
 
 ## Execution Steps
 1. Commit changes:
@@ -23,11 +24,12 @@ Deploy the SISU web application to Vercel production environment.
    git push origin main
    ```
 
-3. Vercel auto-deploys from `main` branch (typically 1-2 minutes)
+3. Trigger the `sisu-frontend` deployment in Coolify from the `main` branch
+4. Wait for the deployment to finish and confirm the running image uses the expected commit
 
 ## Verification
-- Check Vercel dashboard for deploy status
-- Test production URL after deploy completes
+- Check Coolify for the deployment status and logs
+- Test `https://xtrisisu.com` after the deployment completes
 - Verify critical flows: course selection, score display, chart rendering
 
 ## Rollback
@@ -39,5 +41,5 @@ git push origin main
 ```
 
 ## Edge Cases
-- **Build fails**: Check Vercel logs, usually TypeScript or dependency issues
-- **API 500 errors**: Check Supabase connection and environment variables in Vercel
+- **Build fails**: Check Coolify build logs, usually TypeScript or dependency issues
+- **API 500 errors**: Check Supabase connection and environment variables in Coolify

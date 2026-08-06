@@ -5,7 +5,7 @@ description: Synchronize SISU cut scores from MeuSISU API to Supabase database. 
 
 # SISU Cut Score Sync
 
-Synchronized mining of cut scores from MeuSISU API to Supabase for display on xtrisisu.app.
+Synchronized mining of cut scores from MeuSISU API to Supabase for display on xtrisisu.com.
 
 ## Quick Start
 

@@ -10,7 +10,7 @@
 2. **Backend**: Python-based data synchronization system (`src/`, `scripts/`, `execution/`) - Fetches data from MeuSISU API and syncs to Supabase
 3. **Database**: Supabase (PostgreSQL) - Stores 8,500+ courses, weights, cut scores, and approved students from previous years
 
-**Live URL**: https://xtrisisu.app
+**Live URL**: https://xtrisisu.com
 
 ## The 3-Layer Architecture
 
@@ -39,8 +39,7 @@ This project follows a 3-layer architecture that separates concerns to maximize 
 - **Styling**: CSS Modules
 - **Charts**: Recharts
 - **Icons**: Lucide React
-- **Analytics**: Vercel Analytics
-- **Deployment**: Vercel (Root Directory: `web`)
+- **Deployment**: Coolify on Hostinger VPS (frontend source directory: `web`)
 
 ### Backend (Python)
 - **Language**: Python 3.9+ (Docker uses 3.11)
