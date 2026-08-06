@@ -6,6 +6,7 @@ import {
   Building2,
   ChevronDown,
   Clock3,
+  ExternalLink,
   MapPinned,
   RefreshCw,
   ShieldCheck,
@@ -16,13 +17,12 @@ import { useModality } from '../context/ModalityContext';
 import { calculateWeightedScore, type CourseWeights, validateScores } from '../lib/score-core';
 import { getEffectiveCutoff, selectLatestReference } from '../lib/course-selection';
 import CourseDetailView from '../components/CourseDetail/CourseDetailView';
-import ProbabilityGauge from '../components/CourseDetail/ProbabilityGauge';
 import ApprovalRadarModal from '../components/CourseDetail/ApprovalRadarModal';
 import NearbyOffersPanel from '../components/CourseDetail/NearbyOffersPanel';
 import CourseStatisticsPanel from '../components/CourseDetail/CourseStatisticsPanel';
 import ShareModal from '../components/CourseDetail/ShareModal';
-import DataTrustPanel from '../components/DataTrustPanel';
 import CourseResultCard from '../components/CourseResultCard';
+import PointsPlan from '../components/PointsPlan';
 import XtriHeader from '../components/XtriHeader';
 import ScoreModal from '../components/ScoreModal';
 import type {
@@ -177,7 +177,7 @@ type OfferDetailTab = 'years' | 'statistics' | 'nearby';
 const OFFER_DETAIL_TAB_ORDER: OfferDetailTab[] = ['years', 'statistics', 'nearby'];
 
 const OFFER_DETAIL_TAB_LABELS: Record<OfferDetailTab, string> = {
-  years: 'Informações por ano',
+  years: 'Plano de pontos',
   statistics: 'Estatísticas',
   nearby: 'Ofertas próximas',
 };
@@ -192,17 +192,6 @@ const WEIGHT_LABELS: Array<[keyof EnemWeights['pesos'], string]> = [
 
 function formatScore(value: number): string {
   return value.toFixed(2).replace('.', ',');
-}
-
-function getDailyTrend(data: YearCutScore): string {
-  const partials = data.partial_scores;
-  if (partials.length < 2) return 'Tendência indisponível: são necessárias ao menos duas parciais.';
-  const previous = partials[partials.length - 2];
-  const latest = partials[partials.length - 1];
-  const difference = latest.score - previous.score;
-  if (difference === 0) return 'Sem variação desde a parcial anterior.';
-  return (difference > 0 ? '+' : '') + formatScore(difference)
-    + ' pontos desde a parcial anterior.';
 }
 
 function toYearCutScore(reference: CourseReference): YearCutScore {
@@ -855,6 +844,17 @@ export default function Home() {
     window.setTimeout(() => document.getElementById('results')?.scrollIntoView({ block: 'start' }), 0);
   };
 
+  const startNewSearch = () => {
+    setFilters(previous => ({ ...previous, course: '' }));
+    clearSelectedCourse();
+    window.history.replaceState(null, '', window.location.pathname);
+    window.setTimeout(() => {
+      const search = document.getElementById('main-course-search') as HTMLInputElement | null;
+      search?.scrollIntoView({ block: 'center' });
+      search?.focus();
+    }, 0);
+  };
+
   const loadMoreCourses = async () => {
     if (catalogLoading || !catalogHasNext) return;
     catalogMoreController.current?.abort();
@@ -895,16 +895,70 @@ export default function Home() {
 
   return (
     <>
-      <XtriHeader onOpenScores={() => setShowScoreInput(true)} />
+      <XtriHeader
+        onOpenScores={() => setShowScoreInput(true)}
+        onExplore={courseResponse ? backToResults : undefined}
+        onSearch={courseResponse ? startNewSearch : undefined}
+        showPlan={Boolean(coursePreview)}
+      />
 
       <main id="top" className={styles.main}>
         {!courseResponse && (
         <section className={styles.filtersSection} aria-labelledby="filters-title">
           <div className={styles.shell}>
             <div className={styles.filtersIntro}>
-              <p id="filters-title" className={styles.filtersTitle}>Filtre pelas suas preferências:</p>
-              <p>Insira uma universidade, lugar ou curso para ver os resultados correspondentes</p>
+              <p className={styles.filtersEyebrow}>XTRI SISU</p>
+              <h1 id="filters-title" className={styles.filtersTitle}>Encontre sua próxima possibilidade</h1>
+              <p>Busque um curso, universidade ou cidade e compare referências oficiais com clareza.</p>
             </div>
+
+            <div className={styles.directSearch}>
+              <p className={styles.directSearchTitle}>Busca rápida</p>
+              <div className={styles.courseSearchField}>
+                <label className={styles.srOnly} htmlFor="main-course-search">
+                  Curso, instituição ou cidade
+                </label>
+                <div className={styles.searchControl}>
+                  <input
+                    id="main-course-search"
+                    type="search"
+                    value={searchQuery}
+                    onChange={event => setSearchQuery(event.target.value)}
+                    placeholder="Ex.: Medicina, UFRN ou Natal"
+                    autoComplete="off"
+                    aria-describedby="search-help"
+                    aria-expanded={searchResults.length > 0}
+                  />
+                </div>
+                <span id="search-help" className={styles.searchHelp}>
+                  Digite pelo menos 2 caracteres. Você escolhe a modalidade depois de selecionar a oferta.
+                </span>
+
+                {hasActiveSearch && (
+                  <div className={styles.searchPopover}>
+                    {searchLoading && <p className={styles.inlineStatus} role="status">Buscando...</p>}
+                    {searchError && <p className={styles.inlineError} role="alert">{searchError}</p>}
+                    {!searchLoading && !searchError && searchResults.length === 0 && (
+                      <p className={styles.inlineStatus} role="status">Nenhuma oferta encontrada.</p>
+                    )}
+                    {searchResults.length > 0 && (
+                      <ul className={styles.searchResults} aria-label="Resultados da busca">
+                        {searchResults.map(result => (
+                          <li key={result.id}>
+                            <button type="button" onClick={() => chooseSearchResult(result)}>
+                              <strong>{result.name}</strong>
+                              <span>{[result.university, result.city, result.state].filter(Boolean).join(' · ')}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <p className={styles.filterDivider}><span>ou refine por localização</span></p>
 
             <div className={styles.filterGrid}>
               <div className={styles.filterField}>
@@ -1008,97 +1062,6 @@ export default function Home() {
               </div>
             </div>
 
-            <details className={styles.directSearch}>
-              <summary>Buscar diretamente por curso, instituição ou cidade</summary>
-              <div className={styles.courseSearchField}>
-                <label className={styles.srOnly} htmlFor="main-course-search">
-                  Curso, instituição ou cidade
-                </label>
-                <div className={styles.searchControl}>
-                  <input
-                    id="main-course-search"
-                    type="search"
-                    value={searchQuery}
-                    onChange={event => setSearchQuery(event.target.value)}
-                    placeholder="Digite ao menos 2 caracteres"
-                    autoComplete="off"
-                    aria-describedby="search-help"
-                    aria-expanded={searchResults.length > 0}
-                  />
-                </div>
-                <span id="search-help" className={styles.srOnly}>
-                  Busca livre em cursos, instituições e cidades de toda a cobertura.
-                </span>
-
-                {hasActiveSearch && (
-                  <div className={styles.searchPopover}>
-                    {searchLoading && <p className={styles.inlineStatus} role="status">Buscando...</p>}
-                    {searchError && <p className={styles.inlineError} role="alert">{searchError}</p>}
-                    {!searchLoading && !searchError && searchResults.length === 0 && (
-                      <p className={styles.inlineStatus} role="status">Nenhuma oferta encontrada.</p>
-                    )}
-                    {searchResults.length > 0 && (
-                      <ul className={styles.searchResults} aria-label="Resultados da busca">
-                        {searchResults.map(result => (
-                          <li key={result.id}>
-                            <button type="button" onClick={() => chooseSearchResult(result)}>
-                              <strong>{result.name}</strong>
-                              <span>{[result.university, result.city, result.state].filter(Boolean).join(' · ')}</span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
-              </div>
-            </details>
-
-            <div className={styles.modalityIntro}>
-              <p className={styles.modalityTitle}>Veja dados para sua modalidade:</p>
-              <p>Insira suas notas e confirme a modalidade oficial para ver as melhores referências para você</p>
-            </div>
-
-            <div className={styles.modalityControl}>
-              <label className={styles.srOnly} htmlFor="modality-filter">
-                Modalidade oficial com referência nesta edição
-              </label>
-              <div className={styles.controlWrap}>
-                <select
-                  id="modality-filter"
-                  aria-label="Modalidade oficial com referência nesta edição"
-                  value={selectedModality}
-                  disabled={!courseResponse || availableModalities.length === 0}
-                  onChange={event => setSelectedModality(event.target.value)}
-                >
-                  <option value="">
-                    {courseResponse ? 'Modalidade' : 'Selecione uma oferta antes da modalidade'}
-                  </option>
-                  {availableModalities.map(modality => (
-                    <option key={modality.id} value={modality.id}>{modality.name}</option>
-                  ))}
-                </select>
-                <ChevronDown size={18} aria-hidden="true" />
-              </div>
-            </div>
-
-            {courseResponse && (
-              <details className={styles.modalityAssistant}>
-                <summary>Como confirmar minha modalidade?</summary>
-                <p>
-                  Confira escola pública, renda de até 1 salário mínimo per capita, pertencimento
-                  étnico-racial, condição de pessoa com deficiência e critérios específicos da instituição.
-                  O sistema nunca decide ou substitui a modalidade por você.
-                </p>
-                <a
-                  href="https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/lei/l14723.htm"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Ver critérios oficiais
-                </a>
-              </details>
-            )}
           </div>
         </section>
         )}
@@ -1139,20 +1102,59 @@ export default function Home() {
           <div className={styles.shell}>
             {courseResponse ? (
               <div className={styles.selectedView}>
-                <div className={styles.selectedTopbar}>
-                  <button type="button" className={styles.backButton} onClick={backToResults}>
-                    Voltar aos resultados
-                  </button>
-                  <span>Código SISU {courseResponse.course.code}</span>
-                </div>
-
                 <div className={styles.selectedHeading}>
-                  <h2>{courseResponse.course.name}</h2>
-                  <p>{courseResponse.course.degree || 'Grau não informado'}</p>
-                  <div>
-                    <span><Building2 size={18} aria-hidden="true" />{[courseResponse.course.university, courseResponse.course.campus].filter(Boolean).join(' | ')}</span>
-                    <span><MapPinned size={18} aria-hidden="true" />{[courseResponse.course.city, courseResponse.course.state].filter(Boolean).join(', ')}</span>
-                    <span><Clock3 size={18} aria-hidden="true" />{courseResponse.course.schedule || 'Turno não informado'}</span>
+                  <div className={styles.selectedIdentity}>
+                    <span className={styles.courseMark} aria-hidden="true">
+                      <Building2 size={22} />
+                    </span>
+                    <div>
+                      <h2>{courseResponse.course.name}</h2>
+                      <p>
+                        {[courseResponse.course.degree, courseResponse.course.university]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
+                      <div className={styles.courseMeta}>
+                        <span><MapPinned size={16} aria-hidden="true" />{[courseResponse.course.city, courseResponse.course.state].filter(Boolean).join(', ')}</span>
+                        <span><Clock3 size={16} aria-hidden="true" />{courseResponse.course.schedule || 'Turno não informado'}</span>
+                        {latestCourseEdition && <span>SISU {latestCourseEdition}</span>}
+                        <span>Código SISU {courseResponse.course.code}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.contextControl}>
+                    <label htmlFor="selected-modality-filter">Modalidade oficial</label>
+                    <div className={styles.controlWrap}>
+                      <select
+                        id="selected-modality-filter"
+                        aria-label="Modalidade oficial com referência nesta edição"
+                        value={selectedModality}
+                        disabled={availableModalities.length === 0}
+                        onChange={event => setSelectedModality(event.target.value)}
+                      >
+                        <option value="">Selecione a modalidade</option>
+                        {availableModalities.map(modality => (
+                          <option key={modality.id} value={modality.id}>{modality.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={18} aria-hidden="true" />
+                    </div>
+                    <details className={styles.modalityAssistant}>
+                      <summary>Não sei qual é a minha modalidade</summary>
+                      <p>
+                        Confira escola pública, renda de até 1 salário mínimo per capita, pertencimento
+                        étnico-racial, deficiência e os critérios específicos da instituição. A XTRI nunca
+                        escolhe ou substitui sua modalidade.
+                      </p>
+                      <a
+                        href="https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/lei/l14723.htm"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Ver critérios oficiais
+                      </a>
+                    </details>
                   </div>
                 </div>
 
@@ -1191,42 +1193,11 @@ export default function Home() {
                   </div>
                 )}
 
-                {!loadingFilters.details && !detailsError && activeDetailTab !== 'statistics' && (
-                  <>
-                    <div className={styles.detailNotice}>
-                      <AlertTriangle size={17} aria-hidden="true" />
-                      Pesos, mínimos e referências podem mudar entre edições. Confira os indicadores de origem e verificação.
-                    </div>
-
-                    <div id="year-info" className={styles.editionBar}>
-                      {latestCourseEdition || 'Edição não informada'} (Única - 1ª)
-                    </div>
-
-                    <div className={styles.selectedModalityControl}>
-                      <label htmlFor="selected-modality-filter">Modalidade:</label>
-                      <div className={styles.controlWrap}>
-                        <select
-                          id="selected-modality-filter"
-                          aria-label="Modalidade oficial com referência nesta edição"
-                          value={selectedModality}
-                          disabled={availableModalities.length === 0}
-                          onChange={event => setSelectedModality(event.target.value)}
-                        >
-                          <option value="">Modalidade</option>
-                          {availableModalities.map(modality => (
-                            <option key={modality.id} value={modality.id}>{modality.name}</option>
-                          ))}
-                        </select>
-                        <ChevronDown size={18} aria-hidden="true" />
-                      </div>
-                    </div>
-                  </>
-                )}
-
                 {!loadingFilters.details && activeDetailTab !== 'statistics' && !selectedModality && !modalityNotice && (
                   <div className={styles.selectionPrompt} role="status">
-                    Selecione acima uma modalidade oficial desta oferta. Nenhum valor de Ampla será usado
-                    como substituto.
+                    <strong>Falta só confirmar a modalidade.</strong>
+                    Selecione acima a opção oficial que corresponde ao seu caso. Nenhum valor de Ampla
+                    será usado como substituto.
                   </div>
                 )}
 
@@ -1241,130 +1212,25 @@ export default function Home() {
                   >
                     {coursePreview ? (
                       <>
-                        <section className={styles.comparisonCard} aria-labelledby="result-title">
-                          <h3 id="result-title">Resumo da comparação</h3>
-                          <div className={styles.resultGrid}>
-                            <div>
-                              <span>Sua nota ponderada</span>
-                              <strong>{userAverage === null ? 'Indisponível' : formatScore(userAverage)}</strong>
-                              <small>
-                                {coursePreview.weights_year
-                                  ? 'Pesos da edição ' + coursePreview.weights_year
-                                  : 'Pesos da mesma edição não disponíveis'}
-                              </small>
-                            </div>
-                            <div>
-                              <span>Última referência</span>
-                              <strong>{formatScore(coursePreview.cut_score)}</strong>
-                              <small>{coursePreview.cut_score_type} · edição {coursePreview.cut_score_year}</small>
-                            </div>
-                            <div>
-                              <span>Diferença para a referência</span>
-                              <strong>
-                                {margin === null ? 'Indisponível' : (margin > 0 ? '+' : '') + formatScore(margin)}
-                              </strong>
-                              <small>
-                                {margin === null
-                                  ? 'Preencha notas válidas e atenda aos mínimos para comparar'
-                                  : margin >= 0 ? 'pontos acima da referência' : 'pontos abaixo da referência'}
-                              </small>
-                            </div>
-                          </div>
-                          {comparisonAllowed && userAverage !== null && (
-                            <ProbabilityGauge userScore={userAverage} cutScore={coursePreview.cut_score} />
-                          )}
-                          {!comparisonAllowed && (
-                            <p className={styles.comparisonBlocked}>
-                              A nota de corte está disponível. Para calcular sua diferença, informe todas as notas,
-                              use os pesos da mesma edição e atenda às notas mínimas publicadas.
-                            </p>
-                          )}
-                        </section>
-
-                        <div className={styles.detailColumns}>
-                          <section className={styles.infoCard} aria-labelledby="requirements-title">
-                            <h3 id="requirements-title">Pesos e notas mínimas</h3>
-                            {coursePreview.minimums && Object.values(coursePreview.minimums).some(value => value !== null) ? (
-                              <dl className={styles.minimumsGrid}>
-                                {[
-                                  ['Redação', coursePreview.minimums.redacao],
-                                  ['Linguagens', coursePreview.minimums.linguagens],
-                                  ['Matemática', coursePreview.minimums.matematica],
-                                  ['Humanas', coursePreview.minimums.humanas],
-                                  ['Natureza', coursePreview.minimums.natureza],
-                                  ['Média ENEM', coursePreview.minimums.enem],
-                                ].map(([label, value]) => (
-                                  <div key={String(label)}>
-                                    <dt>{label}</dt>
-                                    <dd>{typeof value === 'number' ? formatScore(value) : 'Não exigido'}</dd>
-                                  </div>
-                                ))}
-                              </dl>
-                            ) : (
-                              <p className={styles.sectionEmpty}>Mínimos da mesma edição não informados.</p>
-                            )}
-                            {scoreResult.minimums.status === 'failed' && (
-                              <p className={styles.minimumWarning} role="alert">
-                                Uma ou mais notas estão abaixo do mínimo informado. A margem permanece suspensa.
-                              </p>
-                            )}
-                          </section>
-
-                          <section className={styles.infoCard} aria-labelledby="trend-title">
-                            <h3 id="trend-title">Notas parciais</h3>
-                            {coursePreview.activeData.partial_scores.length > 0 ? (
-                              <>
-                                <p className={styles.trendSummary}>{getDailyTrend(coursePreview.activeData)}</p>
-                                <div className={styles.partialGrid}>
-                                  {coursePreview.activeData.partial_scores.map(partial => (
-                                    <span key={partial.day}>
-                                      {partial.day}º dia: <strong>{formatScore(partial.score)}</strong>
-                                    </span>
-                                  ))}
-                                </div>
-                              </>
-                            ) : (
-                              <p className={styles.sectionEmpty}>Não há sequência de parciais para esta referência.</p>
-                            )}
-                          </section>
-                        </div>
-
-                        <DataTrustPanel
-                          status={coursePreview.reference.verification.status}
-                          edition={coursePreview.reference.edition}
+                        <PointsPlan
+                          courseName={coursePreview.name}
                           modalityName={coursePreview.reference.modalityOfficialName}
-                          referenceType={coursePreview.reference.referenceType}
-                          capturedAt={coursePreview.reference.capturedAt}
-                          checkedAt={coursePreview.reference.verification.checkedAt}
-                          sourceUrl={coursePreview.reference.sourceUrl}
-                          intermediary={coursePreview.reference.intermediary}
+                          edition={coursePreview.cut_score_year}
+                          scores={scores}
+                          hasScores={hasScores}
+                          weights={coursePreview.weights}
+                          userAverage={userAverage}
+                          cutoff={coursePreview.cut_score}
+                          margin={margin}
+                          comparisonAllowed={comparisonAllowed}
+                          minimumStatus={scoreResult.minimums.status}
+                          reference={coursePreview.reference}
+                          detailsOpen={showDetails}
+                          onEditScores={() => setShowScoreInput(true)}
+                          onOpenRadar={() => setShowRadar(true)}
+                          onOpenShare={() => setShowShare(true)}
+                          onToggleDetails={() => setShowDetails(value => !value)}
                         />
-
-                        <div className={styles.actionButtons}>
-                          <button
-                            type="button"
-                            className={styles.primaryAction}
-                            disabled={!comparisonAllowed}
-                            onClick={() => setShowRadar(true)}
-                          >
-                            Radar de ofertas
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.secondaryAction}
-                            disabled={!comparisonAllowed}
-                            onClick={() => setShowShare(true)}
-                          >
-                            Compartilhar comparação
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.textAction}
-                            onClick={() => setShowDetails(value => !value)}
-                          >
-                            {showDetails ? 'Ocultar informações por ano' : 'Ver informações por ano'}
-                          </button>
-                        </div>
 
                         {showDetails && detailCourse && (
                           <div className={styles.expandedDetails}>
@@ -1503,15 +1369,45 @@ export default function Home() {
 
         <footer id="about" className={styles.footer}>
           <div className={styles.shell}>
-            <p>
-              O XTRI SISU organiza referências para acompanhamento. Classificações parciais não garantem
-              seleção e nenhuma modalidade é escolhida automaticamente.
-            </p>
-            <div>
-              <a href="https://sisu.mec.gov.br/vagas" target="_blank" rel="noopener noreferrer">SISU/MEC</a>
-              <a href="mailto:contato@xtri.online">contato@xtri.online</a>
-              <a href="https://instagram.com/xandaoxtri" target="_blank" rel="noopener noreferrer">@xandaoxtri</a>
+            <div className={styles.footerIntro}>
+              <span className={styles.footerBrand}>
+                <img src="/xtri-logo.png" alt="" />
+                <strong>XTRI SISU</strong>
+              </span>
+              <p>
+                Dados para decidir com clareza. Referências parciais e históricas não garantem seleção,
+                e nenhuma modalidade é escolhida automaticamente.
+              </p>
             </div>
+            <nav className={styles.ecosystemLinks} aria-label="Ecossistema XTRI">
+              <a
+                href="https://xtri.online"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Conheça a XTRI"
+              >
+                <span>Conheça a XTRI</span>
+                <strong>xtri.online <ExternalLink size={14} aria-hidden="true" /></strong>
+              </a>
+              <a
+                href="https://rankingenem.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Ranking ENEM para escolas"
+              >
+                <span>Para escolas</span>
+                <strong>Ranking ENEM <ExternalLink size={14} aria-hidden="true" /></strong>
+              </a>
+              <a
+                href="https://instagram.com/xandaoxtri"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram @xandaoxtri"
+              >
+                <span>Acompanhe conteúdos</span>
+                <strong>@xandaoxtri <ExternalLink size={14} aria-hidden="true" /></strong>
+              </a>
+            </nav>
           </div>
         </footer>
       </main>

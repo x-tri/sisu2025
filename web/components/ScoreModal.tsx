@@ -111,12 +111,10 @@ export default function ScoreModal({
         aria-modal="true"
         aria-labelledby="score-modal-title"
       >
-        <h2 id="score-modal-title">Minhas notas</h2>
-
-        <div className={styles.yearTabs} aria-label="Edição das notas">
-          <button type="button" disabled>{currentEdition - 2}</button>
-          <button type="button" disabled>{currentEdition - 1}</button>
-          <button type="button" className={styles.activeYear} aria-current="true">{currentEdition}</button>
+        <div className={styles.modalHeader}>
+          <span>ENEM {currentEdition}</span>
+          <h2 id="score-modal-title">Minhas notas</h2>
+          <p>Preencha as cinco áreas. A XTRI recalcula seu plano assim que você salvar.</p>
         </div>
 
         <div className={styles.fields}>
@@ -136,12 +134,13 @@ export default function ScoreModal({
                 onChange={updateField}
                 placeholder="000.0"
                 aria-invalid={Boolean(error)}
+                aria-describedby={error ? 'score-modal-error' : undefined}
               />
             </div>
           ))}
         </div>
 
-        {error && <p className={styles.error} role="alert">{error}</p>}
+        {error && <p id="score-modal-error" className={styles.error} role="alert">{error}</p>}
 
         <label className={styles.remember}>
           <input

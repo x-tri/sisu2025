@@ -16,7 +16,7 @@ test('resolve Medicina/UFGD 2026 por ID de L1 sem substituir Ampla', async ({ pa
   const comparison = page.getByRole('region', { name: 'Resumo da comparação' });
   await expect(comparison).toContainText(L1_CUTOFF.toFixed(2).replace('.', ','));
   await expect(comparison).not.toContainText(BROAD_CUTOFF.toFixed(2).replace('.', ','));
-  await expect(comparison).toContainText('edição 2026');
+  await expect(comparison).toContainText('SISU 2026');
   const trustPanel = page.getByRole('region', { name: 'Origem desta referência' });
   await expect(trustPanel.getByText(L1_MODALITY_NAME, { exact: true })).toBeVisible();
 });
@@ -29,6 +29,34 @@ test('exibe estado vazio da busca', async ({ page }) => {
 
   await expect(page.getByText('Nenhuma oferta encontrada.', { exact: true })).toBeVisible();
   await expect(page.getByRole('list', { name: 'Resultados da busca' })).toHaveCount(0);
+});
+
+test('mantém os destinos do ecossistema XTRI acessíveis sem abrir menus', async ({ page }) => {
+  await installApiMocks(page);
+  await page.goto('/');
+
+  await expect(page.getByRole('link', { name: 'Conheça a XTRI' })).toHaveAttribute(
+    'href',
+    'https://xtri.online',
+  );
+  await expect(page.getByRole('link', { name: 'Ranking ENEM para escolas' })).toHaveAttribute(
+    'href',
+    'https://rankingenem.com',
+  );
+  await expect(page.getByRole('link', { name: 'Instagram @xandaoxtri' })).toHaveAttribute(
+    'href',
+    'https://instagram.com/xandaoxtri',
+  );
+});
+
+test('leva do plano direto para uma nova busca com um clique', async ({ page }) => {
+  await installApiMocks(page);
+  await page.goto('/');
+  await selectVerifiedL1Course(page);
+
+  await page.getByRole('button', { name: 'Curso, universidade ou cidade' }).click();
+
+  await expect(page.getByRole('searchbox', { name: 'Curso, instituição ou cidade' })).toBeFocused();
 });
 
 test('recupera a cobertura após resposta 500 e retry', async ({ page }) => {
@@ -144,7 +172,7 @@ test('mantém o foco no campo enquanto a nota é digitada', async ({ page }) => 
 
   await expect(languages).toBeFocused();
   await expect(languages).toHaveValue('690');
-  await expect(page.getByRole('button', { name: '2026' })).not.toBeFocused();
+  await expect(page.getByRole('heading', { name: 'Minhas notas' })).not.toBeFocused();
 });
 
 test('ativa as abas principais e carrega estatísticas e ofertas próximas inline', async ({ page }) => {
@@ -154,7 +182,7 @@ test('ativa as abas principais e carrega estatísticas e ofertas próximas inlin
   await enterValidScores(page);
 
   const tablist = page.getByRole('tablist', { name: 'Seções da oferta' });
-  const yearsTab = tablist.getByRole('tab', { name: 'Informações por ano' });
+  const yearsTab = tablist.getByRole('tab', { name: 'Plano de pontos' });
   const statisticsTab = tablist.getByRole('tab', { name: 'Estatísticas' });
   const nearbyTab = tablist.getByRole('tab', { name: 'Ofertas próximas' });
 
