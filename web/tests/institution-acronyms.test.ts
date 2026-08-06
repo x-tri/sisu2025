@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { resolveUniversityAcronym } from '../lib/institution-acronyms'
+import {
+  resolveOfficialInstitutionNameByAcronym,
+  resolveUniversityAcronym,
+} from '../lib/institution-acronyms'
 
 test('resolve a sigla oficial da Universidade Federal do Rio Grande do Norte', () => {
   assert.equal(
@@ -31,4 +34,13 @@ test('regressão: nunca deriva UFRGN do nome oficial da UFRN', () => {
     resolveUniversityAcronym('Universidade Federal do Rio Grande do Norte'),
     'UFRGN'
   )
+})
+
+test('resolve UFRN para o nome oficial usado na busca', () => {
+  assert.equal(
+    resolveOfficialInstitutionNameByAcronym('ufrn'),
+    'Universidade Federal do Rio Grande do Norte'
+  )
+  assert.equal(resolveOfficialInstitutionNameByAcronym('UFRGN'), null)
+  assert.equal(resolveOfficialInstitutionNameByAcronym(null), null)
 })

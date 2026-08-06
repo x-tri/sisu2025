@@ -85,3 +85,33 @@ test('GET /api/courses expõe somente siglas do registro institucional verificad
   assert.notEqual(body.courses[0]?.universityAcronym, 'UFRGN')
   assert.equal(body.courses[1]?.universityAcronym, null)
 })
+
+test('GET /api/courses encontra ofertas ao buscar pela sigla UFRN', async context => {
+  context.mock.method(supabase, 'searchCoursesPaginated', async filters => {
+    assert.equal(filters.query, undefined)
+    assert.equal(filters.institution, 'Universidade Federal do Rio Grande do Norte')
+    return {
+      data: [UFRN_COURSE],
+      error: null,
+      count: 1,
+    }
+  })
+  context.mock.method(supabase, 'getCoursePreviewCutScores', async () => ({
+    data: [],
+    error: null,
+  }))
+  context.mock.method(supabase, 'getCoursePreviewWeights', async () => ({
+    data: [],
+    error: null,
+  }))
+
+  const request = new NextRequest('http://localhost/api/courses?q=UFRN&limit=30')
+  const response = await GET(request)
+  const body = await response.json() as CourseSearchResponse
+
+  assert.equal(response.status, 200)
+  assert.equal(body.query, 'UFRN')
+  assert.equal(body.total, 1)
+  assert.equal(body.courses[0]?.universityAcronym, 'UFRN')
+  assert.equal(body.courses[0]?.university, 'Universidade Federal do Rio Grande do Norte')
+})
