@@ -249,17 +249,19 @@ export default function PointsPlan({
         <section className={styles.metrics} aria-label="Resumo da comparação">
           <div>
             <span>Sua nota ponderada</span>
-            <strong>{hasScores ? formatScore(userAverage) : 'Adicione notas'}</strong>
+            <strong className={hasScores ? undefined : styles.metricPlaceholder}>
+              {hasScores ? formatScore(userAverage) : 'Adicione notas'}
+            </strong>
             <small>A nota ponderada aplica os pesos oficiais às suas cinco notas do ENEM.</small>
           </div>
           <div>
             <span>Última referência</span>
-            <strong>{formatScore(cutoff)}</strong>
+            <strong className={Number.isFinite(cutoff) ? undefined : styles.metricPlaceholder}>{formatScore(cutoff)}</strong>
             <small>{referenceTypeLabel(reference)} · SISU {edition}.</small>
           </div>
           <div className={marginRelation === 'below' ? styles.metricAttention : undefined}>
             <span>Diferença para a referência</span>
-            <strong>{formatScore(marginValue)}</strong>
+            <strong className={marginValue === null ? styles.metricPlaceholder : undefined}>{formatScore(marginValue)}</strong>
             <small>
               {marginRelation === null
                 ? 'Informe notas válidas para comparar.'

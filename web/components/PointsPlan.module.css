@@ -119,6 +119,7 @@
   background: #fff;
   border: 1px solid var(--xtri-border);
   border-radius: 1rem;
+  container-type: inline-size;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   overflow: hidden;
@@ -129,7 +130,7 @@
   display: grid;
   gap: 0.45rem;
   min-width: 0;
-  padding: 1.25rem;
+  padding: 1.25rem 1rem;
 }
 
 .metrics > div + div {
@@ -145,11 +146,20 @@
 .metrics strong {
   color: var(--xtri-navy);
   font-family: var(--font-display);
-  font-size: clamp(1.65rem, 3vw, 2.65rem);
+  /* Sized from the card width so "1000,00" always fits one column. */
+  font-size: clamp(1.25rem, 8.5cqi - 0.55rem, 2.65rem);
+  font-variant-numeric: tabular-nums;
   font-weight: 650;
   letter-spacing: -0.045em;
   line-height: 1;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+}
+
+.metrics .metricPlaceholder {
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  white-space: normal;
 }
 
 .metrics small {

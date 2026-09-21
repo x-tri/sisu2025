@@ -218,10 +218,11 @@
     margin-top: 0.4rem;
     color: #172033;
     font-size: clamp(1.25rem, 8vw, 1.8rem);
+    font-variant-numeric: tabular-nums;
     font-weight: 800;
     letter-spacing: -0.035em;
     line-height: 1.1;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
 }
 
 .scoreMetric .primaryScore {
@@ -236,6 +237,7 @@
     color: #80570b;
     font-size: 1.2rem;
     letter-spacing: -0.01em;
+    white-space: normal;
 }
 
 .scoreMetric small {

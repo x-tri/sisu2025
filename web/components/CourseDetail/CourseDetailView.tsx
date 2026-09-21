@@ -309,7 +309,7 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
                     <div className={styles.scoreGrid}>
                         <div className={styles.scoreMetric}>
                             <span>Sua nota ponderada</span>
-                            <strong className={styles.primaryScore}>
+                            <strong className={userAverage === null ? styles.suspendedScore : styles.primaryScore}>
                                 {userAverage === null ? 'Indisponível' : formatScore(userAverage)}
                             </strong>
                             <small>
@@ -320,7 +320,9 @@ export default function CourseDetailView({ course }: CourseDetailViewProps) {
                         </div>
                         <div className={styles.scoreMetric}>
                             <span>Última referência</span>
-                            <strong>{formatScore(referenceValue)}</strong>
+                            <strong className={referenceValue === null ? styles.suspendedScore : undefined}>
+                                {formatScore(referenceValue)}
+                            </strong>
                             <small>
                                 {referenceTypeLabel(reference?.referenceType)} · edição {latestCutScore.year}
                             </small>
