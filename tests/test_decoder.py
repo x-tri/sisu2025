@@ -45,6 +45,21 @@ class TestProtobufDecoder:
         result = try_decode_string(b'\xff\xfe')
         assert result is None
 
+    def test_try_decode_string_rejects_small_nested_message(self):
+        """Test that a tiny nested message is not mistaken for text"""
+        from src.decoder.protobuf import try_decode_string
+
+        # `08 33` = field 1, varint 51: valid UTF-8, but not a string
+        assert try_decode_string(bytes([0x08, 0x33])) is None
+
+    def test_parse_message_small_nested_varint(self):
+        """Test nested message holding a varint below 128"""
+        from src.decoder.protobuf import parse_message
+
+        # field 7, length 2, payload `08 33`
+        result = parse_message(bytes([0x3A, 0x02, 0x08, 0x33]))
+        assert result[7] == [('message', {1: [('varint', 51)]})]
+
 
 class TestCourseDecoder:
     """Tests for course data decoding"""
@@ -85,3 +100,18 @@ class TestCourseDecoder:
         scores = course.get_cut_scores()
         assert 'AMPLA' in scores
         assert scores['AMPLA']['cut_score'] == 780.50
+
+    def test_decode_course_real_payload_has_vacancies(self):
+        """Test that every modality of a real API payload decodes its vacancies"""
+        from src.decoder.course import decode_course
+
+        raw_dir = Path(__file__).parent.parent / 'data' / 'raw'
+        samples = sorted(raw_dir.glob('*.bin'))
+        assert samples, 'no real payloads found in data/raw'
+
+        for sample in samples:
+            course = decode_course(sample.read_bytes())
+            assert course is not None
+            modalities = [m for year in course.years for m in year.modalities]
+            assert modalities
+            assert all(m.vacancies is not None and m.vacancies > 0 for m in modalities), sample.name

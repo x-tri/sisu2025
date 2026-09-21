@@ -44,10 +44,15 @@ def try_decode_string(data: bytes) -> Optional[str]:
     """
     try:
         text = data.decode('utf-8')
-        if text.isprintable() or '\n' not in text:
-            return text
     except (UnicodeDecodeError, AttributeError):
-        pass
+        return None
+    # Small nested messages (e.g. vacancies `08 33`) are valid UTF-8 too, but they
+    # always carry control bytes (tag/length), which real text never does.
+    if any(ord(ch) < 0x20 and ch not in '\n\r\t' or ord(ch) == 0x7F for ch in text):
+        return None
+    # A leading '\n' is the tag of a nested message's field 1, so keep rejecting it.
+    if text.isprintable() or '\n' not in text:
+        return text
     return None
 
 
