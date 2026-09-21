@@ -44,6 +44,8 @@ Supabase: cut_scores table
 - **API Format**: Response is Protobuf binary, requires decoder
 - **Rate Limits**: Use ThreadPoolExecutor with max 20 workers to avoid overwhelming API
 - **Timing**: Run sync after 5 AM to ensure MEC has published overnight scores
+- **Upsert key**: `cut_scores` has a unique index on `(course_id, year, modality_code)`. Every POST must use `?on_conflict=course_id,year,modality_code`; without it PostgREST resolves conflicts on `id`, re-syncing an existing row returns 409 and the update is silently lost (this is why final 2025/2026 cut scores never replaced the partial ones). Modalities without a code are skipped because NULL never conflicts and would duplicate on every run.
+- **Vacancies**: fixed in the decoder on 2026-09-21 (small nested messages were read as text). Rows synced before that date have `vacancies = NULL` until the next full sync.
 
 ## Verification
 After sync, verify with:

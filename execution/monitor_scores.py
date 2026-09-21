@@ -20,7 +20,7 @@ import os
 import sys
 import time
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -32,6 +32,8 @@ from src.decoder import decode_course
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://sisymqzxvuktdcbsbpbp.supabase.co")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 MEUSISU_API = "https://d3hf41n0t98fq2.cloudfront.net/api"
+# Unique index on cut_scores; without it PostgREST resolves conflicts on `id` and re-syncs fail with 409
+CUT_SCORES_CONFLICT_KEY = "course_id,year,modality_code"
 
 HEADERS = {
     "apikey": SUPABASE_KEY,
@@ -105,6 +107,8 @@ def update_cut_scores(course_id: int, code: int) -> dict:
         return stats
     
     for modality in year_2025.modalities:
+        if modality.code is None:
+            continue
         payload = {
             "course_id": course_id,
             "year": 2025,
@@ -114,11 +118,12 @@ def update_cut_scores(course_id: int, code: int) -> dict:
             "applicants": modality.applicants,
             "vacancies": modality.vacancies,
             "partial_scores": modality.partial_scores,
+            "captured_at": datetime.now(timezone.utc).isoformat(),
         }
         
         try:
             resp = requests.post(
-                f"{SUPABASE_URL}/rest/v1/cut_scores",
+                f"{SUPABASE_URL}/rest/v1/cut_scores?on_conflict={CUT_SCORES_CONFLICT_KEY}",
                 headers={**HEADERS, "Prefer": "resolution=merge-duplicates,return=minimal"},
                 json=payload
             )

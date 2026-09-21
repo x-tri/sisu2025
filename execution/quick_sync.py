@@ -8,7 +8,7 @@ import os
 import sys
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timezone
 
 sys.path.insert(0, str(os.path.dirname(os.path.dirname(__file__))))
 from src.decoder.course import decode_course
@@ -17,6 +17,8 @@ from src.decoder.course import decode_course
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://sisymqzxvuktdcbsbpbp.supabase.co")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODYwNTk0MSwiZXhwIjoyMDg0MTgxOTQxfQ.yDWKET6qMOKukkFrRGL8UW4C4qK4BtcVmoJQpI2lG9o")
 MEUSISU_API = "https://d3hf41n0t98fq2.cloudfront.net/api"
+# Unique index on cut_scores; without it PostgREST resolves conflicts on `id` and re-syncs fail with 409
+CUT_SCORES_CONFLICT_KEY = "course_id,year,modality_code"
 TARGET_YEAR = 2026  # Ano do SISU atual
 
 HEADERS = {
@@ -80,6 +82,8 @@ def sync_course_cut_scores(course):
         
         inserted = 0
         for modality in year_data.modalities:
+            if modality.code is None:
+                continue
             payload = {
                 "course_id": course_id,
                 "year": TARGET_YEAR,
@@ -89,10 +93,11 @@ def sync_course_cut_scores(course):
                 "applicants": modality.applicants,
                 "vacancies": modality.vacancies,
                 "partial_scores": modality.partial_scores,
+                "captured_at": datetime.now(timezone.utc).isoformat(),
             }
             
             resp = requests.post(
-                f"{SUPABASE_URL}/rest/v1/cut_scores",
+                f"{SUPABASE_URL}/rest/v1/cut_scores?on_conflict={CUT_SCORES_CONFLICT_KEY}",
                 headers=HEADERS,
                 json=payload
             )

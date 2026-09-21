@@ -9,6 +9,7 @@ import sys
 import json
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
 from time import sleep
 
 sys.path.insert(0, str(os.path.dirname(os.path.dirname(__file__))))
@@ -19,6 +20,8 @@ from src.decoder.course import decode_course, decode_students
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://sisymqzxvuktdcbsbpbp.supabase.co")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 MEUSISU_API = "https://meusisu.com/api"
+# Unique index on cut_scores; without it PostgREST resolves conflicts on `id` and re-syncs fail with 409
+CUT_SCORES_CONFLICT_KEY = "course_id,year,modality_code"
 
 if not SUPABASE_KEY:
     print("ERROR: SUPABASE_SERVICE_KEY not set")
@@ -202,6 +205,8 @@ def sync_course_cut_scores(course_id: int, code: int):
             continue
         
         for modality in year_data.modalities:
+            if modality.code is None:
+                continue
             payload = {
                 "course_id": course_id,
                 "year": year_data.year,
@@ -211,10 +216,11 @@ def sync_course_cut_scores(course_id: int, code: int):
                 "applicants": modality.applicants,
                 "vacancies": modality.vacancies,
                 "partial_scores": modality.partial_scores,
+                "captured_at": datetime.now(timezone.utc).isoformat(),
             }
             
             resp = requests.post(
-                f"{SUPABASE_URL}/rest/v1/cut_scores",
+                f"{SUPABASE_URL}/rest/v1/cut_scores?on_conflict={CUT_SCORES_CONFLICT_KEY}",
                 headers={**HEADERS, "Prefer": "resolution=merge-duplicates,return=minimal"},
                 json=payload
             )
