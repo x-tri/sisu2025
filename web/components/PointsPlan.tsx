@@ -249,10 +249,14 @@ export default function PointsPlan({
         <section className={styles.metrics} aria-label="Resumo da comparação">
           <div>
             <span>Sua nota ponderada</span>
-            <strong className={hasScores ? undefined : styles.metricPlaceholder}>
+            <strong className={hasScores && userAverage !== null ? undefined : styles.metricPlaceholder}>
               {hasScores ? formatScore(userAverage) : 'Adicione notas'}
             </strong>
-            <small>A nota ponderada aplica os pesos oficiais às suas cinco notas do ENEM.</small>
+            <small>
+              {hasScores && userAverage === null
+                ? 'Não foi possível calcular: faltam os pesos oficiais desta edição para esta oferta.'
+                : 'A nota ponderada aplica os pesos oficiais às suas cinco notas do ENEM.'}
+            </small>
           </div>
           <div>
             <span>Última referência</span>
