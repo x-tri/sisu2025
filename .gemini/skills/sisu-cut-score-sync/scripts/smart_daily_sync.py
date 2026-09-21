@@ -19,9 +19,10 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 MEUSISU_API = "https://meusisu.com/api"
 TARGET_YEAR = 2026
 TARGET_DAY = int(sys.argv[1]) if len(sys.argv) > 1 else 3  # Dia a sincronizar (default: 3)
-# API do MeuSISU tem inconsistência: alguns cursos (principalmente IFs)
-# retornam ano 2025 para o SISU 2026. Buscamos ambos e mapeamos para 2026.
-API_YEARS = [2026, 2025]  # Prioridade: 2026 primeiro, depois 2025
+# Só o ano alvo. Um curso que a API lista apenas até 2025 não participou do SISU 2026:
+# em jan/2026 o fallback para 2025 gravou 2.906 linhas da edição 2025 como se fossem 2026
+# (393 cursos), removidas do banco em 2026-09-21. Nunca remapear anos.
+API_YEARS = [TARGET_YEAR]
 
 HEADERS = {
     "apikey": SUPABASE_KEY,
@@ -91,8 +92,7 @@ def get_courses_missing_day():
 def sync_course(course):
     """Sync cut scores for a single course.
 
-    Busca dados nos anos 2026 e 2025 da API (alguns IFs usam 2025 para SISU 2026).
-    Sempre salva como ano 2026 no banco para uniformizar.
+    Usa somente o ano TARGET_YEAR da API; cursos sem esse ano são ignorados.
     """
     course_id = course['id']
     code = course['code']
@@ -106,7 +106,7 @@ def sync_course(course):
         if not course_data or not course_data.years:
             return {"code": code, "status": "no_data", "updated": 0}
 
-        # Buscar dados em 2026 ou 2025 (API inconsistente para IFs)
+        # Buscar dados do ano alvo
         year_data = None
         api_year_used = None
         for api_year in API_YEARS:
