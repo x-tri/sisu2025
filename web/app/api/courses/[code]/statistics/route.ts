@@ -6,9 +6,22 @@ import {
   type ApprovedScoreRow,
 } from '@/lib/course-statistics'
 import { supabase } from '@/lib/supabase'
+import { createTtlCache } from '@/lib/ttl-cache'
 
 const STUDENT_BATCH_SIZE = 1000
 const MAX_STUDENT_ROWS = 20_000
+// Approved-student rows are historical and only change on a student sync, so a
+// short per-process cache spares Supabase a multi-page scan on every request.
+const STUDENT_CACHE_TTL_MS = 10 * 60 * 1000
+const STUDENT_CACHE_MAX_COURSES = 100
+
+type ApprovedScoreResult = { data: ApprovedScoreRow[] | null; error: string | null }
+
+const studentCache = createTtlCache<number, ApprovedScoreResult>({
+  ttlMs: STUDENT_CACHE_TTL_MS,
+  maxEntries: STUDENT_CACHE_MAX_COURSES,
+  shouldKeep: result => result.error === null && result.data !== null,
+})
 
 interface RouteParams {
   params: Promise<{ code: string }> | { code: string }
@@ -23,10 +36,11 @@ function jsonResponse(body: unknown, status = 200): NextResponse {
   })
 }
 
-async function loadApprovedScoreRows(courseId: number): Promise<{
-  data: ApprovedScoreRow[] | null
-  error: string | null
-}> {
+function loadApprovedScoreRows(courseId: number): Promise<ApprovedScoreResult> {
+  return studentCache.get(courseId, () => fetchApprovedScoreRows(courseId))
+}
+
+async function fetchApprovedScoreRows(courseId: number): Promise<ApprovedScoreResult> {
   const rows: ApprovedScoreRow[] = []
 
   for (let offset = 0; offset < MAX_STUDENT_ROWS; offset += STUDENT_BATCH_SIZE) {
