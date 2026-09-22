@@ -111,6 +111,15 @@ function formatScore(value: number | null, digits = 2): string {
   return value.toFixed(digits).replace('.', ',');
 }
 
+function roundScore(value: number): number {
+  return Number.isFinite(value) ? Math.round(value * 100) / 100 : 0;
+}
+
+function parseScore(text: string): number | null {
+  const value = Number(text.trim().replace(',', '.'));
+  return Number.isFinite(value) && value >= 0 && value <= 1000 ? value : null;
+}
+
 function formatDate(value?: string | null): string {
   if (!value) return 'Não informada';
   const date = new Date(value);
@@ -166,10 +175,13 @@ export default function PointsPlan({
   onToggleDetails,
 }: PointsPlanProps) {
   const [showQuickGuide, setShowQuickGuide] = useState(false);
-  const [targetScore, setTargetScore] = useState(() => Math.ceil(cutoff * 10) / 10);
+  const [targetScore, setTargetScore] = useState(() => roundScore(cutoff));
+  const [targetDraft, setTargetDraft] = useState(() => formatScore(roundScore(cutoff)));
 
   useEffect(() => {
-    setTargetScore(Math.ceil(cutoff * 10) / 10);
+    const next = roundScore(cutoff);
+    setTargetScore(next);
+    setTargetDraft(formatScore(next));
   }, [cutoff]);
 
   const totalWeight = useMemo(() => SUBJECTS.reduce((total, subject) => (
@@ -226,24 +238,27 @@ export default function PointsPlan({
             {weightSummary}
           </p>
 
-          <ol className={styles.steps} aria-label="Como ler seu plano">
-            <li>
-              <span>1</span>
-              <div><strong>Onde você está</strong><small>Sua nota com os pesos desta oferta.</small></div>
-            </li>
-            <li>
-              <span>2</span>
-              <div><strong>Quanto falta</strong><small>Comparação com a última referência.</small></div>
-            </li>
-            <li>
-              <span>3</span>
-              <div><strong>O que mais pesa</strong><small>Áreas com maior peso oficial.</small></div>
-            </li>
-            <li>
-              <span>4</span>
-              <div><strong>Ajuste e veja</strong><small>Edite suas notas sem sair da tela.</small></div>
-            </li>
-          </ol>
+          <details className={styles.stepsDetails}>
+            <summary>Como ler seu plano</summary>
+            <ol className={styles.steps} aria-label="Como ler seu plano">
+              <li>
+                <span>1</span>
+                <div><strong>Onde você está</strong><small>Sua nota com os pesos desta oferta.</small></div>
+              </li>
+              <li>
+                <span>2</span>
+                <div><strong>Quanto falta</strong><small>Comparação com a última referência.</small></div>
+              </li>
+              <li>
+                <span>3</span>
+                <div><strong>O que mais pesa</strong><small>Áreas com maior peso oficial.</small></div>
+              </li>
+              <li>
+                <span>4</span>
+                <div><strong>Ajuste e veja</strong><small>Edite suas notas sem sair da tela.</small></div>
+              </li>
+            </ol>
+          </details>
         </div>
 
         <section className={styles.metrics} aria-label="Resumo da comparação">
@@ -338,26 +353,28 @@ export default function PointsPlan({
           <div className={styles.targetInput}>
             <input
               id="personal-target"
-              type="number"
+              type="text"
               inputMode="decimal"
-              min="0"
-              max="1000"
-              step="0.1"
-              value={targetScore}
+              autoComplete="off"
+              aria-describedby="personal-target-help"
+              value={targetDraft}
               onChange={event => {
-                const value = Number(event.target.value);
-                if (Number.isFinite(value) && value >= 0 && value <= 1000) setTargetScore(value);
+                setTargetDraft(event.target.value);
+                const value = parseScore(event.target.value);
+                if (value !== null) setTargetScore(value);
               }}
+              onBlur={() => setTargetDraft(formatScore(targetScore))}
             />
+            <PenLine size={18} aria-hidden="true" />
           </div>
-          <p className={styles.targetHelp}>É uma meta escolhida por você, não uma previsão de corte oficial.</p>
+          <p id="personal-target-help" className={styles.targetHelp}>Toque para editar. É uma meta escolhida por você, não uma previsão de corte oficial.</p>
 
           <div className={styles.targetResult} aria-live="polite">
             {targetDifference === null
               ? 'Adicione suas notas para comparar com a meta.'
               : targetDifference >= 0
                 ? `Sua nota está ${formatScore(Math.abs(targetDifference))} pontos acima da meta.`
-                : <>Faltam <strong>{formatScore(Math.abs(targetDifference))}</strong> pontos para a meta de {formatScore(targetScore, 1)}.</>}
+                : <>Faltam <strong>{formatScore(Math.abs(targetDifference))}</strong> pontos para a meta de {formatScore(targetScore)}.</>}
           </div>
 
           <button type="button" className={styles.editScoresButton} onClick={onEditScores}>
