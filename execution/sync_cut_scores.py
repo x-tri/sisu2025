@@ -98,8 +98,7 @@ def get_supabase_courses():
     while True:
         resp = requests.get(
             f"{SUPABASE_URL}/rest/v1/courses?select=id,code,name,university,city,state&order=id&offset={offset}&limit={limit}",
-            headers=HEADERS
-        )
+            headers=HEADERS, timeout=30)
         if resp.status_code != 200:
             print(f"  Error fetching courses: {resp.text}")
             break
@@ -124,8 +123,7 @@ def get_supabase_weights():
     while True:
         resp = requests.get(
             f"{SUPABASE_URL}/rest/v1/course_weights?select=course_id,year&order=course_id&offset={offset}&limit={limit}",
-            headers=HEADERS
-        )
+            headers=HEADERS, timeout=30)
         if resp.status_code != 200:
             break
         
@@ -187,7 +185,7 @@ def sync_course_weights(course_id: int, code: int, existing_weights: set):
             "min_enem": year_data.minimums.get('minEnem') if year_data.minimums else None,
         }
         
-        resp = requests.post(f"{SUPABASE_URL}/rest/v1/course_weights", headers=HEADERS, json=payload)
+        resp = requests.post(f"{SUPABASE_URL}/rest/v1/course_weights", headers=HEADERS, json=payload, timeout=30)
         if resp.status_code in [200, 201]:
             inserted += 1
     
@@ -222,8 +220,7 @@ def sync_course_cut_scores(course_id: int, code: int):
             resp = requests.post(
                 f"{SUPABASE_URL}/rest/v1/cut_scores?on_conflict={CUT_SCORES_CONFLICT_KEY}",
                 headers={**HEADERS, "Prefer": "resolution=merge-duplicates,return=minimal"},
-                json=payload
-            )
+                json=payload, timeout=30)
             if resp.status_code in [200, 201]:
                 inserted += 1
     
@@ -264,8 +261,7 @@ def sync_course_students(course_id: int, code: int):
             resp = requests.post(
                 f"{SUPABASE_URL}/rest/v1/approved_students",
                 headers={**HEADERS, "Prefer": "resolution=merge-duplicates,return=minimal"},
-                json=batch
-            )
+                json=batch, timeout=30)
             if resp.status_code in [200, 201]:
                 total_inserted += len(batch)
             else:

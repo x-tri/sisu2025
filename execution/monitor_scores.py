@@ -57,8 +57,7 @@ def get_all_course_codes() -> list:
     while True:
         resp = requests.get(
             f"{SUPABASE_URL}/rest/v1/courses?select=id,code&offset={offset}&limit={limit}",
-            headers=HEADERS
-        )
+            headers=HEADERS, timeout=30)
         if resp.status_code != 200:
             log(f"Error fetching courses: {resp.status_code}")
             break
@@ -125,8 +124,7 @@ def update_cut_scores(course_id: int, code: int) -> dict:
             resp = requests.post(
                 f"{SUPABASE_URL}/rest/v1/cut_scores?on_conflict={CUT_SCORES_CONFLICT_KEY}",
                 headers={**HEADERS, "Prefer": "resolution=merge-duplicates,return=minimal"},
-                json=payload
-            )
+                json=payload, timeout=30)
             if resp.status_code in [200, 201]:
                 stats["updated"] += 1
             else:
@@ -152,8 +150,7 @@ def run_monitoring_cycle(course_codes: list = None, max_workers: int = 15):
         for code in course_codes:
             resp = requests.get(
                 f"{SUPABASE_URL}/rest/v1/courses?select=id,code&code=eq.{code}",
-                headers=HEADERS
-            )
+                headers=HEADERS, timeout=30)
             if resp.status_code == 200:
                 data = resp.json()
                 if data:

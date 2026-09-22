@@ -41,8 +41,7 @@ def get_supabase_courses():
     while True:
         resp = requests.get(
             f"{SUPABASE_URL}/rest/v1/courses?select=id,code,name&order=id&offset={offset}&limit={limit}",
-            headers=HEADERS
-        )
+            headers=HEADERS, timeout=30)
         if resp.status_code != 200:
             break
         
@@ -99,8 +98,7 @@ def sync_course_cut_scores(course):
             resp = requests.post(
                 f"{SUPABASE_URL}/rest/v1/cut_scores?on_conflict={CUT_SCORES_CONFLICT_KEY}",
                 headers=HEADERS,
-                json=payload
-            )
+                json=payload, timeout=30)
             if resp.status_code in [200, 201]:
                 inserted += 1
         
