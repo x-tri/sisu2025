@@ -1442,6 +1442,10 @@ export default function Home() {
               </p>
             </div>
             <nav className={styles.ecosystemLinks} aria-label="Ecossistema XTRI">
+              <a href="/universidades" aria-label="Notas de corte por universidade">
+                <span>Notas de corte</span>
+                <strong>Por universidade</strong>
+              </a>
               <a
                 href="https://xtri.online"
                 target="_blank"
