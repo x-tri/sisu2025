@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
+import { serializeJsonLd } from '@/lib/course-seo'
+
 import styles from './SeoShell.module.css'
 
 export interface Crumb {
@@ -35,7 +37,7 @@ export default function SeoShell({ crumbs, currentPath, children }: SeoShellProp
     <div className={styles.page}>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd(crumbs, currentPath)) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd(crumbs, currentPath)) }}
       />
       <header className={styles.header}>
         <div className={styles.headerInner}>

@@ -5,16 +5,20 @@ import { notFound, permanentRedirect } from 'next/navigation'
 import SeoShell, { type Crumb } from '@/components/seo/SeoShell'
 import styles from '@/components/seo/SeoShell.module.css'
 import { getBrazilianStateName } from '@/lib/brazilian-states'
+import { courseAnswers, faqJsonLd, isRealMinimum } from '@/lib/course-faq'
 import { loadCoursePage, type CoursePageData } from '@/lib/course-page-data'
 import {
   amplaHistory,
   coursePath,
+  courseQualifiers,
   formatScore,
+  hasRealCutoff,
   institutionLabel,
   isAmplaReference,
   latestEdition,
   parseCourseSlug,
   referencesForEdition,
+  serializeJsonLd,
   universityPath,
 } from '@/lib/course-seo'
 import type { ReferenceType } from '@/types/course'
@@ -41,6 +45,12 @@ function formatNumber(value: number | null): string {
   return value === null ? '—' : new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(value)
 }
 
+function formatMinimum(value: number | null): string {
+  if (value === null) return '—'
+  if (isRealMinimum(value)) return formatNumber(value)
+  return value > 0 ? 'Sem mínimo (basta não zerar)' : 'Sem mínimo'
+}
+
 function formatDate(value: string | null): string | null {
   if (!value) return null
   const date = new Date(value)
@@ -50,13 +60,22 @@ function formatDate(value: string | null): string | null {
 }
 
 function describe(data: CoursePageData) {
-  const { course, references } = data
+  const { course, latestWeights, references } = data
   const edition = latestEdition(references)
   const institution = institutionLabel(course.university)
   const place = [course.city, course.state].filter(Boolean).join('/')
   const editionReferences = edition === null ? [] : referencesForEdition(references, edition)
   const ampla = editionReferences.find(isAmplaReference) ?? null
-  return { edition, institution, place, editionReferences, ampla }
+  const history = amplaHistory(references)
+  const answers = courseAnswers({
+    course,
+    edition,
+    ampla,
+    modalitiesWithCutoff: editionReferences.filter(hasRealCutoff).length,
+    latestWeights,
+    history,
+  })
+  return { edition, institution, place, editionReferences, ampla, history, answers }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -65,12 +84,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!data) return { title: 'Curso não encontrado', robots: { index: false, follow: true } }
 
   const { course } = data
-  const { edition, institution, place, ampla } = describe(data)
-  const where = [institution, place].filter(Boolean).join(' · ')
-  const title = `Nota de corte ${course.name}${institution ? ` ${institution}` : ''}${place ? ` (${place})` : ''}${edition ? ` no SISU ${edition}` : ''}`
-  const description = ampla?.cutoff
-    ? `${course.name} — ${where}: nota de corte ${formatScore(ampla.cutoff)} na ampla concorrência do SISU ${edition}, com pesos do ENEM, notas mínimas e todas as modalidades.`
-    : `${course.name} — ${where}: pesos do ENEM, notas mínimas e referências de nota de corte do SISU por modalidade.`
+  const { edition, institution, answers } = describe(data)
+  // City, degree and shift are in the title: the same course name is offered several times.
+  const qualifiers = courseQualifiers(course)
+  const title = `Nota de corte ${course.name}${institution ? ` ${institution}` : ''}${qualifiers ? ` (${qualifiers})` : ''}${edition ? ` no SISU ${edition}` : ''}`
+  const description = `${answers.lead} Veja os pesos do ENEM, as notas mínimas e as demais modalidades.`
   const canonical = coursePath(course)
 
   return {
@@ -88,12 +106,11 @@ export default async function CourseReferencePage({ params }: PageProps): Promis
   const data = await loadCoursePage(code)
   if (!data) notFound()
 
-  const { course, latestWeights, references } = data
+  const { course, latestWeights } = data
   const path = coursePath(course)
   if (`/nota-de-corte/${params.slug}` !== path) permanentRedirect(path)
 
-  const { edition, institution, place, editionReferences, ampla } = describe(data)
-  const history = amplaHistory(references)
+  const { edition, institution, place, editionReferences, ampla, history, answers } = describe(data)
   const capturedAt = formatDate(ampla?.capturedAt ?? editionReferences[0]?.capturedAt ?? null)
   const stateName = getBrazilianStateName(course.state)
   const crumbs: Crumb[] = [
@@ -105,12 +122,19 @@ export default async function CourseReferencePage({ params }: PageProps): Promis
 
   return (
     <SeoShell crumbs={crumbs} currentPath={path}>
+      {answers.faq.length > 0 ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd(answers.faq)) }}
+        />
+      ) : null}
       <section className={styles.hero}>
         <h1>
           Nota de corte de {course.name}
           {institution ? ` — ${institution}` : ''}
           {edition ? ` no SISU ${edition}` : ''}
         </h1>
+        <p className={styles.heroLead}>{answers.lead}</p>
         <p className={styles.heroMeta}>
           {[course.university, course.campus, [course.city, stateName ?? course.state].filter(Boolean).join(', ')]
             .filter(Boolean)
@@ -196,14 +220,18 @@ export default async function CourseReferencePage({ params }: PageProps): Promis
                   <tr key={weightKey}>
                     <th scope="row">{label}</th>
                     <td className={styles.num}>{formatNumber(latestWeights[weightKey])}</td>
-                    <td className={styles.num}>{formatNumber(latestWeights[minimumKey])}</td>
+                    <td className={styles.num}>{formatMinimum(latestWeights[minimumKey])}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          {latestWeights.min_enem ? (
-            <p className={styles.muted}>Média mínima no ENEM: {formatNumber(latestWeights.min_enem)}.</p>
+          {latestWeights.min_enem !== null ? (
+            <p className={styles.muted}>
+              {isRealMinimum(latestWeights.min_enem)
+                ? `Média mínima no ENEM: ${formatNumber(latestWeights.min_enem)}.`
+                : 'Sem média mínima no ENEM.'}
+            </p>
           ) : null}
         </section>
       ) : null}
@@ -229,6 +257,20 @@ export default async function CourseReferencePage({ params }: PageProps): Promis
               </tbody>
             </table>
           </div>
+        </section>
+      ) : null}
+
+      {answers.faq.length > 0 ? (
+        <section className={styles.card} aria-labelledby="perguntas">
+          <h2 id="perguntas">Perguntas frequentes</h2>
+          <dl className={styles.faq}>
+            {answers.faq.map(item => (
+              <div key={item.question}>
+                <dt>{item.question}</dt>
+                <dd>{item.answer}</dd>
+              </div>
+            ))}
+          </dl>
         </section>
       ) : null}
 

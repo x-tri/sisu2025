@@ -6,6 +6,8 @@ export const AMPLA_MODALITY_ID = '41'
 
 type CourseIdentity = Pick<CourseSearchItem, 'code' | 'name' | 'university' | 'city' | 'state'>
 
+type CourseOffer = Pick<CourseSearchItem, 'city' | 'state' | 'degree' | 'schedule'>
+
 export interface UniversityGroup {
   slug: string
   name: string
@@ -34,6 +36,17 @@ export function courseSlug(course: CourseIdentity): string {
     .map(slugify)
     .filter(Boolean)
   return [String(course.code), ...parts].join('-')
+}
+
+/**
+ * What tells one offer apart from another of the same course and institution:
+ * "Cuiabá/MT, Bacharelado, Noturno". Parentheses inside the degree are flattened
+ * so the result can itself sit inside parentheses.
+ */
+export function courseQualifiers(course: CourseOffer): string {
+  const place = [course.city, course.state].filter(Boolean).join('/')
+  const degree = course.degree?.replace(/\s*\(([^)]*)\)/g, ' – $1').trim()
+  return [place, degree, course.schedule?.trim()].filter(Boolean).join(', ')
 }
 
 /** The SISU code is the leading number of the slug; the rest is descriptive only. */
@@ -94,6 +107,11 @@ export function latestEdition(references: CourseReference[]): number | null {
   )
 }
 
+/** True when the row carries a real cut-off, i.e. the table shows a number for it. */
+export function hasRealCutoff(reference: CourseReference): boolean {
+  return reference.cutoff !== null && reference.cutoff > 0
+}
+
 export function isAmplaReference(reference: CourseReference): boolean {
   return reference.modalityId === AMPLA_MODALITY_ID
 }
@@ -124,4 +142,9 @@ export function formatScore(value: number | null | undefined): string {
   return typeof value === 'number' && Number.isFinite(value) && value > 0
     ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
     : 'Sem referência'
+}
+
+/** JSON for an inline ld+json script: "<" is escaped so no stored string can close the element. */
+export function serializeJsonLd(data: unknown): string {
+  return JSON.stringify(data).replace(/</g, '\\u003c')
 }

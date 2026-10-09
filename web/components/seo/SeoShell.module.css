@@ -113,6 +113,13 @@
   text-wrap: balance;
 }
 
+.heroLead {
+  margin-top: var(--space-4);
+  max-width: 46rem;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
 .heroMeta {
   margin-top: var(--space-3);
   color: #c4d2e6;
@@ -220,6 +227,32 @@
 
 .table td.num {
   font-weight: 700;
+}
+
+.faq {
+  margin-top: var(--space-3);
+}
+
+.faq > div {
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--xtri-border);
+}
+
+.faq > div:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.faq dt {
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.faq dd {
+  margin-top: var(--space-2);
+  color: var(--xtri-ink-soft);
+  font-size: 0.9375rem;
+  line-height: 1.65;
 }
 
 .muted {
