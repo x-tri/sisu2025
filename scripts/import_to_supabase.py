@@ -3,6 +3,7 @@
 Import existing course data to Supabase
 Reads JSON files from data/processed and uploads to the database
 """
+import os
 import json
 import sys
 from pathlib import Path
@@ -13,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.storage import SupabaseClient
 
 SUPABASE_URL = "https://sisymqzxvuktdcbsbpbp.supabase.co"
-SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODYwNTk0MSwiZXhwIjoyMDg0MTgxOTQxfQ.yDWKET6qMOKukkFrRGL8UW4C4qK4BtcVmoJQpI2lG9o"
+SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 
 
 def main():

@@ -4,6 +4,7 @@ Loads and validates configuration from JSON files
 """
 import json
 import logging
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
@@ -105,7 +106,7 @@ def load_config(config_dir: Optional[Path] = None) -> Config:
         supabase = data.get('supabase', {})
         config.supabase_enabled = supabase.get('enabled', False)
         config.supabase_url = supabase.get('url', '')
-        config.supabase_service_key = supabase.get('service_key', '')
+        config.supabase_service_key = supabase.get('service_key') or os.environ.get('SUPABASE_SERVICE_KEY', '')
 
     # Load notifications
     notif_file = config_dir / "notifications.json"

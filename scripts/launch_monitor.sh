@@ -8,8 +8,9 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Export Supabase key
-export SUPABASE_SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODYwNTk0MSwiZXhwIjoyMDg0MTgxOTQxfQ.yDWKET6qMOKukkFrRGL8UW4C4qK4BtcVmoJQpI2lG9o"
+# Supabase key must come from the environment (never commit it)
+: "${SUPABASE_SERVICE_KEY:?Defina SUPABASE_SERVICE_KEY antes de rodar este script}"
+export SUPABASE_SERVICE_KEY
 
 # Log file
 LOG_FILE="$PROJECT_DIR/logs/night_watch_$(date +%Y%m%d).log"

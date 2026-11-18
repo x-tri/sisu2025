@@ -15,7 +15,7 @@ sys.path.insert(0, str(os.path.dirname(os.path.dirname(os.path.dirname(os.path.d
 from src.decoder.course import decode_course
 
 SUPABASE_URL = "https://sisymqzxvuktdcbsbpbp.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODYwNTk0MSwiZXhwIjoyMDg0MTgxOTQxfQ.yDWKET6qMOKukkFrRGL8UW4C4qK4BtcVmoJQpI2lG9o"
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 MEUSISU_API = "https://meusisu.com/api"
 TARGET_YEAR = 2026
 TARGET_DAY = int(sys.argv[1]) if len(sys.argv) > 1 else 3  # Dia a sincronizar (default: 3)

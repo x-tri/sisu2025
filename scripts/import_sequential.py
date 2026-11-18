@@ -2,6 +2,7 @@
 """
 Sequential course importer with rate limiting
 """
+import os
 import sys
 import time
 from pathlib import Path
@@ -12,7 +13,7 @@ from src.monitor.fetcher import CourseFetcher
 from src.storage import SupabaseClient
 
 SUPABASE_URL = "https://sisymqzxvuktdcbsbpbp.supabase.co"
-SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpc3ltcXp4dnVrdGRjYnNicGJwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODYwNTk0MSwiZXhwIjoyMDg0MTgxOTQxfQ.yDWKET6qMOKukkFrRGL8UW4C4qK4BtcVmoJQpI2lG9o"
+SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 
 
 def main():

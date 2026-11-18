@@ -5,7 +5,7 @@
 set -e
 
 COOLIFY_URL="http://212.85.19.50:8000"
-API_TOKEN="${1:-1|r13O3inF977HixYKdpJ39a1lIfuMYz96iqT9qZgNb4a92d36}"
+API_TOKEN="${1:?Uso: ./DEPLOY_COOLIFY.sh <coolify-api-token>}"
 PROJECT_NAME="xtrisisu"
 
 echo "🚀 Iniciando deploy do XTRI SISU 2026 na Hostinger..."
