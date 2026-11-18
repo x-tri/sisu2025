@@ -28,8 +28,8 @@ Acesse seu painel do Coolify (geralmente em `https://coolify.seudominio.com` ou 
 4. **Environment Variables** (copie de `deploy/.env.coolify`):
    ```
    SUPABASE_URL=https://sisymqzxvuktdcbsbpbp.supabase.co
-   SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-   SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+   SUPABASE_SERVICE_KEY=sua_service_key_aqui
+   SUPABASE_ANON_KEY=sua_anon_key_aqui
    PYTHONUNBUFFERED=1
    ```
 
@@ -50,7 +50,7 @@ Acesse seu painel do Coolify (geralmente em `https://coolify.seudominio.com` ou 
 4. **Build Arguments**:
    ```
    NEXT_PUBLIC_SUPABASE_URL=https://sisymqzxvuktdcbsbpbp.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_anon_key_aqui
    ```
 
 5. **Port**: `3000`
