@@ -281,19 +281,43 @@ class SupabaseServer {
   }
 
   /**
-   * Get all courses (paginated)
+   * Get all courses with Medicine first for the home's primary audience.
+   * Two disjoint groups keep counts and pagination exact.
    */
   async getCourses(limit = 50, offset = 0) {
-    const params = new URLSearchParams({
-      select: 'id,code,name,university,campus,city,state,degree,schedule',
-      order: 'name',
+    const select = 'id,code,name,university,campus,city,state,degree,schedule'
+    const medicineParams = new URLSearchParams({
+      select,
+      name: 'eq.Medicina',
+      order: 'university.asc,code.asc',
       limit: String(limit),
       offset: String(offset),
     })
-
-    return this.request<Course[]>(`courses?${params}`, {
+    const medicineResult = await this.request<Course[]>(`courses?${medicineParams}`, {
       headers: { 'Prefer': 'count=exact' },
     })
+    if (medicineResult.error) return medicineResult
+
+    const medicineCourses = medicineResult.data || []
+    const medicineCount = medicineResult.count ?? medicineCourses.length
+    const remainingParams = new URLSearchParams({
+      select,
+      name: 'not.eq.Medicina',
+      order: 'name.asc,code.asc',
+      limit: String(Math.max(0, limit - medicineCourses.length)),
+      offset: String(Math.max(0, offset - medicineCount)),
+    })
+    const remainingResult = await this.request<Course[]>(`courses?${remainingParams}`, {
+      headers: { 'Prefer': 'count=exact' },
+    })
+    if (remainingResult.error) return remainingResult
+
+    const remainingCourses = remainingResult.data || []
+    return {
+      data: [...medicineCourses, ...remainingCourses],
+      error: null,
+      count: medicineCount + (remainingResult.count ?? remainingCourses.length),
+    }
   }
 
   /**

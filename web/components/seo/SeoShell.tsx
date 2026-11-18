@@ -70,6 +70,8 @@ export default function SeoShell({ crumbs, currentPath, children }: SeoShellProp
           <a href="https://sisu.mec.gov.br/vagas" target="_blank" rel="noopener noreferrer">sisu.mec.gov.br</a>.
         </p>
         <p>
+          <Link href="/simulador-sisu-medicina">Nota de corte de Medicina</Link>
+          {' · '}
           <Link href="/universidades">Universidades</Link>
           {' · '}
           <a href="https://xtri.online" target="_blank" rel="noopener noreferrer">XTRI</a>

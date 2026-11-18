@@ -10,6 +10,9 @@
   --xtri-cyan-deep: #004f70;
   --xtri-cyan-text: #005d82;
   --xtri-cyan-soft: #eaf8ff;
+  --xtri-cyan-border: #b9e6f8;
+  --xtri-muted: var(--xtri-ink-muted);
+  --xtri-surface-app: #f5f8fc;
   --xtri-orange: #fd5430;
   --xtri-orange-text: #b83518;
   --xtri-orange-soft: #fff1ec;

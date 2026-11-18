@@ -6,7 +6,7 @@ import {
   L1_CUTOFF,
   L1_MODALITY_NAME,
 } from './fixtures/api';
-import { enterValidScores, openDirectSearch, selectVerifiedL1Course } from './fixtures/flows';
+import { enterValidScores, selectVerifiedL1Course } from './fixtures/flows';
 
 test('resolve Medicina/UFGD 2026 por ID de L1 sem substituir Ampla', async ({ page }) => {
   await installApiMocks(page);
@@ -21,14 +21,16 @@ test('resolve Medicina/UFGD 2026 por ID de L1 sem substituir Ampla', async ({ pa
   await expect(trustPanel.getByText(L1_MODALITY_NAME, { exact: true })).toBeVisible();
 });
 
-test('exibe estado vazio da busca', async ({ page }) => {
-  await installApiMocks(page, { emptySearch: true });
+test('mantém somente os filtros de localização após as notas do hero', async ({ page }) => {
+  await installApiMocks(page);
   await page.goto('/');
-  await openDirectSearch(page);
-  await page.getByLabel('Curso, instituição, cidade ou estado').fill('Odontologia');
 
-  await expect(page.getByText('Nenhuma oferta encontrada.', { exact: true })).toBeVisible();
-  await expect(page.getByRole('list', { name: 'Resultados da busca' })).toHaveCount(0);
+  await expect(page.locator('#main-course-search')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Top cursos procurados' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Estado' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Cidade' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Instituição' })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Curso' })).toBeVisible();
 });
 
 test('mantém os destinos do ecossistema XTRI acessíveis sem abrir menus', async ({ page }) => {
@@ -49,14 +51,14 @@ test('mantém os destinos do ecossistema XTRI acessíveis sem abrir menus', asyn
   );
 });
 
-test('leva do plano direto para uma nova busca com um clique', async ({ page }) => {
+test('leva do plano direto para os filtros com um clique', async ({ page }) => {
   await installApiMocks(page);
   await page.goto('/');
   await selectVerifiedL1Course(page);
 
   await page.getByRole('button', { name: 'Curso, universidade ou cidade' }).click();
 
-  await expect(page.getByRole('searchbox', { name: 'Curso, instituição, cidade ou estado' })).toBeFocused();
+  await expect(page.getByRole('combobox', { name: 'Estado' })).toBeFocused();
 });
 
 test('recupera a cobertura após resposta 500 e retry', async ({ page }) => {
@@ -91,22 +93,13 @@ test('aborta cobertura lenta por timeout e permite retry', async ({ page }) => {
   expect(mockState.coverageAttempts()).toBe(2);
 });
 
-test('ignora a resposta antiga em uma corrida de busca', async ({ page }) => {
-  const mockState = await installApiMocks(page, { racingSearch: true });
+test('mantém o catálogo paginado como fonte dos resultados', async ({ page }) => {
+  await installApiMocks(page);
   await page.goto('/');
-  await openDirectSearch(page);
-  const search = page.getByLabel('Curso, instituição, cidade ou estado');
 
-  await search.fill('Med');
-  await expect.poll(() => mockState.searchQueries()).toContain('med');
-  await search.fill('Medicina');
-
-  const results = page.getByRole('list', { name: 'Resultados da busca' });
-  await expect(results).toContainText('UFGD');
-  await expect.poll(() => mockState.searchQueries()).toContain('medicina');
-  await page.waitForTimeout(1_100);
-  await expect(results).toContainText('UFGD');
-  await expect(results).not.toContainText('Universidade Antiga');
+  const cards = page.locator('a[href*="courseCode"]');
+  await expect(cards).toHaveCount(1);
+  await expect(page.locator('#state-filter')).toBeVisible();
 });
 
 test('não tem violações Axe serious/critical no fluxo verificado', async ({ page }) => {
@@ -150,8 +143,9 @@ test('fecha o Radar verificado com Escape e devolve o foco', async ({ page }) =>
 test('fecha Minhas notas com Escape e devolve o foco', async ({ page }) => {
   await installApiMocks(page);
   await page.goto('/');
+  await selectVerifiedL1Course(page);
 
-  const openScores = page.getByRole('button', { name: 'Minhas Notas' });
+  const openScores = page.getByRole('button', { name: 'Adicionar minhas notas' });
   await openScores.click();
   const dialog = page.getByRole('dialog', { name: 'Minhas notas' });
   await expect(dialog).toBeVisible();
@@ -164,15 +158,32 @@ test('fecha Minhas notas com Escape e devolve o foco', async ({ page }) => {
 test('mantém o foco no campo enquanto a nota é digitada', async ({ page }) => {
   await installApiMocks(page);
   await page.goto('/');
-  await page.getByRole('button', { name: 'Minhas Notas' }).click();
 
-  const languages = page.getByLabel('Linguagens', { exact: true });
+  const languages = page.locator('#hero-score-linguagens');
   await languages.focus();
   await page.keyboard.type('690', { delay: 25 });
 
   await expect(languages).toBeFocused();
   await expect(languages).toHaveValue('690');
-  await expect(page.getByRole('heading', { name: 'Minhas notas' })).not.toBeFocused();
+});
+
+test('aplica as notas pelo hero e mantém os valores no modal', async ({ page }) => {
+  await installApiMocks(page);
+  await page.goto('/');
+
+  await page.locator('#hero-score-linguagens').fill('710');
+  await page.locator('#hero-score-humanas').fill('720');
+  await page.locator('#hero-score-natureza').fill('730');
+  await page.locator('#hero-score-matematica').fill('740');
+  await page.locator('#hero-score-redacao').fill('750');
+  await page.getByRole('button', { name: 'Aplicar notas', exact: true }).click();
+
+  await expect(page.getByText('Notas salvas. Agora encontre seu curso.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Minhas Notas' })).toHaveCount(0);
+  await selectVerifiedL1Course(page);
+  await page.getByRole('button', { name: 'Ajustar minhas notas' }).click();
+  await expect(page.getByLabel('Linguagens', { exact: true })).toHaveValue('710');
+  await expect(page.getByLabel('Redação', { exact: true })).toHaveValue('750');
 });
 
 test('ativa as abas principais e carrega estatísticas e ofertas próximas inline', async ({ page }) => {

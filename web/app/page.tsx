@@ -1,15 +1,22 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import {
   AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
   Building2,
+  CheckCircle2,
   ChevronDown,
   Clock3,
+  Compass,
   ExternalLink,
+  GraduationCap,
   MapPinned,
   RefreshCw,
   ShieldCheck,
+  Sparkles,
   X,
 } from 'lucide-react';
 import { useScores } from '../context/ScoreContext';
@@ -24,7 +31,7 @@ import ShareModal from '../components/CourseDetail/ShareModal';
 import CourseResultCard from '../components/CourseResultCard';
 import PointsPlan from '../components/PointsPlan';
 import XtriHeader from '../components/XtriHeader';
-import ScoreModal from '../components/ScoreModal';
+import ScoreModal, { type ScoreDraft } from '../components/ScoreModal';
 import type {
   CourseCoverageResponse,
   CourseProvenance,
@@ -34,7 +41,41 @@ import type {
   ReferenceType,
   VerificationStatus,
 } from '../types/course';
+import { faqJsonLd, type FaqItem } from '../lib/course-faq';
+import { serializeJsonLd } from '../lib/course-seo';
+import { MEDICINE_HUB_PATH } from '../lib/medicine-seo';
 import styles from './page.module.css';
+
+const HERO_SCORE_FIELDS: Array<{
+  key: keyof ScoreDraft;
+  label: string;
+  shortLabel: string;
+}> = [
+  { key: 'linguagens', label: 'Linguagens e Códigos', shortLabel: 'LC' },
+  { key: 'humanas', label: 'Ciências Humanas', shortLabel: 'CH' },
+  { key: 'natureza', label: 'Ciências da Natureza', shortLabel: 'CN' },
+  { key: 'matematica', label: 'Matemática', shortLabel: 'MAT' },
+  { key: 'redacao', label: 'Redação', shortLabel: 'RED' },
+];
+
+const HOME_FAQ: FaqItem[] = [
+  {
+    question: 'Como funciona o simulador SISU?',
+    answer: 'Você informa suas notas do ENEM em Linguagens, Ciências Humanas, Ciências da Natureza, Matemática e Redação. O simulador calcula sua nota ponderada com os pesos de cada curso e compara com a nota de corte da modalidade escolhida.',
+  },
+  {
+    question: 'A calculadora SISU considera os pesos de cada curso?',
+    answer: 'Sim. Cada universidade define pesos próprios para cada área do ENEM. A calculadora usa os pesos da oferta escolhida, por isso a mesma nota pode ter resultados diferentes em cursos e universidades diferentes.',
+  },
+  {
+    question: 'A nota de corte do SISU 2027 já está disponível?',
+    answer: 'Ainda não. A nota de corte só é divulgada durante as inscrições do SISU. Até lá, o simulador mostra as notas de corte da edição anterior, sempre com a edição e a origem identificadas.',
+  },
+  {
+    question: 'O simulador SISU é gratuito?',
+    answer: 'Sim. O simulador XTRI SISU é gratuito e não exige cadastro nem login.',
+  },
+];
 
 async function fetchJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   const requestController = new AbortController();
@@ -377,7 +418,7 @@ export default function Home() {
     latestEdition: null as number | null,
     missingStates: [] as string[],
   });
-  const [tempScores, setTempScores] = useState({
+  const [tempScores, setTempScores] = useState<ScoreDraft>({
     redacao: '',
     linguagens: '',
     matematica: '',
@@ -402,7 +443,6 @@ export default function Home() {
   const detailTabsId = useId();
 
   useEffect(() => {
-    if (!showScoreInput) return;
     setTempScores({
       redacao: scores.redacao ? String(scores.redacao) : '',
       linguagens: scores.linguagens ? String(scores.linguagens) : '',
@@ -861,9 +901,9 @@ export default function Home() {
     clearSelectedCourse();
     window.history.replaceState(null, '', window.location.pathname);
     window.setTimeout(() => {
-      const search = document.getElementById('main-course-search') as HTMLInputElement | null;
-      search?.scrollIntoView({ block: 'center' });
-      search?.focus();
+      const stateFilter = document.getElementById('state-filter');
+      stateFilter?.scrollIntoView({ block: 'center' });
+      stateFilter?.focus();
     }, 0);
   };
 
@@ -940,7 +980,6 @@ export default function Home() {
   return (
     <>
       <XtriHeader
-        onOpenScores={() => setShowScoreInput(true)}
         onExplore={courseResponse ? backToResults : undefined}
         onSearch={courseResponse ? startNewSearch : undefined}
         showPlan={Boolean(coursePreview)}
@@ -948,61 +987,115 @@ export default function Home() {
 
       <main id="top" className={styles.main}>
         {!courseResponse && (
-        <section className={styles.filtersSection} aria-labelledby="filters-title">
+          <section className={styles.filtersSection} aria-labelledby="filters-title">
           <div className={styles.shell}>
             <div className={styles.filtersIntro}>
-              <p className={styles.filtersEyebrow}>XTRI SISU</p>
-              <h1 id="filters-title" className={styles.filtersTitle}>Encontre sua próxima possibilidade</h1>
-              <p>Busque um curso, sigla de instituição, cidade ou estado e compare referências oficiais com clareza.</p>
-            </div>
-
-            <div className={styles.directSearch}>
-              <p className={styles.directSearchTitle}>Busca rápida</p>
-              <div className={styles.courseSearchField}>
-                <label className={styles.srOnly} htmlFor="main-course-search">
-                  Curso, instituição, cidade ou estado
-                </label>
-                <div className={styles.searchControl}>
-                  <input
-                    id="main-course-search"
-                    type="search"
-                    value={searchQuery}
-                    onChange={event => setSearchQuery(event.target.value)}
-                    placeholder="Ex.: Medicina, UFMA, Maranhão ou São Luís"
-                    autoComplete="off"
-                    aria-describedby="search-help"
-                    aria-expanded={searchResults.length > 0}
-                  />
+              <p className={styles.filtersEyebrow}>
+                <Sparkles size={15} aria-hidden="true" />
+                Simulador SISU 2027 grátis
+              </p>
+              <h1 id="filters-title" className={styles.filtersTitle}>
+                Sua vaga no SISU<br />
+                <span>começa com um plano.</span>
+              </h1>
+              <p className={styles.filtersDescription}>
+                Calcule sua nota ponderada com os pesos de cada curso, compare com a nota de corte
+                de cada universidade e descubra o que fazer para chegar lá.
+              </p>
+              <ul className={styles.heroBenefits} aria-label="Recursos do simulador">
+                <li><CheckCircle2 size={18} aria-hidden="true" /> Nota ponderada pelos pesos do curso</li>
+                <li><CheckCircle2 size={18} aria-hidden="true" /> Histórico e estatísticas para decidir melhor</li>
+                <li><CheckCircle2 size={18} aria-hidden="true" /> Plano de pontos feito para a sua meta</li>
+              </ul>
+              <div className={styles.heroStats} aria-label="Cobertura da plataforma">
+                <div>
+                  <strong>{systemStats.totalCourses > 0 ? systemStats.totalCourses.toLocaleString('pt-BR') : 'Milhares de'}</strong>
+                  <span>cursos para explorar</span>
                 </div>
-                <span id="search-help" className={styles.searchHelp}>
-                  Digite pelo menos 2 caracteres. Você escolhe a modalidade depois de selecionar a oferta.
-                </span>
-
-                {hasActiveSearch && (
-                  <div className={styles.searchPopover}>
-                    {searchLoading && <p className={styles.inlineStatus} role="status">Buscando...</p>}
-                    {searchError && <p className={styles.inlineError} role="alert">{searchError}</p>}
-                    {!searchLoading && !searchError && searchResults.length === 0 && (
-                      <p className={styles.inlineStatus} role="status">Nenhuma oferta encontrada.</p>
-                    )}
-                    {searchResults.length > 0 && (
-                      <ul className={styles.searchResults} aria-label="Resultados da busca">
-                        {searchResults.map(result => (
-                          <li key={result.id}>
-                            <button type="button" onClick={() => chooseSearchResult(result)}>
-                              <strong>{result.name}</strong>
-                              <span>{[result.university, result.city, result.state].filter(Boolean).join(' · ')}</span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
+                <div>
+                  <strong>{systemStats.totalUniversities > 0 ? systemStats.totalUniversities.toLocaleString('pt-BR') : 'Diversas'}</strong>
+                  <span>instituições</span>
+                </div>
+                <div>
+                  <strong>{systemStats.totalStates > 0 ? systemStats.totalStates : 'Brasil'}</strong>
+                  <span>{systemStats.totalStates > 0 ? 'estados + DF' : 'inteiro conectado'}</span>
+                </div>
               </div>
             </div>
 
-            <p className={styles.filterDivider}><span>ou refine por localização</span></p>
+            <div className={styles.searchPanel}>
+              <div className={styles.searchPanelHeading}>
+                <div>
+                  <span className={styles.searchPanelKicker}>Simulador gratuito</span>
+                  <h2>Suas notas do ENEM</h2>
+                </div>
+                <span className={styles.searchPanelIcon}><GraduationCap size={25} aria-hidden="true" /></span>
+              </div>
+              <p className={styles.searchPanelDescription}>
+                Preencha as cinco áreas para calcular sua nota ponderada em cada curso.
+              </p>
+
+              <form
+                className={styles.heroScoreForm}
+                aria-label="Notas do ENEM"
+                onSubmit={event => {
+                  event.preventDefault();
+                  handleSaveScores();
+                }}
+              >
+                <div className={styles.heroScoreFields}>
+                  {HERO_SCORE_FIELDS.map(field => (
+                    <div className={styles.heroScoreField} key={field.key}>
+                      <label htmlFor={`hero-score-${field.key}`} title={field.label}>
+                        {field.shortLabel}
+                      </label>
+                      <input
+                        id={`hero-score-${field.key}`}
+                        aria-label={`${field.shortLabel} — ${field.label}`}
+                        name={field.key}
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        max="1000"
+                        step="0.01"
+                        value={tempScores[field.key]}
+                        onChange={event => setTempScores(previous => ({
+                          ...previous,
+                          [field.key]: event.target.value,
+                        }))}
+                        placeholder="000"
+                        aria-invalid={Boolean(scoreError)}
+                        aria-describedby={scoreError ? 'hero-score-error' : undefined}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {scoreError && (
+                  <p id="hero-score-error" className={styles.heroScoreError} role="alert">
+                    {scoreError}
+                  </p>
+                )}
+
+                <div className={styles.heroScoreActions}>
+                  <label className={styles.heroRemember}>
+                    <input
+                      type="checkbox"
+                      checked={rememberScores}
+                      onChange={event => setRememberScores(event.target.checked)}
+                    />
+                    <span>Lembrar por 30 dias</span>
+                  </label>
+                  <button type="submit" className={styles.heroScoreSave}>
+                    {hasScores ? 'Atualizar notas' : 'Aplicar notas'}
+                  </button>
+                </div>
+                <span className={styles.heroScoreStatus} aria-live="polite">
+                  {hasScores && <><CheckCircle2 size={14} aria-hidden="true" /> Notas salvas. Agora encontre seu curso.</>}
+                </span>
+              </form>
+
+              <p className={styles.filterDivider}><span>encontre seu curso por localização</span></p>
 
             <div className={styles.filterGrid}>
               <div className={styles.filterField}>
@@ -1105,9 +1198,12 @@ export default function Home() {
                 </div>
               </div>
             </div>
-
+            <p className={styles.searchPrivacy}>
+              <ShieldCheck size={15} aria-hidden="true" /> Consulta gratuita, sem cadastro.
+            </p>
           </div>
-        </section>
+          </div>
+          </section>
         )}
 
         {!courseResponse && filterError && (
@@ -1146,6 +1242,9 @@ export default function Home() {
           <div className={styles.shell}>
             {courseResponse ? (
               <div className={styles.selectedView}>
+                <button type="button" className={styles.backToResults} onClick={backToResults}>
+                  <ArrowLeft size={17} aria-hidden="true" /> Voltar para os resultados
+                </button>
                 <div className={styles.selectedHeading}>
                   <div className={styles.selectedIdentity}>
                     <span className={styles.courseMark} aria-hidden="true">
@@ -1341,7 +1440,8 @@ export default function Home() {
               <>
                 <div className={styles.resultsHeader}>
                   <div>
-                    <h2 id="results-title">Resultados</h2>
+                    <span className={styles.resultsEyebrow}>Simulador SISU 2026</span>
+                    <h2 id="results-title">Top cursos procurados</h2>
                     <p role="region" aria-label="Cobertura medida da base">
                       {hasActiveSearch
                         ? 'Ofertas correspondentes à sua busca'
@@ -1383,8 +1483,9 @@ export default function Home() {
 
                 {!visibleCoursesLoading && !visibleCoursesError && visibleCourses.length === 0 && (
                   <div className={styles.emptyCatalog} role="status">
-                    <AlertTriangle size={22} aria-hidden="true" />
-                    Nenhuma oferta encontrada para estes filtros.
+                    <span><Compass size={26} aria-hidden="true" /></span>
+                    <strong>Nenhuma oferta encontrada</strong>
+                    <p>Tente buscar outro curso ou remover alguns filtros.</p>
                   </div>
                 )}
 
@@ -1421,13 +1522,49 @@ export default function Home() {
                     disabled={catalogLoading}
                     onClick={loadMoreCourses}
                   >
-                    {catalogLoading ? 'Carregando...' : 'Ver mais'}
+                    {catalogLoading ? 'Carregando...' : 'Ver mais cursos'}
                   </button>
                 )}
               </>
             )}
           </div>
         </section>
+
+        {!courseResponse && (
+          <section className={styles.seoSection} aria-labelledby="seo-title">
+            <div className={styles.shell}>
+              <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd(HOME_FAQ)) }}
+              />
+              <div className={styles.seoGrid}>
+                <div className={styles.medicineCard}>
+                  <span className={styles.resultsEyebrow}>Medicina no SISU</span>
+                  <h2 id="seo-title">Nota de corte de Medicina por universidade</h2>
+                  <p>
+                    Veja as maiores e menores notas de corte de Medicina, a nota de cada universidade e
+                    simule suas chances com os pesos de cada oferta.
+                  </p>
+                  <Link className={styles.medicineCta} href={MEDICINE_HUB_PATH}>
+                    Abrir o simulador SISU Medicina
+                    <ArrowRight size={16} aria-hidden="true" />
+                  </Link>
+                </div>
+                <div className={styles.homeFaq}>
+                  <h2>Perguntas frequentes sobre o simulador SISU</h2>
+                  <dl>
+                    {HOME_FAQ.map(item => (
+                      <div key={item.question}>
+                        <dt>{item.question}</dt>
+                        <dd>{item.answer}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         <footer id="about" className={styles.footer}>
           <div className={styles.shell}>
@@ -1442,6 +1579,10 @@ export default function Home() {
               </p>
             </div>
             <nav className={styles.ecosystemLinks} aria-label="Ecossistema XTRI">
+              <a href={MEDICINE_HUB_PATH} aria-label="Nota de corte de Medicina no SISU">
+                <span>Simulador SISU</span>
+                <strong>Medicina</strong>
+              </a>
               <a href="/universidades" aria-label="Notas de corte por universidade">
                 <span>Notas de corte</span>
                 <strong>Por universidade</strong>

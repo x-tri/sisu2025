@@ -17,12 +17,8 @@ export async function selectVerifiedL1Course(page: Page): Promise<void> {
   await expect(modality.locator('option:checked')).toHaveText(L1_MODALITY_NAME);
 }
 
-export async function openDirectSearch(page: Page): Promise<void> {
-  await expect(page.getByLabel('Curso, instituição, cidade ou estado')).toBeVisible();
-}
-
 export async function enterValidScores(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Minhas Notas', exact: true }).click();
+  await page.getByRole('button', { name: /(Adicionar|Ajustar) minhas notas/ }).click();
   await page.getByLabel('Redação', { exact: true }).fill('770');
   await page.getByLabel('Linguagens', { exact: true }).fill('770');
   await page.getByLabel('Matemática', { exact: true }).fill('770');

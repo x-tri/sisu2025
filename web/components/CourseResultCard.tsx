@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, CircleHelp, Map } from 'lucide-react';
+import { ArrowUpRight, Building2, CircleHelp, MapPin } from 'lucide-react';
 import type { CourseSearchItem } from '../types/course';
 import styles from './CourseResultCard.module.css';
 
@@ -46,8 +46,9 @@ export default function CourseResultCard({ course, onSelect }: CourseResultCardP
       }}
     >
       <span className={styles.heading}>
+        <span className={styles.offerTag}>Oferta de graduação</span>
         <strong>{course.name}</strong>
-        <span>{[course.schedule, course.degree].filter(Boolean).join(' - ') || 'Oferta de graduação'}</span>
+        <span>{[course.schedule, course.degree].filter(Boolean).join(' · ') || 'Consulte os detalhes da oferta'}</span>
       </span>
 
       <span className={styles.details}>
@@ -56,7 +57,7 @@ export default function CourseResultCard({ course, onSelect }: CourseResultCardP
           <span><b>{course.universityAcronym || institution}</b>{course.universityAcronym ? ` | ${institution}` : ''}</span>
         </span>
         <span>
-          <Map size={18} aria-hidden="true" />
+          <MapPin size={18} aria-hidden="true" />
           <span>{location}</span>
         </span>
         <span>
@@ -67,10 +68,12 @@ export default function CourseResultCard({ course, onSelect }: CourseResultCardP
 
       {reference && cutoff !== null ? (
         <span className={styles.referenceBlock}>
-          <span className={styles.referenceValue}>
-            Referência para {reference.modalityOfficialName} ({reference.edition}): {formatScore(cutoff)}
+          <span className={styles.referenceHeader}>
+            <span>Nota de referência <small>· SISU {reference.edition}</small></span>
+            <strong>{formatScore(cutoff)}</strong>
           </span>
-          <small>
+          <span className={styles.referenceModality}>{reference.modalityOfficialName}</span>
+          <small className={styles.referenceSource}>
             {reference.referenceType === 'historical' ? 'Histórica' : reference.referenceType === 'final' ? 'Final' : 'Parcial'}
             {' · '}{STATUS_LABEL[reference.verification.status]}
             {' · '}fonte SISU/MEC{reference.intermediary ? ` · processado pela ${reference.intermediary}` : ''}
@@ -78,10 +81,13 @@ export default function CourseResultCard({ course, onSelect }: CourseResultCardP
         </span>
       ) : (
         <span className={styles.referenceBlock}>
-          <span className={styles.referenceValue}>Abrir oferta para consultar a referência</span>
+          <span className={styles.referenceValue}>Consultar referências desta oferta</span>
           <small>Nenhuma modalidade foi substituída automaticamente.</small>
         </span>
       )}
+      <span className={styles.cardAction}>
+        Ver detalhes e montar meu plano <ArrowUpRight size={17} aria-hidden="true" />
+      </span>
     </a>
   );
 }

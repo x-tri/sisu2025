@@ -161,11 +161,11 @@
 }
 
 .heroActions .cta {
-  background: var(--xtri-orange);
+  background: var(--xtri-orange-text);
 }
 
 .heroActions .cta:hover {
-  background: var(--xtri-orange-text);
+  background: #9a2c13;
 }
 
 .card {
@@ -292,4 +292,16 @@
     padding: 0 var(--space-4);
     font-size: 0.8125rem;
   }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

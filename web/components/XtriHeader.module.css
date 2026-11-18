@@ -1,6 +1,7 @@
 .header {
-  background: var(--xtri-navy);
+  background: rgb(7 20 39 / 0.96);
   border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  backdrop-filter: blur(16px);
   left: 0;
   position: fixed;
   right: 0;
@@ -11,10 +12,10 @@
 .nav {
   align-items: center;
   display: flex;
-  height: 72px;
+  height: 76px;
   justify-content: space-between;
   margin: 0 auto;
-  max-width: 76rem;
+  max-width: 1240px;
   padding: 0 1.25rem;
 }
 
@@ -109,28 +110,6 @@
   gap: 0.75rem;
 }
 
-.scoresButton {
-  align-items: center;
-  background: transparent;
-  border: 1px solid rgb(255 255 255 / 0.34);
-  border-radius: 999px;
-  color: #fff;
-  display: inline-flex;
-  font-size: 0.8rem;
-  font-weight: 700;
-  gap: 0.45rem;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0.55rem 0.95rem;
-  white-space: nowrap;
-}
-
-.scoresButton:hover {
-  background: var(--xtri-cyan);
-  border-color: var(--xtri-cyan);
-  color: var(--xtri-navy);
-}
-
 .menuButton {
   align-items: center;
   background: transparent;
@@ -199,7 +178,7 @@
   }
 
   .brand span {
-    display: none;
+    font-size: 0.95rem;
   }
 
   .brand img {
@@ -227,9 +206,5 @@
 @media (max-width: 350px) {
   .nav {
     padding: 0 0.75rem;
-  }
-
-  .scoresButton {
-    padding-inline: 0.7rem;
   }
 }

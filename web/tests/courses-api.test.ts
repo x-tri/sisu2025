@@ -61,6 +61,31 @@ test('busca ranqueada prioriza nomes iniciados pelo termo antes de Biomedicina',
   assert.equal(endpoints.length, 2)
 })
 
+test('catálogo inicial coloca Medicina primeiro sem quebrar a paginação', async context => {
+  context.mock.method(supabase, 'request', async (endpoint: string) => {
+    const params = new URLSearchParams(endpoint.split('?')[1])
+    const offset = Number(params.get('offset'))
+
+    if (params.get('name') === 'eq.Medicina') {
+      return { data: offset === 0 ? [UFRN_COURSE] : [], error: null, count: 1 }
+    }
+
+    assert.equal(params.get('name'), 'not.eq.Medicina')
+    assert.equal(offset, 0)
+    return { data: [BIOMEDICINE_COURSE], error: null, count: 1 }
+  })
+
+  const firstPage = await supabase.getCourses(2, 0)
+  assert.equal(firstPage.error, null)
+  assert.equal(firstPage.count, 2)
+  assert.deepEqual(firstPage.data?.map(course => course.name), ['Medicina', 'Biomedicina'])
+
+  const secondPage = await supabase.getCourses(1, 1)
+  assert.equal(secondPage.error, null)
+  assert.equal(secondPage.count, 2)
+  assert.deepEqual(secondPage.data?.map(course => course.name), ['Biomedicina'])
+})
+
 test('GET /api/courses expõe siglas do catálogo institucional', async context => {
   context.mock.method(supabase, 'searchCoursesPaginated', async () => ({
     data: [UFRN_COURSE, UFMA_COURSE],

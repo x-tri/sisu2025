@@ -1,18 +1,16 @@
 'use client';
 
-import { BookOpen, Compass, ExternalLink, LineChart, Menu, Search, X } from 'lucide-react';
+import { Compass, ExternalLink, LineChart, Menu, Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import styles from './XtriHeader.module.css';
 
 interface XtriHeaderProps {
-  onOpenScores: () => void;
   onExplore?: () => void;
   onSearch?: () => void;
   showPlan?: boolean;
 }
 
 export default function XtriHeader({
-  onOpenScores,
   onExplore,
   onSearch,
   showPlan = false,
@@ -61,10 +59,6 @@ export default function XtriHeader({
         </div>
 
         <div className={styles.actions}>
-          <button type="button" className={styles.scoresButton} onClick={onOpenScores}>
-            <BookOpen size={18} aria-hidden="true" />
-            Minhas Notas
-          </button>
           <button
             type="button"
             className={styles.menuButton}

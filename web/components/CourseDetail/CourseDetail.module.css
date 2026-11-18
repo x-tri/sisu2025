@@ -31,14 +31,14 @@
     bottom: 0;
     left: 0;
     width: 0.3rem;
-    background: #0b57d0;
+    background: var(--xtri-cyan-strong);
     content: '';
 }
 
 .headerEyebrow,
 .eyebrow {
     display: block;
-    color: #0b57d0;
+    color: var(--xtri-cyan-strong);
     font-size: 0.7rem;
     font-weight: 800;
     letter-spacing: 0.075em;
@@ -56,7 +56,7 @@
 
 .title {
     margin: 0.35rem 0 0;
-    color: #153f85;
+    color: var(--xtri-cyan-deep);
     font-size: clamp(1.45rem, 7vw, 2.1rem);
     font-weight: 800;
     letter-spacing: -0.035em;
@@ -177,9 +177,9 @@
 .modalityName {
     margin: 0.8rem 0 0;
     padding: 0.75rem;
-    border-left: 3px solid #0b57d0;
+    border-left: 3px solid var(--xtri-cyan-strong);
     border-radius: 0 0.55rem 0.55rem 0;
-    background: #f0f5ff;
+    background: var(--xtri-cyan-soft);
     color: #33415c;
     font-size: 0.82rem;
     font-weight: 650;
@@ -226,7 +226,7 @@
 }
 
 .scoreMetric .primaryScore {
-    color: #0b57d0;
+    color: var(--xtri-cyan-strong);
 }
 
 .scoreMetric .marginScore {
@@ -344,12 +344,12 @@
 
 .tab:hover {
     background: #f6f8fc;
-    color: #153f85;
+    color: var(--xtri-cyan-deep);
 }
 
 .tab.active {
-    background: #edf4ff;
-    color: #0b57d0;
+    background: var(--xtri-cyan-soft);
+    color: var(--xtri-cyan-strong);
 }
 
 .tab.active::after {
@@ -359,13 +359,13 @@
     left: 0.75rem;
     height: 3px;
     border-radius: 999px 999px 0 0;
-    background: #0b57d0;
+    background: var(--xtri-cyan-strong);
     content: '';
 }
 
 .tab:focus-visible {
     z-index: 1;
-    outline: 3px solid #2563eb;
+    outline: 3px solid var(--xtri-cyan);
     outline-offset: -3px;
 }
 
@@ -404,7 +404,7 @@
 }
 
 .yearCardHeader > strong {
-    color: #153f85;
+    color: var(--xtri-cyan-deep);
     font-size: 1.15rem;
     letter-spacing: -0.02em;
 }
@@ -437,8 +437,8 @@
 .tableHeading > span {
     padding: 0.28rem 0.5rem;
     border-radius: 999px;
-    background: #edf4ff;
-    color: #0b57d0;
+    background: var(--xtri-cyan-soft);
+    color: var(--xtri-cyan-strong);
     font-size: 0.67rem;
     font-weight: 750;
 }
@@ -572,7 +572,7 @@
 
 .partialCard strong {
     margin-top: 0.25rem;
-    color: #153f85;
+    color: var(--xtri-cyan-deep);
     font-size: 1.02rem;
 }
 

@@ -1,8 +1,9 @@
 import { cache } from 'react'
 
 import { buildCourseReference } from '@/lib/course-reference'
-import { groupCoursesByUniversity, type UniversityGroup } from '@/lib/course-seo'
-import { supabase, type Course, type CourseWeights } from '@/lib/supabase'
+import { AMPLA_MODALITY_ID, groupCoursesByUniversity, type UniversityGroup } from '@/lib/course-seo'
+import { buildMedicineOffer, isMedicineCourse, type MedicineOffer } from '@/lib/medicine-seo'
+import { supabase, type Course, type CourseWeights, type CutScore } from '@/lib/supabase'
 import type { CourseReference, CourseSearchItem } from '@/types/course'
 
 export interface CoursePageData {
@@ -42,3 +43,33 @@ export const loadCourseCatalog = cache(async (): Promise<CourseSearchItem[]> => 
 export const loadUniversities = cache(async (): Promise<UniversityGroup[]> => (
   groupCoursesByUniversity(await loadCourseCatalog())
 ))
+
+const MEDICINE_BATCH_SIZE = 80
+
+/** Every Medicina offer of the catalog with its ampla concorrência cut-offs. */
+export const loadMedicineOffers = cache(async (): Promise<MedicineOffer[]> => {
+  const courses = (await loadCourseCatalog()).filter(course => isMedicineCourse(course.name))
+  const scoresByCourse = new Map<number, CutScore[]>()
+
+  for (let start = 0; start < courses.length; start += MEDICINE_BATCH_SIZE) {
+    const batch = courses.slice(start, start + MEDICINE_BATCH_SIZE)
+    const result = await supabase.getCoursePreviewCutScores(
+      batch.map(course => course.id),
+      Number(AMPLA_MODALITY_ID),
+    )
+    if (result.error) throw new Error(result.error)
+    for (const score of result.data || []) {
+      const list = scoresByCourse.get(score.course_id) ?? []
+      list.push(score)
+      scoresByCourse.set(score.course_id, list)
+    }
+  }
+
+  const now = new Date()
+  return courses.map(course => {
+    const references = (scoresByCourse.get(course.id) ?? [])
+      .map(score => buildCourseReference(course.code, score, null, now))
+      .filter((reference): reference is CourseReference => reference !== null)
+    return buildMedicineOffer(course, references)
+  })
+})
