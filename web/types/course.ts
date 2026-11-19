@@ -63,6 +63,15 @@ export interface CourseProvenance {
   verification: VerificationStatus
 }
 
+/** Official per-area weights, used to compute the visitor's weighted score. */
+export interface CourseWeightVector {
+  peso_red: number | null
+  peso_ling: number | null
+  peso_ch: number | null
+  peso_cn: number | null
+  peso_mat: number | null
+}
+
 export interface CourseSearchItem {
   id: number
   code: number
@@ -75,6 +84,7 @@ export interface CourseSearchItem {
   schedule: string | null
   universityAcronym?: string | null
   weightSummary?: string | null
+  weights?: CourseWeightVector | null
   reference?: CourseReference | null
 }
 

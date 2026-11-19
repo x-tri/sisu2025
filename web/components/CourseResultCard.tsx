@@ -1,16 +1,15 @@
 'use client';
 
 import { ArrowUpRight, Building2, CircleHelp, MapPin } from 'lucide-react';
+import { calculateWeightedScore, formatScore, getScoreMargin } from '../lib/score-core';
+import type { Scores } from '../lib/score-core';
 import type { CourseSearchItem } from '../types/course';
 import styles from './CourseResultCard.module.css';
 
 interface CourseResultCardProps {
   course: CourseSearchItem;
+  scores?: Scores | null;
   onSelect: (course: CourseSearchItem) => void;
-}
-
-function formatScore(value: number): string {
-  return value.toFixed(2).replace('.', ',');
 }
 
 function referenceValue(course: CourseSearchItem): number | null {
@@ -23,11 +22,15 @@ function referenceValue(course: CourseSearchItem): number | null {
   return partials[partials.length - 1]?.score ?? null;
 }
 
-export default function CourseResultCard({ course, onSelect }: CourseResultCardProps) {
+export default function CourseResultCard({ course, scores = null, onSelect }: CourseResultCardProps) {
   const reference = course.reference || null;
   const cutoff = referenceValue(course);
   const institution = course.university || 'Instituição não informada';
   const location = course.campus || [course.city, course.state].filter(Boolean).join(', ') || 'Campus não informado';
+  const weighted = scores && course.weights
+    ? calculateWeightedScore(scores, course.weights).average
+    : null;
+  const margin = weighted !== null ? getScoreMargin(weighted, cutoff) : null;
 
   return (
     <a
@@ -57,6 +60,24 @@ export default function CourseResultCard({ course, onSelect }: CourseResultCardP
           <span>{course.weightSummary || 'Pesos da oferta disponíveis no detalhe'}</span>
         </span>
       </span>
+
+      {weighted !== null ? (
+        <span className={styles.personalScore} data-margin={margin?.relation ?? 'unavailable'}>
+          <span className={styles.personalScoreLabel}>Sua nota ponderada</span>
+          <strong>{formatScore(weighted)}</strong>
+          {margin && margin.points !== null ? (
+            <small>
+              {margin.relation === 'above'
+                ? `${formatScore(margin.points)} acima da referência`
+                : margin.relation === 'below'
+                  ? `${formatScore(Math.abs(margin.points))} abaixo da referência`
+                  : 'Igual à referência'}
+            </small>
+          ) : (
+            <small>Sem referência para comparar</small>
+          )}
+        </span>
+      ) : null}
 
       {reference && cutoff !== null ? (
         <span className={styles.referenceBlock}>

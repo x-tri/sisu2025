@@ -822,7 +822,7 @@ export default function Home() {
     });
   };
 
-  const handleSaveScores = () => {
+  const handleSaveScores = (): boolean => {
     const parsed = {
       redacao: tempScores.redacao.trim() === '' ? Number.NaN : Number(tempScores.redacao),
       linguagens: tempScores.linguagens.trim() === '' ? Number.NaN : Number(tempScores.linguagens),
@@ -833,10 +833,11 @@ export default function Home() {
     const validation = validateScores(parsed);
     if (!validation.valid || !setScores(parsed)) {
       setScoreError('Preencha as cinco notas com valores entre 0 e 1000.');
-      return;
+      return false;
     }
     setScoreError('');
     setShowScoreInput(false);
+    return true;
   };
 
   const chooseSearchResult = (result: CourseSearchItem) => {
@@ -1032,7 +1033,12 @@ export default function Home() {
                 aria-label="Notas do ENEM"
                 onSubmit={event => {
                   event.preventDefault();
-                  handleSaveScores();
+                  if (handleSaveScores() && !filters.course) {
+                    window.setTimeout(
+                      () => document.getElementById('results')?.scrollIntoView({ block: 'start', behavior: 'smooth' }),
+                      80,
+                    );
+                  }
                 }}
               >
                 <div className={styles.heroScoreFields}>
@@ -1083,7 +1089,7 @@ export default function Home() {
                   </button>
                 </div>
                 <span className={styles.heroScoreStatus} aria-live="polite">
-                  {hasScores && <><CheckCircle2 size={14} aria-hidden="true" /> Notas salvas. Agora encontre seu curso.</>}
+                  {hasScores && <><CheckCircle2 size={14} aria-hidden="true" /> Notas salvas. Sua nota ponderada aparece em cada curso abaixo.</>}
                 </span>
               </form>
 
@@ -1489,7 +1495,7 @@ export default function Home() {
                   <>
                     <div className={styles.resultsGrid}>
                       {visibleCourses.map(course => (
-                        <CourseResultCard key={course.id} course={course} onSelect={chooseSearchResult} />
+                        <CourseResultCard key={course.id} course={course} scores={hasScores ? scores : null} onSelect={chooseSearchResult} />
                       ))}
                     </div>
                     {hasActiveSearch && (

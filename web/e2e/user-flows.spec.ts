@@ -178,12 +178,32 @@ test('aplica as notas pelo hero e mantém os valores no modal', async ({ page })
   await page.locator('#hero-score-redacao').fill('750');
   await page.getByRole('button', { name: 'Aplicar notas', exact: true }).click();
 
-  await expect(page.getByText('Notas salvas. Agora encontre seu curso.')).toBeVisible();
+  await expect(page.getByText('Notas salvas. Sua nota ponderada aparece em cada curso abaixo.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Minhas Notas' })).toHaveCount(0);
   await selectVerifiedL1Course(page);
   await page.getByRole('button', { name: 'Ajustar minhas notas' }).click();
   await expect(page.getByLabel('Linguagens', { exact: true })).toHaveValue('710');
   await expect(page.getByLabel('Redação', { exact: true })).toHaveValue('750');
+});
+
+test('mostra a nota ponderada no card assim que as notas são aplicadas', async ({ page }) => {
+  await installApiMocks(page);
+  await page.goto('/');
+
+  const card = page.locator('a[href="/?courseCode=12345"]');
+  await expect(card).toBeVisible();
+  await expect(card.getByText('Sua nota ponderada')).toHaveCount(0);
+
+  await page.locator('#hero-score-linguagens').fill('700');
+  await page.locator('#hero-score-humanas').fill('700');
+  await page.locator('#hero-score-natureza').fill('700');
+  await page.locator('#hero-score-matematica').fill('700');
+  await page.locator('#hero-score-redacao').fill('800');
+  await page.getByRole('button', { name: 'Aplicar notas', exact: true }).click();
+
+  await expect(card.getByText('Sua nota ponderada')).toBeVisible();
+  await expect(card).toContainText('712,50');
+  await expect(card).toContainText('88,96 abaixo da referência');
 });
 
 test('ativa as abas principais e carrega estatísticas e ofertas próximas inline', async ({ page }) => {

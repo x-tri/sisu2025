@@ -16,6 +16,13 @@ export const MEDICINE_COURSE: CourseSearchItem = {
   state: 'MS',
   degree: 'Bacharelado',
   schedule: 'Integral',
+  weights: {
+    peso_red: 1,
+    peso_ling: 1.5,
+    peso_ch: 1.5,
+    peso_cn: 3,
+    peso_mat: 1,
+  },
 };
 
 export const L1_MODALITY_ID = '686';
@@ -297,7 +304,10 @@ const STALE_SEARCH_RESULT: CourseSearchItem = {
 
 function searchResponse(query: string, courses: CourseSearchItem[]): CourseSearchResponse {
   return {
-    courses,
+    courses: courses.map((course) => ({
+      ...course,
+      reference: course.reference ?? BROAD_REFERENCE,
+    })),
     query,
     count: courses.length,
     total: courses.length,

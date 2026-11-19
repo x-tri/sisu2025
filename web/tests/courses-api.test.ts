@@ -113,6 +113,51 @@ test('GET /api/courses expõe siglas do catálogo institucional', async context 
   assert.equal(body.courses[1]?.universityAcronym, 'UFMA')
 })
 
+test('GET /api/courses devolve os pesos por área para calcular a nota do visitante', async context => {
+  context.mock.method(supabase, 'searchCoursesPaginated', async () => ({
+    data: [UFRN_COURSE],
+    error: null,
+    count: 1,
+  }))
+  context.mock.method(supabase, 'getCoursePreviewCutScores', async () => ({
+    data: [{
+      course_id: UFRN_COURSE.id,
+      year: 2026,
+      modality_id: 41,
+      cut_score: 794.37,
+      captured_at: '2026-11-15T00:00:00.000Z',
+    }],
+    error: null,
+  }))
+  context.mock.method(supabase, 'getCoursePreviewWeights', async () => ({
+    data: [{
+      course_id: UFRN_COURSE.id,
+      year: 2026,
+      peso_red: 1.5,
+      peso_ling: 1.5,
+      peso_ch: 1.5,
+      peso_cn: 3,
+      peso_mat: 1,
+    }],
+    error: null,
+  }))
+
+  const request = new NextRequest(
+    'http://localhost/api/courses?institution=Universidade%20Federal&limit=10'
+  )
+  const response = await GET(request)
+  const body = await response.json() as CourseSearchResponse
+
+  assert.equal(response.status, 200)
+  assert.deepEqual(body.courses[0]?.weights, {
+    peso_red: 1.5,
+    peso_ling: 1.5,
+    peso_ch: 1.5,
+    peso_cn: 3,
+    peso_mat: 1,
+  })
+})
+
 test('GET /api/courses encontra ofertas ao buscar pela sigla UFMA', async context => {
   context.mock.method(supabase, 'searchCourseCatalog', async (query: string) => {
     assert.equal(query, 'UFMA')

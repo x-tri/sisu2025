@@ -159,6 +159,58 @@
   font-weight: 750;
 }
 
+.personalScore {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.6rem;
+  margin-top: 0.15rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #bfe7f7;
+  border-radius: 0.7rem;
+  background: linear-gradient(135deg, #f4fbff, var(--xtri-cyan-soft));
+}
+
+.personalScoreLabel {
+  flex: 1 1 auto;
+  color: #0b5d7d;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.personalScore strong {
+  flex: 0 0 auto;
+  color: var(--xtri-cyan-deep);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.personalScore small {
+  flex: 1 1 100%;
+  color: #41677a;
+  font-size: 0.65rem;
+  line-height: 1.4;
+}
+
+.personalScore[data-margin='below'] strong {
+  color: var(--xtri-orange-text);
+}
+
+.personalScore[data-margin='below'] small {
+  color: #8a4128;
+}
+
+.personalScore[data-margin='above'] strong,
+.personalScore[data-margin='above'] small {
+  color: #0f6b4f;
+}
+
 .cardAction {
   display: flex;
   align-items: center;

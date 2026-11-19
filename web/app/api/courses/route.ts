@@ -79,6 +79,15 @@ async function enrichSearchItems(courses: CourseSearchItem[]): Promise<CourseSea
       schedule: course.schedule,
       universityAcronym: resolveUniversityAcronym(course.university),
       weightSummary: summarizeWeights(weights),
+      weights: weights
+        ? {
+            peso_red: weights.peso_red ?? null,
+            peso_ling: weights.peso_ling ?? null,
+            peso_ch: weights.peso_ch ?? null,
+            peso_cn: weights.peso_cn ?? null,
+            peso_mat: weights.peso_mat ?? null,
+          }
+        : null,
       reference,
     }
   })
