@@ -29,6 +29,31 @@ minutos**, tornando o site dinâmico durante o período de inscrições.
 remapear anos entre edições** (houve incidente com 2025→2026, ver comentário
 em `smart_daily_sync.py`).
 
+## 🏛️ Fontes oficiais verificadas (pesquisa de 19/11/2026)
+
+Pergunta: "existe API oficial (MEC/INEP) com parciais em tempo real?"
+**Resposta curta: não.** Detalhe do que existe:
+
+| Fonte | O que oferece | Tempo real? | API? |
+|---|---|---|---|
+| `dadosabertos.mec.gov.br/sisu` | ZIPs estáticos por edição ("base_tratada_CR_YYYY_N.zip", CSV tratado) — Chamada Regular + Lista de Espera, apenas **finais** | ❌ | ❌ (CKAN sem API ativa; download manual) |
+| `sisu.mec.gov.br` / `acessounico.mec.gov.br` | Classificação parcial com nota de corte, calculada **1×/dia** a partir do 2º dia de inscrições | ⚠️ diário, não 30 min | ❌ — exibida **só na página do candidato logado** (gov.br), apenas nas opções dele |
+| `acessounico.mec.gov.br/busca` | "Busca Avançada" — é um **embed de Power BI** com edições passadas | ❌ | ❌ (não é API) |
+| INEP | Nada de SISU — só microdados do ENEM (OData) | ❌ | ✅ mas irrelevante para corte |
+
+**Implicações práticas:**
+1. **Parciais de todos os cursos em tempo real só existem no MeuSISU** (ou
+   similares) — mantê-lo como fonte primária da janela, como planejado.
+2. **Usar o ZIP oficial** `dadosabertos.mec.gov.br` para **validar e
+   backfill das notas finais** após cada edição: é a fonte primária do MEC,
+   reforça o selo "Fonte oficial" do site e serve de fallback se o MeuSISU
+   bloquear. Os relatórios no portal cobrem até 2023 (as edições 2024+ do
+   nosso banco vieram do MeuSISU; conferir se o MEC publica os ZIPs mais
+   novos em outra seção).
+3. Não vale a pena tentar escanear a página do candidato oficial (exigiria
+   login gov.br e devolve só as opções daquela conta).
+
+
 ## 🏗️ O que falta construir (quando o SISU abrir)
 
 1. **Scheduler de 30 min**
