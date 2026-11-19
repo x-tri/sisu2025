@@ -303,3 +303,22 @@ test('navega pelas abas do detalhe com as setas', async ({ page }) => {
   await expect(trustTab).toBeFocused();
   await expect(trustTab).toHaveAttribute('aria-selected', 'true');
 });
+
+test('publica a política de privacidade e a vincula no rodapé', async ({ page }) => {
+  await installApiMocks(page);
+  await page.goto('/politica-de-privacidade');
+
+  await expect(page.getByRole('heading', { name: 'Política de Privacidade e Cookies' })).toBeVisible();
+  await expect(page.getByText('Este site não utiliza cookies.')).toBeVisible();
+  await expect(page.getByText('42.535.768/0001-00').first()).toBeVisible();
+
+  const axe = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  const serious = axe.violations.filter(v => v.impact === 'serious' || v.impact === 'critical');
+  expect(serious.map(v => v.id)).toEqual([]);
+
+  await page.goto('/');
+  const privacy = page.getByRole('link', { name: 'Política de Privacidade e Cookies' });
+  await expect(privacy).toBeVisible();
+  await privacy.click();
+  await expect(page).toHaveURL(/\/politica-de-privacidade$/);
+});

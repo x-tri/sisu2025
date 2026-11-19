@@ -12,6 +12,7 @@ export const dynamic = 'force-dynamic'
 const corePages: MetadataRoute.Sitemap = [
   { url: `${SITE_URL}/`, changeFrequency: 'daily', priority: 1 },
   { url: `${SITE_URL}${MEDICINE_HUB_PATH}`, changeFrequency: 'daily', priority: 0.9 },
+  { url: `${SITE_URL}/politica-de-privacidade`, changeFrequency: 'yearly', priority: 0.3 },
 ]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

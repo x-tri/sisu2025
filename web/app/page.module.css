@@ -362,6 +362,33 @@
   flex: 0 0 auto;
 }
 
+.heroPrivacyNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0.85rem 0 0;
+  color: #5a6d80;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.heroPrivacyNote svg {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+  color: var(--xtri-cyan-strong);
+}
+
+.heroPrivacyNote a {
+  color: var(--xtri-cyan-deep);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.heroPrivacyNote a:hover {
+  color: var(--xtri-cyan-strong);
+}
+
 .directSearch {
   min-width: 0;
 }
@@ -1185,6 +1212,34 @@
   gap: 0.35rem;
   color: #e8f2fa;
   font-size: 0.75rem;
+}
+
+.footerLegal {
+  margin-top: 2.25rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid rgb(255 255 255 / 0.08);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+}
+
+.footerLegal p {
+  margin: 0;
+  color: #819aae;
+  font-size: 0.66rem;
+}
+
+.footerLegal a {
+  color: #b9d8ea;
+  font-size: 0.66rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.footerLegal a:hover {
+  color: var(--xtri-cyan);
 }
 
 @media (max-width: 1100px) {

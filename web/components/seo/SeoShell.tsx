@@ -77,6 +77,8 @@ export default function SeoShell({ crumbs, currentPath, children }: SeoShellProp
           <a href="https://xtri.online" target="_blank" rel="noopener noreferrer">XTRI</a>
           {' · '}
           <a href="https://rankingenem.com" target="_blank" rel="noopener noreferrer">Ranking ENEM por escola</a>
+          {' · '}
+          <Link href="/politica-de-privacidade">Privacidade</Link>
         </p>
       </footer>
     </div>

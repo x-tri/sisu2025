@@ -1095,6 +1095,14 @@ export default function Home() {
                 </span>
               </form>
 
+              <p className={styles.heroPrivacyNote}>
+                <ShieldCheck size={14} aria-hidden="true" />
+                <span>
+                  Suas notas ficam no seu navegador. Não pedimos cadastro.{' '}
+                  <Link href="/politica-de-privacidade">Privacidade</Link>
+                </span>
+              </p>
+
               <p className={styles.filterDivider}><span>encontre seu curso por localização</span></p>
 
             <div className={styles.filterGrid}>
@@ -1615,6 +1623,12 @@ export default function Home() {
                 <strong>@xandaoxtri <ExternalLink size={14} aria-hidden="true" /></strong>
               </a>
             </nav>
+            <div className={styles.footerLegal}>
+              <p>
+                © 2026 XTRI · CNPJ 42.535.768/0001-00 · Natal/RN
+              </p>
+              <Link href="/politica-de-privacidade">Política de Privacidade e Cookies</Link>
+            </div>
           </div>
         </footer>
       </main>
