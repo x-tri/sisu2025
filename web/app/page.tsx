@@ -9,6 +9,7 @@ import {
   Building2,
   CheckCircle2,
   ChevronDown,
+  CircleCheck,
   Clock3,
   Compass,
   ExternalLink,
@@ -21,6 +22,7 @@ import {
 import { useScores } from '../context/ScoreContext';
 import { useModality } from '../context/ModalityContext';
 import { calculateWeightedScore, type CourseWeights, type Scores, validateScores } from '../lib/score-core';
+import { closestPassing, passableCourses } from '../lib/course-compare';
 import { getEffectiveCutoff, selectLatestReference } from '../lib/course-selection';
 import CourseDetailView from '../components/CourseDetail/CourseDetailView';
 import ApprovalRadarModal from '../components/CourseDetail/ApprovalRadarModal';
@@ -1007,6 +1009,18 @@ export default function Home() {
   const visibleCourses = hasActiveSearch ? searchResults : catalogResults;
   const visibleCoursesLoading = hasActiveSearch ? searchLoading : catalogLoading;
   const visibleCoursesError = hasActiveSearch ? searchError : catalogError;
+  const [passFilter, setPassFilter] = useState(false);
+
+  const comparatorScores = hasScores ? scores : null;
+  const closestNearPass = useMemo(
+    () => closestPassing(visibleCourses, comparatorScores, 5),
+    [visibleCourses, comparatorScores],
+  );
+  const shownCourses = passFilter ? passableCourses(visibleCourses, comparatorScores) : visibleCourses;
+  const hasPassableCourses = useMemo(
+    () => passableCourses(visibleCourses, comparatorScores).length > 0,
+    [visibleCourses, comparatorScores],
+  );
 
   return (
     <>
@@ -1498,6 +1512,65 @@ export default function Home() {
                   </a>
                 </div>
 
+                {hasScores && (
+                  <div className={styles.passControl}>
+                    <button
+                      type="button"
+                      className={styles.passToggle}
+                      aria-pressed={passFilter}
+                      onClick={() => setPassFilter(value => !value)}
+                    >
+                      <CircleCheck size={17} aria-hidden="true" />
+                      {passFilter ? 'Mostrando só onde eu passaria' : 'Mostrar só onde eu passaria'}
+                    </button>
+                    {passFilter && !visibleCoursesLoading && (
+                      <span className={styles.passCount}>
+                        {shownCourses.length.toLocaleString('pt-BR')} de {visibleCourses.length.toLocaleString('pt-BR')} ofertas
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {hasScores && !visibleCoursesLoading && closestNearPass.length > 0 && (
+                  <div className={styles.closestPanel} aria-labelledby="closest-title">
+                    <div className={styles.closestHeader}>
+                      <h3 id="closest-title">Onde você está mais perto de passar</h3>
+                      <p>Ordenadas pela menor diferença até a nota de corte de referência.</p>
+                    </div>
+                    <ul className={styles.closestList}>
+                      {closestNearPass.map(({ course, weighted, cutoff, relation, distance }) => (
+                        <li key={course.id}>
+                          <a
+                            className={styles.closestRow}
+                            href={`/?courseCode=${course.code}`}
+                            onClick={event => { event.preventDefault(); chooseSearchResult(course); }}
+                          >
+                            <span className={styles.closestCourse}>
+                              <strong>{course.name}</strong>
+                              <small>
+                                {[course.universityAcronym || course.university, course.campus || course.city]
+                                  .filter(Boolean)
+                                  .join(' · ')}
+                              </small>
+                            </span>
+                            <span className={styles.closestScore} data-margin={relation}>
+                              <strong>{formatScore(weighted)}</strong>
+                              <small>
+                                {relation === 'below'
+                                  ? `${formatScore(distance)} pontos abaixo`
+                                  : relation === 'above'
+                                    ? `${formatScore(distance)} pontos acima`
+                                    : 'Igual à referência'}
+                                {' · corte '}{formatScore(cutoff)}
+                              </small>
+                            </span>
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {visibleCoursesError && (
                   <div className={styles.errorState} role="alert">
                     <p>{visibleCoursesError}</p>
@@ -1522,16 +1595,27 @@ export default function Home() {
                   </div>
                 )}
 
-                {visibleCourses.length > 0 && (
+                {passFilter && !visibleCoursesLoading && !visibleCoursesError && visibleCourses.length > 0 && shownCourses.length === 0 && (
+                  <div className={styles.emptyCatalog} role="status">
+                    <span><Compass size={26} aria-hidden="true" /></span>
+                    <strong>Nenhuma oferta onde você passaria</strong>
+                    <p>Com essas notas você ainda não alcança a referência destas ofertas.</p>
+                    <button type="button" className={styles.passReset} onClick={() => setPassFilter(false)}>
+                      Mostrar todas as ofertas
+                    </button>
+                  </div>
+                )}
+
+                {shownCourses.length > 0 && (
                   <>
                     <div className={styles.resultsGrid}>
-                      {visibleCourses.map(course => (
+                      {shownCourses.map(course => (
                         <CourseResultCard key={course.id} course={course} scores={hasScores ? scores : null} onSelect={chooseSearchResult} />
                       ))}
                     </div>
-                    {hasActiveSearch && (
+                    {hasActiveSearch && !passFilter && (
                       <p className={styles.resultsCount}>
-                        Exibindo {visibleCourses.length.toLocaleString('pt-BR')} de {searchTotal.toLocaleString('pt-BR')} ofertas encontradas
+                        Exibindo {shownCourses.length.toLocaleString('pt-BR')} de {searchTotal.toLocaleString('pt-BR')} ofertas encontradas
                       </p>
                     )}
                   </>

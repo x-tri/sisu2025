@@ -3,6 +3,7 @@
 import { ArrowUpRight, Building2, CircleHelp, MapPin } from 'lucide-react';
 import { calculateWeightedScore, formatScore, getScoreMargin } from '../lib/score-core';
 import type { Scores } from '../lib/score-core';
+import { courseCutoff } from '../lib/course-compare';
 import type { CourseSearchItem } from '../types/course';
 import styles from './CourseResultCard.module.css';
 
@@ -12,19 +13,9 @@ interface CourseResultCardProps {
   onSelect: (course: CourseSearchItem) => void;
 }
 
-function referenceValue(course: CourseSearchItem): number | null {
-  const reference = course.reference;
-  if (!reference) return null;
-  if (typeof reference.cutoff === 'number' && reference.cutoff > 0) return reference.cutoff;
-  const partials = [...reference.partialScores]
-    .filter(partial => Number.isFinite(Number(partial.day)) && Number(partial.score) > 0)
-    .sort((left, right) => Number(left.day) - Number(right.day));
-  return partials[partials.length - 1]?.score ?? null;
-}
-
 export default function CourseResultCard({ course, scores = null, onSelect }: CourseResultCardProps) {
   const reference = course.reference || null;
-  const cutoff = referenceValue(course);
+  const cutoff = courseCutoff(course);
   const institution = course.university || 'Instituição não informada';
   const location = course.campus || [course.city, course.state].filter(Boolean).join(', ') || 'Campus não informado';
   const weighted = scores && course.weights

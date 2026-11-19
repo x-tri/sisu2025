@@ -190,7 +190,7 @@ test('mostra a nota ponderada no card assim que as notas são aplicadas', async 
   await installApiMocks(page);
   await page.goto('/');
 
-  const card = page.locator('a[href="/?courseCode=12345"]');
+  const card = page.locator('[class*="resultsGrid"] a[href="/?courseCode=12345"]');
   await expect(card).toBeVisible();
   await expect(card.getByText('Sua nota ponderada')).toHaveCount(0);
 
@@ -210,7 +210,7 @@ test('calcula a diferença automaticamente ao preencher as cinco notas, mesmo se
   await installApiMocks(page);
   await page.goto('/');
 
-  const card = page.locator('a[href="/?courseCode=12345"]');
+  const card = page.locator('[class*="resultsGrid"] a[href="/?courseCode=12345"]');
   await expect(card).toBeVisible();
   await expect(card.getByText('Sua nota ponderada')).toHaveCount(0);
 
@@ -223,6 +223,35 @@ test('calcula a diferença automaticamente ao preencher as cinco notas, mesmo se
   await expect(card.getByText('Sua nota ponderada')).toBeVisible({ timeout: 5000 });
   await expect(card).toContainText('712,50');
   await expect(card).toContainText('88,96 abaixo da referência');
+});
+
+test('mostra onde está mais perto de passar e filtra pelos cursos onde passaria', async ({ page }) => {
+  await installApiMocks(page);
+  await page.goto('/');
+
+  await page.locator('#hero-score-linguagens').fill('700');
+  await page.locator('#hero-score-humanas').fill('700');
+  await page.locator('#hero-score-natureza').fill('700');
+  await page.locator('#hero-score-matematica').fill('700');
+  await page.locator('#hero-score-redacao').fill('800');
+
+  // Painel "mais perto de passar" aparece com a diferença até a referência.
+  await expect(
+    page.getByRole('heading', { name: 'Onde você está mais perto de passar' }),
+  ).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText('88,96 pontos abaixo')).toBeVisible();
+  await expect(page.getByText(/corte 801,46/)).toBeVisible();
+
+  // Filtro ligado esconde a Medicina, pois a nota ponderada fica abaixo da referência.
+  const toggle = page.getByRole('button', { name: 'Mostrar só onde eu passaria' });
+  await expect(toggle).toBeVisible();
+  await toggle.click();
+  await expect(page.getByText('Nenhuma oferta onde você passaria')).toBeVisible();
+  await expect(page.locator('[class*="resultsGrid"] a[href="/?courseCode=12345"]')).toHaveCount(0);
+
+  // Voltar a mostrar todas as ofertas.
+  await page.getByRole('button', { name: 'Mostrar todas as ofertas' }).click();
+  await expect(page.locator('[class*="resultsGrid"] a[href="/?courseCode=12345"]')).toBeVisible();
 });
 
 test('ativa as abas principais e carrega estatísticas e ofertas próximas inline', async ({ page }) => {
