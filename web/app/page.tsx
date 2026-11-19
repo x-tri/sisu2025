@@ -16,7 +16,6 @@ import {
   MapPinned,
   RefreshCw,
   ShieldCheck,
-  Sparkles,
   X,
 } from 'lucide-react';
 import { useScores } from '../context/ScoreContext';
@@ -990,10 +989,7 @@ export default function Home() {
           <section className={styles.filtersSection} aria-labelledby="filters-title">
           <div className={styles.shell}>
             <div className={styles.filtersIntro}>
-              <p className={styles.filtersEyebrow}>
-                <Sparkles size={15} aria-hidden="true" />
-                Simulador SISU 2027 grátis
-              </p>
+              <p className={styles.filtersEyebrow}>Simulador SISU 2027 grátis</p>
               <h1 id="filters-title" className={styles.filtersTitle}>
                 Sua vaga no SISU<br />
                 <span>começa com um plano.</span>
@@ -1002,25 +998,22 @@ export default function Home() {
                 Calcule sua nota ponderada com os pesos de cada curso, compare com a nota de corte
                 de cada universidade e descubra o que fazer para chegar lá.
               </p>
-              <ul className={styles.heroBenefits} aria-label="Recursos do simulador">
-                <li><CheckCircle2 size={18} aria-hidden="true" /> Nota ponderada pelos pesos do curso</li>
-                <li><CheckCircle2 size={18} aria-hidden="true" /> Histórico e estatísticas para decidir melhor</li>
-                <li><CheckCircle2 size={18} aria-hidden="true" /> Plano de pontos feito para a sua meta</li>
-              </ul>
-              <div className={styles.heroStats} aria-label="Cobertura da plataforma">
-                <div>
-                  <strong>{systemStats.totalCourses > 0 ? systemStats.totalCourses.toLocaleString('pt-BR') : 'Milhares de'}</strong>
-                  <span>cursos para explorar</span>
+              {systemStats.totalCourses > 0 && systemStats.totalUniversities > 0 && systemStats.totalStates > 0 && (
+                <div className={styles.heroStats} aria-label="Cobertura da plataforma">
+                  <div>
+                    <strong>{systemStats.totalCourses.toLocaleString('pt-BR')}</strong>
+                    <span>cursos para explorar</span>
+                  </div>
+                  <div>
+                    <strong>{systemStats.totalUniversities.toLocaleString('pt-BR')}</strong>
+                    <span>instituições</span>
+                  </div>
+                  <div>
+                    <strong>{systemStats.totalStates}</strong>
+                    <span>estados + DF</span>
+                  </div>
                 </div>
-                <div>
-                  <strong>{systemStats.totalUniversities > 0 ? systemStats.totalUniversities.toLocaleString('pt-BR') : 'Diversas'}</strong>
-                  <span>instituições</span>
-                </div>
-                <div>
-                  <strong>{systemStats.totalStates > 0 ? systemStats.totalStates : 'Brasil'}</strong>
-                  <span>{systemStats.totalStates > 0 ? 'estados + DF' : 'inteiro conectado'}</span>
-                </div>
-              </div>
+              )}
             </div>
 
             <div className={styles.searchPanel}>
@@ -1232,10 +1225,10 @@ export default function Home() {
                 >
                   <X size={18} aria-hidden="true" />
                 </button>
-                <p className={styles.noticeTitle}>Importante!</p>
+                <p className={styles.noticeTitle}>Sobre as notas de referência</p>
                 <p>
-                  As referências exibidas identificam edição, modalidade, captura, intermediário e status
-                  de verificação. Dados parciais não garantem seleção; confirme sempre no portal oficial.
+                  Cada nota indica edição, modalidade e origem. Notas parciais não garantem vaga:
+                  confirme sempre no portal oficial do SISU.
                 </p>
               </div>
             </div>

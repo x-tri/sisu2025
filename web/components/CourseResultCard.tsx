@@ -16,19 +16,12 @@ function formatScore(value: number): string {
 function referenceValue(course: CourseSearchItem): number | null {
   const reference = course.reference;
   if (!reference) return null;
-  if (typeof reference.cutoff === 'number') return reference.cutoff;
+  if (typeof reference.cutoff === 'number' && reference.cutoff > 0) return reference.cutoff;
   const partials = [...reference.partialScores]
-    .filter(partial => Number.isFinite(Number(partial.day)))
+    .filter(partial => Number.isFinite(Number(partial.day)) && Number(partial.score) > 0)
     .sort((left, right) => Number(left.day) - Number(right.day));
   return partials[partials.length - 1]?.score ?? null;
 }
-
-const STATUS_LABEL = {
-  verified: 'verificado',
-  unverified: 'disponível na base XTRI',
-  stale: 'histórico',
-  conflict: 'divergente',
-} as const;
 
 export default function CourseResultCard({ course, onSelect }: CourseResultCardProps) {
   const reference = course.reference || null;
@@ -74,8 +67,7 @@ export default function CourseResultCard({ course, onSelect }: CourseResultCardP
           <span className={styles.referenceModality}>{reference.modalityOfficialName}</span>
           <small className={styles.referenceSource}>
             {reference.referenceType === 'historical' ? 'Histórica' : reference.referenceType === 'final' ? 'Final' : 'Parcial'}
-            {' · '}{STATUS_LABEL[reference.verification.status]}
-            {' · '}fonte SISU/MEC{reference.intermediary ? ` · processado pela ${reference.intermediary}` : ''}
+            {' · '}fonte SISU/MEC
           </small>
         </span>
       ) : (
