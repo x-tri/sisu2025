@@ -283,7 +283,7 @@ export default function PointsPlan({
             <strong className={marginValue === null ? styles.metricPlaceholder : undefined}>{formatScore(marginValue)}</strong>
             <small>
               {marginRelation === null
-                ? 'Informe notas válidas para comparar.'
+                ? 'Adicione suas notas para comparar com esta referência.'
                 : marginRelation === 'above'
                   ? 'pontos acima da última referência.'
                   : 'pontos abaixo da última referência.'}

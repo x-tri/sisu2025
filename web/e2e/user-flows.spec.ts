@@ -176,7 +176,7 @@ test('aplica as notas pelo hero e mantém os valores no modal', async ({ page })
   await page.locator('#hero-score-natureza').fill('730');
   await page.locator('#hero-score-matematica').fill('740');
   await page.locator('#hero-score-redacao').fill('750');
-  await page.getByRole('button', { name: 'Aplicar notas', exact: true }).click();
+  await page.getByRole('button', { name: /(Aplicar|Atualizar) notas/ }).click();
 
   await expect(page.getByText('Notas salvas. Sua nota ponderada aparece em cada curso abaixo.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Minhas Notas' })).toHaveCount(0);
@@ -199,9 +199,28 @@ test('mostra a nota ponderada no card assim que as notas são aplicadas', async 
   await page.locator('#hero-score-natureza').fill('700');
   await page.locator('#hero-score-matematica').fill('700');
   await page.locator('#hero-score-redacao').fill('800');
-  await page.getByRole('button', { name: 'Aplicar notas', exact: true }).click();
+  await page.getByRole('button', { name: /(Aplicar|Atualizar) notas/ }).click();
 
   await expect(card.getByText('Sua nota ponderada')).toBeVisible();
+  await expect(card).toContainText('712,50');
+  await expect(card).toContainText('88,96 abaixo da referência');
+});
+
+test('calcula a diferença automaticamente ao preencher as cinco notas, mesmo sem clicar', async ({ page }) => {
+  await installApiMocks(page);
+  await page.goto('/');
+
+  const card = page.locator('a[href="/?courseCode=12345"]');
+  await expect(card).toBeVisible();
+  await expect(card.getByText('Sua nota ponderada')).toHaveCount(0);
+
+  await page.locator('#hero-score-linguagens').fill('700');
+  await page.locator('#hero-score-humanas').fill('700');
+  await page.locator('#hero-score-natureza').fill('700');
+  await page.locator('#hero-score-matematica').fill('700');
+  await page.locator('#hero-score-redacao').fill('800');
+  // Sem clicar em nenhum botão: o efeito deve aplicar as notas sozinho.
+  await expect(card.getByText('Sua nota ponderada')).toBeVisible({ timeout: 5000 });
   await expect(card).toContainText('712,50');
   await expect(card).toContainText('88,96 abaixo da referência');
 });

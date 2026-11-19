@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useScores } from '../context/ScoreContext';
 import { useModality } from '../context/ModalityContext';
-import { calculateWeightedScore, type CourseWeights, validateScores } from '../lib/score-core';
+import { calculateWeightedScore, type CourseWeights, type Scores, validateScores } from '../lib/score-core';
 import { getEffectiveCutoff, selectLatestReference } from '../lib/course-selection';
 import CourseDetailView from '../components/CourseDetail/CourseDetailView';
 import ApprovalRadarModal from '../components/CourseDetail/ApprovalRadarModal';
@@ -56,6 +56,24 @@ const HERO_SCORE_FIELDS: Array<{
   { key: 'matematica', label: 'Matemática', shortLabel: 'MAT' },
   { key: 'redacao', label: 'Redação', shortLabel: 'RED' },
 ];
+
+const SCORE_FIELDS: Array<keyof Scores> = ['redacao', 'linguagens', 'matematica', 'humanas', 'natureza'];
+
+function parseDraftScores(draft: ScoreDraft): Scores | null {
+  const parsed = {
+    redacao: draft.redacao.trim() === '' ? Number.NaN : Number(draft.redacao),
+    linguagens: draft.linguagens.trim() === '' ? Number.NaN : Number(draft.linguagens),
+    matematica: draft.matematica.trim() === '' ? Number.NaN : Number(draft.matematica),
+    humanas: draft.humanas.trim() === '' ? Number.NaN : Number(draft.humanas),
+    natureza: draft.natureza.trim() === '' ? Number.NaN : Number(draft.natureza),
+  };
+  const validation = validateScores(parsed);
+  return validation.valid ? validation.scores : null;
+}
+
+function sameScores(left: Scores, right: Scores): boolean {
+  return SCORE_FIELDS.every(field => left[field] === right[field]);
+}
 
 const HOME_FAQ: FaqItem[] = [
   {
@@ -451,6 +469,18 @@ export default function Home() {
     });
   }, [scores, showScoreInput]);
 
+  // Aplica as notas assim que as cinco áreas estiverem válidas, sem exigir clique.
+  useEffect(() => {
+    if (showScoreInput) return;
+    const timer = window.setTimeout(() => {
+      const parsed = parseDraftScores(tempScores);
+      if (!parsed || sameScores(parsed, scores)) return;
+      setScores(parsed);
+    }, 900);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tempScores, showScoreInput]);
+
   useEffect(() => {
     catalogMoreController.current?.abort();
     const controller = new AbortController();
@@ -822,16 +852,15 @@ export default function Home() {
     });
   };
 
+  const commitDraftScores = (draft: ScoreDraft): boolean => {
+    const parsed = parseDraftScores(draft);
+    if (!parsed) return false;
+    if (sameScores(parsed, scores)) return true;
+    return setScores(parsed);
+  };
+
   const handleSaveScores = (): boolean => {
-    const parsed = {
-      redacao: tempScores.redacao.trim() === '' ? Number.NaN : Number(tempScores.redacao),
-      linguagens: tempScores.linguagens.trim() === '' ? Number.NaN : Number(tempScores.linguagens),
-      matematica: tempScores.matematica.trim() === '' ? Number.NaN : Number(tempScores.matematica),
-      humanas: tempScores.humanas.trim() === '' ? Number.NaN : Number(tempScores.humanas),
-      natureza: tempScores.natureza.trim() === '' ? Number.NaN : Number(tempScores.natureza),
-    };
-    const validation = validateScores(parsed);
-    if (!validation.valid || !setScores(parsed)) {
+    if (!commitDraftScores(tempScores)) {
       setScoreError('Preencha as cinco notas com valores entre 0 e 1000.');
       return false;
     }
@@ -841,6 +870,7 @@ export default function Home() {
   };
 
   const chooseSearchResult = (result: CourseSearchItem) => {
+    commitDraftScores(tempScores);
     const course: Course = {
       id: result.id,
       code: result.code,
@@ -871,6 +901,7 @@ export default function Home() {
   };
 
   const selectCourseFromDropdown = (courseId: string) => {
+    commitDraftScores(tempScores);
     setFilters(previous => ({ ...previous, course: courseId }));
     setSearchQuery('');
     setSearchResults([]);
