@@ -1448,7 +1448,7 @@ export default function Home() {
               <>
                 <div className={styles.resultsHeader}>
                   <div>
-                    <span className={styles.resultsEyebrow}>Simulador SISU 2026</span>
+                    <span className={styles.resultsEyebrow}>Simulador SISU 2027</span>
                     <h2 id="results-title">Top cursos procurados</h2>
                     <p role="region" aria-label="Cobertura medida da base">
                       {hasActiveSearch
