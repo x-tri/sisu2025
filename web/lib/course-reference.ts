@@ -14,7 +14,7 @@ const STALE_AFTER_MS = 36 * 60 * 60 * 1000
 function isValidReferenceScore(value: unknown): value is number {
   return typeof value === 'number'
     && Number.isFinite(value)
-    && value >= 0
+    && value > 0
     && value <= 1000
 }
 

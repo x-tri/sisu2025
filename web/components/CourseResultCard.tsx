@@ -46,7 +46,6 @@ export default function CourseResultCard({ course, onSelect }: CourseResultCardP
       }}
     >
       <span className={styles.heading}>
-        <span className={styles.offerTag}>Oferta de graduação</span>
         <strong>{course.name}</strong>
         <span>{[course.schedule, course.degree].filter(Boolean).join(' · ') || 'Consulte os detalhes da oferta'}</span>
       </span>
@@ -82,7 +81,6 @@ export default function CourseResultCard({ course, onSelect }: CourseResultCardP
       ) : (
         <span className={styles.referenceBlock}>
           <span className={styles.referenceValue}>Consultar referências desta oferta</span>
-          <small>Nenhuma modalidade foi substituída automaticamente.</small>
         </span>
       )}
       <span className={styles.cardAction}>

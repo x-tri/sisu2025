@@ -87,3 +87,19 @@ test('uses final only when a current edition has a cut score and no partials', (
   assert.equal(finalReference.referenceType, 'final')
   assert.equal(unknownReference, null)
 })
+
+test('treats a zero cut score as missing reference data', () => {
+  const onlyZero = buildCourseReference(12345, score({ cut_score: 0 }), null, NOW)
+  assert.equal(onlyZero, null)
+
+  const zeroWithPartials = buildCourseReference(
+    12345,
+    score({ cut_score: 0, partial_scores: [{ day: 1, score: 0 }, { day: 2, score: 640 }] }),
+    null,
+    NOW
+  )!
+
+  assert.equal(zeroWithPartials.cutoff, null)
+  assert.equal(zeroWithPartials.referenceType, 'partial')
+  assert.deepEqual(zeroWithPartials.partialScores, [{ day: 2, score: 640 }])
+})

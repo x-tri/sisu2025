@@ -43,20 +43,6 @@
   gap: 0.45rem;
 }
 
-.offerTag {
-  width: fit-content;
-  margin-bottom: 0.25rem;
-  padding: 0.28rem 0.55rem;
-  border: 1px solid var(--xtri-cyan-border);
-  border-radius: 999px;
-  background: var(--xtri-cyan-soft);
-  color: var(--xtri-cyan-deep);
-  font-size: 0.59rem;
-  font-weight: 800;
-  letter-spacing: 0.065em;
-  text-transform: uppercase;
-}
-
 .heading strong {
   color: var(--xtri-navy);
   font-family: var(--font-display);

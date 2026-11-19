@@ -82,7 +82,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function validScore(value: unknown): number | null {
     return typeof value === 'number'
         && Number.isFinite(value)
-        && value >= 0
+        && value > 0
         && value <= 1000
         ? value
         : null;

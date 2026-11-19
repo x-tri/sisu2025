@@ -301,7 +301,7 @@ export function buildCourseStatistics(
   const cutoffHistory = editionRows.map(row => {
     const points = normalizePartialPoints(row)
     const latestPartial = points[points.length - 1] || null
-    const cutoff = validScore(row.cut_score) ? row.cut_score : null
+    const cutoff = validScore(row.cut_score) && row.cut_score > 0 ? row.cut_score : null
     const effectiveCutoff = cutoff ?? latestPartial?.score ?? null
     const referenceType: StatisticsReferenceType = cutoff !== null
       ? 'final'

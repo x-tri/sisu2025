@@ -1025,11 +1025,10 @@ export default function Home() {
 
             <div className={styles.searchPanel}>
               <div className={styles.searchPanelHeading}>
-                <div>
-                  <span className={styles.searchPanelKicker}>Simulador gratuito</span>
-                  <h2>Suas notas do ENEM</h2>
-                </div>
-                <span className={styles.searchPanelIcon}><GraduationCap size={25} aria-hidden="true" /></span>
+                <h2>Suas notas do ENEM</h2>
+                <span className={styles.searchPanelIcon}>
+                  <GraduationCap size={25} aria-hidden="true" />
+                </span>
               </div>
               <p className={styles.searchPanelDescription}>
                 Preencha as cinco áreas para calcular sua nota ponderada em cada curso.
@@ -1206,10 +1205,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <p className={styles.searchPrivacy}>
-              <ShieldCheck size={15} aria-hidden="true" /> Consulta gratuita, sem cadastro.
-            </p>
-          </div>
+            </div>
           </div>
           </section>
         )}
@@ -1448,7 +1444,6 @@ export default function Home() {
               <>
                 <div className={styles.resultsHeader}>
                   <div>
-                    <span className={styles.resultsEyebrow}>Simulador SISU 2027</span>
                     <h2 id="results-title">Top cursos procurados</h2>
                     <p role="region" aria-label="Cobertura medida da base">
                       {hasActiveSearch
@@ -1493,7 +1488,7 @@ export default function Home() {
                   <div className={styles.emptyCatalog} role="status">
                     <span><Compass size={26} aria-hidden="true" /></span>
                     <strong>Nenhuma oferta encontrada</strong>
-                    <p>Tente buscar outro curso ou remover alguns filtros.</p>
+                    <p>Tente outro estado, cidade ou instituição nos filtros.</p>
                   </div>
                 )}
 
@@ -1547,7 +1542,6 @@ export default function Home() {
               />
               <div className={styles.seoGrid}>
                 <div className={styles.medicineCard}>
-                  <span className={styles.resultsEyebrow}>Medicina no SISU</span>
                   <h2 id="seo-title">Nota de corte de Medicina por universidade</h2>
                   <p>
                     Veja as maiores e menores notas de corte de Medicina, a nota de cada universidade e

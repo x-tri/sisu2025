@@ -190,16 +190,6 @@
   gap: 1rem;
 }
 
-.searchPanelKicker {
-  display: block;
-  margin-bottom: 0.35rem;
-  color: var(--xtri-cyan-deep);
-  font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-}
-
 .searchPanelHeading h2 {
   margin: 0;
   font-family: var(--font-display);
@@ -577,24 +567,6 @@
   transform: translateY(-50%);
 }
 
-.searchPrivacy {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  margin: 1.2rem -2rem -2rem;
-  padding: 0.85rem;
-  border-top: 1px solid #edf1f5;
-  border-radius: 0 0 1.4rem 1.4rem;
-  background: #fafcfd;
-  color: #6f8292;
-  font-size: 0.68rem;
-}
-
-.searchPrivacy svg {
-  color: var(--xtri-cyan-deep);
-}
-
 /* Aviso e estados */
 .noticeArea {
   position: relative;
@@ -746,16 +718,6 @@
   justify-content: space-between;
   gap: 2rem;
   margin-bottom: 2rem;
-}
-
-.resultsEyebrow {
-  display: block;
-  margin-bottom: 0.45rem;
-  color: var(--xtri-cyan-deep);
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 .resultsHeader h2 {
@@ -1063,10 +1025,6 @@
     var(--xtri-navy);
   border-color: transparent;
   color: #fff;
-}
-
-.medicineCard .resultsEyebrow {
-  color: var(--xtri-cyan);
 }
 
 .medicineCard h2,
@@ -1400,11 +1358,6 @@
   .searchPanelIcon {
     width: 2.7rem;
     height: 2.7rem;
-  }
-
-  .searchPrivacy {
-    margin: 1.2rem -1.35rem -1.35rem;
-    border-radius: 0 0 1.1rem 1.1rem;
   }
 
   .filterGrid {
