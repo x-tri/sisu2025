@@ -5,6 +5,13 @@ const nextConfig = {
   
   // Output standalone build for Docker
   output: 'standalone',
+
+  // Fonts and logo are read from disk at runtime, which the standalone tracer cannot see.
+  experimental: {
+    outputFileTracingIncludes: {
+      '/**/opengraph-image*': ['./assets/**/*'],
+    },
+  },
   
   // Disable image optimization for static export (if needed)
   images: {

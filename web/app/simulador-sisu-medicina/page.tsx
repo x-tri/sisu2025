@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: MEDICINE_HUB_PATH },
   openGraph: { title: TITLE, description: DESCRIPTION, url: MEDICINE_HUB_PATH, type: 'website', locale: 'pt_BR' },
-  twitter: { card: 'summary', title: TITLE, description: DESCRIPTION },
+  twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION },
 }
 
 const integer = new Intl.NumberFormat('pt-BR')

@@ -2,7 +2,13 @@ import { cache } from 'react'
 
 import { buildCourseReference } from '@/lib/course-reference'
 import { AMPLA_MODALITY_ID, groupCoursesByUniversity, type UniversityGroup } from '@/lib/course-seo'
-import { buildMedicineOffer, isMedicineCourse, type MedicineOffer } from '@/lib/medicine-seo'
+import {
+  buildMedicineOffer,
+  groupMedicineByUniversity,
+  isMedicineCourse,
+  type MedicineOffer,
+  type MedicineUniversity,
+} from '@/lib/medicine-seo'
 import { supabase, type Course, type CourseWeights, type CutScore } from '@/lib/supabase'
 import type { CourseReference, CourseSearchItem } from '@/types/course'
 
@@ -73,3 +79,11 @@ export const loadMedicineOffers = cache(async (): Promise<MedicineOffer[]> => {
     return buildMedicineOffer(course, references)
   })
 })
+
+export async function loadUniversity(slug: string): Promise<UniversityGroup | null> {
+  return (await loadUniversities()).find(university => university.slug === slug) ?? null
+}
+
+export async function loadMedicineUniversity(slug: string): Promise<MedicineUniversity | null> {
+  return groupMedicineByUniversity(await loadMedicineOffers()).find(university => university.slug === slug) ?? null
+}
