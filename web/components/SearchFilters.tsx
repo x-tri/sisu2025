@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import styles from './SearchFilters.module.css';
+import { UFS } from '../lib/ufs';
 import { useScores } from '../context/ScoreContext';
 import { useModality, MODALITY_OPTIONS, matchModality, getModalityCode } from '../context/ModalityContext';
 
@@ -50,7 +51,7 @@ export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
     });
 
     const [options, setOptions] = useState({
-        states: [] as string[],
+        states: [...UFS] as string[],
         cities: [] as string[],
         institutions: [] as string[],
         courses: [] as Course[],
@@ -70,7 +71,11 @@ export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
     useEffect(() => {
         fetch('/api/filters?type=states')
             .then(res => res.json())
-            .then(data => setOptions(prev => ({ ...prev, states: data })))
+            .then(data => {
+                if (Array.isArray(data) && data.length > 0) {
+                    setOptions(prev => ({ ...prev, states: data }));
+                }
+            })
             .catch(console.error);
     }, []);
 
@@ -289,7 +294,9 @@ export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
                         disabled={!filters.state}
                         onChange={(e) => setFilters({ ...filters, city: e.target.value, institution: '', course: '' })}
                     >
-                        <option value="">{loading.cities ? 'Carregando...' : 'Selecione a cidade'}</option>
+                        {loading.cities
+                            ? <option value="" disabled>Carregando…</option>
+                            : <option value="">Selecione a cidade</option>}
                         {options.cities.map(city => (
                             <option key={city} value={city}>{city}</option>
                         ))}
@@ -304,7 +311,9 @@ export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
                         disabled={!filters.city}
                         onChange={(e) => setFilters({ ...filters, institution: e.target.value, course: '' })}
                     >
-                        <option value="">{loading.institutions ? 'Carregando...' : 'Selecione a universidade'}</option>
+                        {loading.institutions
+                            ? <option value="" disabled>Carregando…</option>
+                            : <option value="">Selecione a universidade</option>}
                         {options.institutions.map(inst => (
                             <option key={inst} value={inst}>{inst}</option>
                         ))}
@@ -319,7 +328,9 @@ export default function SearchFilters({ onCourseSelect }: SearchFiltersProps) {
                         disabled={!filters.institution}
                         onChange={(e) => setFilters({ ...filters, course: e.target.value })}
                     >
-                        <option value="">{loading.courses ? 'Carregando...' : 'Selecione o curso'}</option>
+                        {loading.courses
+                            ? <option value="" disabled>Carregando…</option>
+                            : <option value="">Selecione o curso</option>}
                         {options.courses.map(course => (
                             <option key={course.id} value={course.id}>{course.name}{course.degree ? ` - ${course.degree}` : ''}</option>
                         ))}

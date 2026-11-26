@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
+const CACHE_HEADERS = { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=86400' }
+
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const type = searchParams.get('type')
@@ -28,7 +30,7 @@ export async function GET(request: NextRequest) {
 
         if (type === 'states') {
             const states = Array.from(new Set(courses.map(course => course.state).filter(Boolean))).sort()
-            return NextResponse.json(states)
+            return NextResponse.json(states, { headers: CACHE_HEADERS })
         }
 
         if (type === 'cities') {
@@ -38,7 +40,7 @@ export async function GET(request: NextRequest) {
                     .map(course => course.city)
                     .filter((city): city is string => Boolean(city))
             )).sort((left, right) => left.localeCompare(right, 'pt-BR'))
-            return NextResponse.json(cities)
+            return NextResponse.json(cities, { headers: CACHE_HEADERS })
         }
 
         if (type === 'universities') {
@@ -48,7 +50,7 @@ export async function GET(request: NextRequest) {
                     .map(course => course.university)
                     .filter((institution): institution is string => Boolean(institution))
             )).sort((left, right) => left.localeCompare(right, 'pt-BR'))
-            return NextResponse.json(universities)
+            return NextResponse.json(universities, { headers: CACHE_HEADERS })
         }
 
         if (type === 'courses') {
@@ -68,7 +70,7 @@ export async function GET(request: NextRequest) {
                 }))
                 .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'))
 
-            return NextResponse.json(matchingCourses)
+            return NextResponse.json(matchingCourses, { headers: CACHE_HEADERS })
         }
 
         return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
