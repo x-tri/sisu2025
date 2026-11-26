@@ -4,15 +4,11 @@ import { notFound } from 'next/navigation'
 
 import SeoShell, { type Crumb } from '@/components/seo/SeoShell'
 import styles from '@/components/seo/SeoShell.module.css'
-import { loadUniversities } from '@/lib/course-page-data'
+import { loadUniversity } from '@/lib/course-page-data'
 import { coursePath, type UniversityGroup } from '@/lib/course-seo'
 
 interface PageProps {
   params: { slug: string }
-}
-
-async function findUniversity(slug: string): Promise<UniversityGroup | null> {
-  return (await loadUniversities()).find(university => university.slug === slug) ?? null
 }
 
 function shortName(university: UniversityGroup): string {
@@ -20,7 +16,7 @@ function shortName(university: UniversityGroup): string {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const university = await findUniversity(params.slug)
+  const university = await loadUniversity(params.slug)
   if (!university) return { title: 'Instituição não encontrada', robots: { index: false, follow: true } }
 
   const label = university.acronym ? `${university.acronym} (${university.name})` : university.name
@@ -33,11 +29,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description,
     alternates: { canonical },
     openGraph: { title, description, url: canonical, type: 'website', locale: 'pt_BR' },
+    twitter: { card: 'summary_large_image', title, description },
   }
 }
 
 export default async function UniversityPage({ params }: PageProps): Promise<JSX.Element> {
-  const university = await findUniversity(params.slug)
+  const university = await loadUniversity(params.slug)
   if (!university) notFound()
 
   const path = `/universidade/${university.slug}`

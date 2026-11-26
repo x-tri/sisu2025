@@ -5,29 +5,23 @@ import { notFound } from 'next/navigation'
 import SeoShell, { type Crumb } from '@/components/seo/SeoShell'
 import styles from '@/components/seo/SeoShell.module.css'
 import { atInstitution, faqJsonLd } from '@/lib/course-faq'
-import { loadMedicineOffers } from '@/lib/course-page-data'
+import { loadMedicineUniversity } from '@/lib/course-page-data'
 import { coursePath, formatScore, serializeJsonLd, universityPath } from '@/lib/course-seo'
 import {
   MEDICINE_HUB_PATH,
-  groupMedicineByUniversity,
   medicineUniversityFaq,
   medicineUniversityPath,
   offerPlace,
   rankingEdition,
   rankMedicineOffers,
-  type MedicineUniversity,
 } from '@/lib/medicine-seo'
 
 interface PageProps {
   params: { slug: string }
 }
 
-async function findMedicineUniversity(slug: string): Promise<MedicineUniversity | null> {
-  return groupMedicineByUniversity(await loadMedicineOffers()).find(university => university.slug === slug) ?? null
-}
-
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const university = await findMedicineUniversity(params.slug)
+  const university = await loadMedicineUniversity(params.slug)
   if (!university) return { title: 'Oferta de Medicina não encontrada', robots: { index: false, follow: true } }
 
   const edition = rankingEdition(university.offers)
@@ -43,11 +37,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description,
     alternates: { canonical },
     openGraph: { title, description, url: canonical, type: 'website', locale: 'pt_BR' },
+    twitter: { card: 'summary_large_image', title, description },
   }
 }
 
 export default async function MedicineUniversityPage({ params }: PageProps): Promise<JSX.Element> {
-  const university = await findMedicineUniversity(params.slug)
+  const university = await loadMedicineUniversity(params.slug)
   if (!university) notFound()
 
   const path = medicineUniversityPath(university.slug)

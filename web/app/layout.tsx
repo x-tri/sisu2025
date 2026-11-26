@@ -26,13 +26,11 @@ export const metadata: Metadata = {
     siteName: 'XTRI SISU',
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: [{ url: '/xtri-logo.png', width: 974, height: 1024, alt: 'XTRI SISU' }],
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: ['/xtri-logo.png'],
   },
   icons: {
     icon: '/favicon.png',

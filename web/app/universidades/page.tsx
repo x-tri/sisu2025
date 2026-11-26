@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: PATH },
   openGraph: { title: 'Universidades do SISU: nota de corte por instituição', description: DESCRIPTION, url: PATH },
+  twitter: { card: 'summary_large_image', title: 'Universidades do SISU: nota de corte por instituição', description: DESCRIPTION },
 }
 
 export default async function UniversitiesPage(): Promise<JSX.Element> {

@@ -96,6 +96,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description,
     alternates: { canonical },
     openGraph: { title, description, url: canonical, type: 'website', locale: 'pt_BR' },
+    twitter: { card: 'summary_large_image', title, description },
   }
 }
 

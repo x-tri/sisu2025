@@ -20,6 +20,11 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     url: PATH,
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Política de Privacidade e Cookies | XTRI SISU',
+    description: DESCRIPTION,
+  },
 }
 
 export default function PrivacyPage(): JSX.Element {
