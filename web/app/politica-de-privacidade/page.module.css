@@ -28,8 +28,8 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--xtri-cyan);
-  box-shadow: 0 0 0 3px var(--xtri-cyan-soft);
+  background: var(--xtri-accent);
+  box-shadow: 0 0 0 3px var(--xtri-accent-soft);
 }
 
 .policy {
@@ -78,13 +78,13 @@
 }
 
 .section a {
-  color: var(--xtri-cyan-text);
+  color: var(--xtri-strong-text);
   font-weight: 500;
   text-underline-offset: 2px;
 }
 
 .section a:hover {
-  color: var(--xtri-cyan-deep);
+  color: var(--xtri-strong-deep);
 }
 
 .section strong {
@@ -95,8 +95,8 @@
   font-size: 0.86em;
   padding: 0.12rem 0.4rem;
   border-radius: 6px;
-  background: var(--xtri-cyan-soft);
-  color: var(--xtri-cyan-deep);
+  background: var(--xtri-accent-soft);
+  color: var(--xtri-strong-deep);
 }
 
 .list {
@@ -120,7 +120,7 @@
 }
 
 .tableWrap:focus-visible {
-  outline: 3px solid var(--xtri-cyan);
+  outline: 3px solid var(--xtri-accent);
   outline-offset: 2px;
 }
 
@@ -171,10 +171,10 @@
 .note {
   padding: 0.85rem 1rem;
   border-radius: 12px;
-  border-left: 3px solid var(--xtri-cyan);
-  background: var(--xtri-cyan-soft);
+  border-left: 3px solid var(--xtri-accent);
+  background: var(--xtri-accent-soft);
   font-size: 0.88rem !important;
-  color: var(--xtri-cyan-deep) !important;
+  color: var(--xtri-strong-deep) !important;
 }
 
 .back {

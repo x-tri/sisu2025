@@ -28,9 +28,9 @@
 }
 
 .modalHeader > span {
-  background: var(--xtri-cyan-soft);
+  background: var(--xtri-accent-soft);
   border-radius: 999px;
-  color: var(--xtri-cyan-text);
+  color: var(--xtri-strong-text);
   display: inline-flex;
   font-size: 0.68rem;
   font-weight: 800;
@@ -84,8 +84,8 @@
 }
 
 .field input:focus {
-  border-color: var(--xtri-cyan-strong);
-  box-shadow: 0 0 0 3px rgb(36 190 254 / 0.15);
+  border-color: var(--xtri-strong);
+  box-shadow: 0 0 0 3px rgb(253 84 48 / 0.15);
   outline: 0;
 }
 
@@ -133,7 +133,7 @@
 .secondaryAction button {
   background: transparent;
   border: 0;
-  color: var(--xtri-cyan-text);
+  color: var(--xtri-strong-text);
   font-size: 0.7rem;
   min-height: 32px;
   padding: 0;
@@ -172,7 +172,7 @@
 }
 
 .save:hover {
-  background: var(--xtri-cyan-deep);
+  background: var(--xtri-strong-deep);
 }
 
 @media (max-width: 520px) {

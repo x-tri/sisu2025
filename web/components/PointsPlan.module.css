@@ -33,7 +33,7 @@
 }
 
 .titleLine h2 span {
-  color: var(--xtri-cyan-strong);
+  color: var(--xtri-strong);
 }
 
 .guideButton {
@@ -41,7 +41,7 @@
   background: transparent;
   border: 0;
   border-radius: 0.6rem;
-  color: var(--xtri-cyan-text);
+  color: var(--xtri-strong-text);
   display: inline-flex;
   font-size: 0.78rem;
   font-weight: 750;
@@ -51,7 +51,7 @@
 }
 
 .guideButton:hover {
-  background: var(--xtri-cyan-soft);
+  background: var(--xtri-accent-soft);
 }
 
 .weightSummary {
@@ -74,7 +74,7 @@
 }
 
 .stepsDetails summary {
-  color: var(--xtri-cyan-text);
+  color: var(--xtri-strong-text);
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 750;
@@ -133,7 +133,7 @@
 }
 
 .steps strong {
-  color: var(--xtri-cyan-text);
+  color: var(--xtri-strong-text);
   font-size: 0.78rem;
   line-height: 1.3;
 }
@@ -175,7 +175,7 @@
 
 .metrics strong {
   color: var(--xtri-navy);
-  font-family: var(--font-display);
+  font-family: var(--font-numeric);
   /* Sized from the card width so "1000,00" always fits one column. */
   font-size: clamp(1.25rem, 8.5cqi - 0.55rem, 2.65rem);
   font-variant-numeric: tabular-nums;
@@ -203,8 +203,8 @@
 }
 
 .quickGuide {
-  background: var(--xtri-cyan-soft);
-  border-left: 4px solid var(--xtri-cyan);
+  background: var(--xtri-accent-soft);
+  border-left: 4px solid var(--xtri-accent);
   border-radius: 0.75rem;
   color: var(--xtri-ink-soft);
   font-size: 0.86rem;
@@ -250,7 +250,7 @@
 }
 
 .subjectRow.cyan {
-  background: color-mix(in srgb, var(--xtri-cyan-soft) 66%, #fff);
+  background: color-mix(in srgb, var(--xtri-accent-soft) 66%, #fff);
 }
 
 .subjectRow.orange {
@@ -330,14 +330,14 @@
 
 .blue { --subject-color: #2878ff; }
 .violet { --subject-color: #8b4ce6; }
-.cyan { --subject-color: var(--xtri-cyan-strong); }
+.cyan { --subject-color: var(--xtri-strong); }
 .green { --subject-color: #1c9b68; }
 .orange { --subject-color: var(--xtri-orange); }
 
 .cyan .scoreCell strong,
 .cyan .weightCell strong,
 .cyan .impactCell small {
-  color: var(--xtri-cyan-text);
+  color: var(--xtri-strong-text);
 }
 
 .orange .scoreCell strong,
@@ -359,8 +359,8 @@
 }
 
 .targetCard {
-  background: var(--xtri-cyan-soft);
-  border: 1px solid color-mix(in srgb, var(--xtri-cyan) 42%, #fff);
+  background: var(--xtri-accent-soft);
+  border: 1px solid color-mix(in srgb, var(--xtri-accent) 42%, #fff);
   border-radius: 1rem;
   display: flex;
   flex-direction: column;
@@ -377,9 +377,9 @@
 .targetHeading > span {
   align-items: center;
   background: var(--xtri-surface);
-  border: 1px solid color-mix(in srgb, var(--xtri-cyan) 50%, #fff);
+  border: 1px solid color-mix(in srgb, var(--xtri-accent) 50%, #fff);
   border-radius: 999px;
-  color: var(--xtri-cyan-text);
+  color: var(--xtri-strong-text);
   display: inline-flex;
   flex: 0 0 44px;
   height: 44px;
@@ -415,7 +415,7 @@
 }
 
 .targetInput svg {
-  color: var(--xtri-cyan-text);
+  color: var(--xtri-strong-text);
   pointer-events: none;
   position: absolute;
   right: 0.9rem;
@@ -425,10 +425,11 @@
 
 .targetInput input {
   background: var(--xtri-surface);
-  border: 2px dashed var(--xtri-cyan-strong);
+  border: 2px dashed var(--xtri-strong);
   border-radius: 0.75rem;
   color: var(--xtri-navy);
-  font-family: var(--font-display);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
   font-size: 2rem;
   font-weight: 650;
   min-height: 58px;
@@ -438,7 +439,7 @@
 
 .targetInput input:focus {
   border-style: solid;
-  outline: 3px solid var(--xtri-cyan-soft);
+  outline: 3px solid var(--xtri-accent-soft);
 }
 
 .targetHelp,
@@ -485,7 +486,7 @@
 }
 
 .editScoresButton:hover {
-  background: var(--xtri-cyan-deep);
+  background: var(--xtri-strong-deep);
 }
 
 .recalculationNote {
@@ -522,7 +523,7 @@
 }
 
 .trustTitle svg {
-  color: var(--xtri-cyan-text);
+  color: var(--xtri-strong-text);
 }
 
 .trustTitle strong,
@@ -572,7 +573,7 @@
 
 .trustStrip > a {
   align-items: center;
-  color: var(--xtri-cyan-text);
+  color: var(--xtri-strong-text);
   display: inline-flex;
   font-size: 0.7rem;
   font-weight: 750;
@@ -605,8 +606,8 @@
 
 .actions button:hover:not(:disabled) {
   background: var(--xtri-surface-soft);
-  border-color: var(--xtri-cyan);
-  color: var(--xtri-cyan-text);
+  border-color: var(--xtri-accent);
+  color: var(--xtri-strong-text);
 }
 
 .actions button:disabled {

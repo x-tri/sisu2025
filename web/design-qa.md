@@ -104,7 +104,7 @@ Implementação: `http://127.0.0.1:3100/?courseCode=1877`
 
 ## Resultado por superfície
 
-- Identidade: cabeçalho em azul-marinho, ciano e laranja XTRI, logotipo preservado e tipografia Space Grotesk + Inter.
+- Identidade: cabeçalho em azul-marinho, ciano e laranja XTRI, logotipo preservado e tipografia Big Shoulders (títulos) + Inter.
 - Poucos cliques: no curso selecionado, a busca global fica no cabeçalho; um único clique retorna ao campo já focado. Notas, meta e recálculo permanecem na mesma tela.
 - Didática: quatro passos explicam onde o aluno está, a distância para a referência, o peso das áreas e como ajustar as notas. “Impacto” é definido como participação do peso, nunca como chance.
 - Acurácia: os pesos e cortes exibidos são os dados reais da oferta; diferenças visuais em relação aos números do mock são intencionais. Modalidade e edição permanecem explícitas.

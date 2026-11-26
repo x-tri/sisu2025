@@ -3,6 +3,7 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import styles from './CourseDetail.module.css';
 import { useModality } from '../../context/ModalityContext';
+import { CHART_COLORS } from '../../lib/chartPalette';
 
 interface Score {
     year: number;
@@ -68,7 +69,7 @@ export default function StatsCharts({ scores }: StatsProps) {
                         <YAxis domain={['dataMin - 10', 'dataMax + 10']} />
                         <Tooltip />
                         <Legend />
-                        <Line type="monotone" dataKey="cut_score" name="Nota de referência" stroke="#2563eb" strokeWidth={2} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="cut_score" name="Nota de referência" stroke={CHART_COLORS.reference} strokeWidth={2} isAnimationActive={false} />
                     </LineChart>
                 </ResponsiveContainer>
             </div>

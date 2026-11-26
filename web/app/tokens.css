@@ -5,12 +5,19 @@
 
 :root {
   /* Identidade XTRI */
-  --xtri-cyan: #fd5430;
-  --xtri-cyan-strong: #071a52;
-  --xtri-cyan-deep: #071a52;
-  --xtri-cyan-text: #071a52;
-  --xtri-cyan-soft: #fbf6f1;
-  --xtri-cyan-border: #e0d3c6;
+  --xtri-accent: #fd5430;
+  --xtri-strong: #071a52;
+  --xtri-strong-deep: #071a52;
+  --xtri-strong-text: #071a52;
+  --xtri-accent-soft: #fbf6f1;
+  --xtri-accent-border: #e0d3c6;
+  /* Aliases legados (nomes enganosos): preferir --xtri-accent* e --xtri-strong* */
+  --xtri-cyan: var(--xtri-accent);
+  --xtri-cyan-strong: var(--xtri-strong);
+  --xtri-cyan-deep: var(--xtri-strong-deep);
+  --xtri-cyan-text: var(--xtri-strong-text);
+  --xtri-cyan-soft: var(--xtri-accent-soft);
+  --xtri-cyan-border: var(--xtri-accent-border);
   --xtri-muted: var(--xtri-ink-muted);
   --xtri-surface-app: #efe4da;
   --xtri-orange: #fd5430;
@@ -29,10 +36,10 @@
   /* ----------------------------------------
      Cores Primárias
      ---------------------------------------- */
-  --color-primary: var(--xtri-cyan-strong);
-  --color-primary-light: var(--xtri-cyan);
-  --color-primary-dark: var(--xtri-cyan-deep);
-  --color-primary-subtle: var(--xtri-cyan-soft);
+  --color-primary: var(--xtri-strong);
+  --color-primary-light: var(--xtri-accent);
+  --color-primary-dark: var(--xtri-strong-deep);
+  --color-primary-subtle: var(--xtri-accent-soft);
   
   /* ----------------------------------------
      Cores Semânticas
@@ -130,6 +137,7 @@
      ---------------------------------------- */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Big Shoulders Display', Impact, 'Arial Narrow', sans-serif;
+  --font-numeric: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   
   /* Tamanhos */

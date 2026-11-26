@@ -22,7 +22,7 @@
   right: 0;
   left: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--xtri-cyan), #70d5ff);
+  background: linear-gradient(90deg, var(--xtri-accent), #70d5ff);
   content: '';
   opacity: 0;
   transition: opacity 180ms ease;
@@ -127,7 +127,7 @@
 .referenceHeader > strong {
   flex: 0 0 auto;
   color: var(--xtri-orange-text);
-  font-family: var(--font-display);
+  font-family: var(--font-numeric);
   font-size: 1.55rem;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
@@ -168,7 +168,7 @@
   padding: 0.7rem 0.85rem;
   border: 1px solid #bfe7f7;
   border-radius: 0.7rem;
-  background: linear-gradient(135deg, #f4fbff, var(--xtri-cyan-soft));
+  background: linear-gradient(135deg, #f4fbff, var(--xtri-accent-soft));
 }
 
 .personalScoreLabel {
@@ -182,8 +182,8 @@
 
 .personalScore strong {
   flex: 0 0 auto;
-  color: var(--xtri-cyan-deep);
-  font-family: var(--font-display);
+  color: var(--xtri-strong-deep);
+  font-family: var(--font-numeric);
   font-size: 1.3rem;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
@@ -217,7 +217,7 @@
   justify-content: space-between;
   gap: 0.75rem;
   margin-top: 1rem;
-  color: var(--xtri-cyan-deep);
+  color: var(--xtri-strong-deep);
   font-size: 0.7rem;
   font-weight: 800;
 }

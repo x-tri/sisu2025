@@ -87,7 +87,7 @@
 .crumbs a,
 .footer a,
 .link {
-  color: var(--xtri-cyan-text);
+  color: var(--xtri-strong-text);
   font-weight: 600;
   text-decoration: none;
 }
@@ -150,7 +150,7 @@
 
 .stat dd {
   margin-top: var(--space-1);
-  font-family: var(--font-display);
+  font-family: var(--font-numeric);
   font-size: 1.75rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;

@@ -51,7 +51,7 @@
 .headerContent h2 {
     margin: 0;
     color: var(--xtri-navy);
-    font-family: var(--font-space-grotesk), sans-serif;
+    font-family: var(--font-display);
     font-size: clamp(1.2rem, 3vw, 1.5rem);
     font-weight: 700;
     letter-spacing: -0.025em;
@@ -82,15 +82,15 @@
 }
 
 .closeButton:hover {
-    border-color: var(--xtri-cyan-border);
-    background: var(--xtri-cyan-soft);
-    color: var(--xtri-cyan-deep);
+    border-color: var(--xtri-accent-border);
+    background: var(--xtri-accent-soft);
+    color: var(--xtri-strong-deep);
 }
 
 .closeButton:focus-visible,
 .filterSelect:focus-visible,
 .errorState button:focus-visible {
-    outline: 3px solid var(--xtri-cyan);
+    outline: 3px solid var(--xtri-accent);
     outline-offset: 3px;
 }
 
@@ -118,8 +118,8 @@
 .spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid var(--xtri-cyan-soft);
-    border-top-color: var(--xtri-cyan-strong);
+    border: 3px solid var(--xtri-accent-soft);
+    border-top-color: var(--xtri-strong);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -178,7 +178,7 @@
 
 .resultCard:hover {
     transform: translateY(-2px);
-    border-color: var(--xtri-cyan-border);
+    border-color: var(--xtri-accent-border);
     box-shadow: 0 14px 32px rgba(7, 20, 39, 0.08);
 }
 
@@ -192,7 +192,7 @@
 .universityName,
 .courseName {
     color: var(--xtri-navy);
-    font-family: var(--font-space-grotesk), sans-serif;
+    font-family: var(--font-display);
     font-weight: 700;
     line-height: 1.35;
 }
@@ -231,8 +231,8 @@
 }
 
 .shiftIntegral {
-    background: var(--xtri-cyan-soft);
-    color: var(--xtri-cyan-deep);
+    background: var(--xtri-accent-soft);
+    color: var(--xtri-strong-deep);
 }
 
 .shiftNoturno {
@@ -336,7 +336,7 @@
 
 .errorState button {
     padding: 0.65rem 1rem;
-    border: 1px solid var(--xtri-cyan-strong);
+    border: 1px solid var(--xtri-strong);
     border-radius: 10px;
     background: var(--xtri-orange);
     color: var(--xtri-navy);
@@ -358,16 +358,16 @@
 .referenceMetadata span,
 .cardMetadata span {
     padding: 0.3rem 0.6rem;
-    border: 1px solid var(--xtri-cyan-border);
+    border: 1px solid var(--xtri-accent-border);
     border-radius: 999px;
-    background: var(--xtri-cyan-soft);
-    color: var(--xtri-cyan-deep);
+    background: var(--xtri-accent-soft);
+    color: var(--xtri-strong-deep);
     font-size: 0.72rem;
 }
 
 .distanceBadge {
     margin-bottom: 0.5rem;
-    color: var(--xtri-cyan-strong);
+    color: var(--xtri-strong);
     font-size: 0.75rem;
     font-weight: 700;
 }

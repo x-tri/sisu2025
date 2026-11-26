@@ -21,7 +21,7 @@
 
 .brand {
   align-items: center;
-  color: var(--xtri-cyan);
+  color: var(--xtri-accent);
   display: inline-flex;
   flex: 0 0 auto;
   font-family: var(--font-display);
@@ -64,7 +64,7 @@
 .searchTrigger:hover,
 .searchTrigger:focus-visible {
   background: rgb(255 255 255 / 0.12);
-  border-color: rgb(36 190 254 / 0.55);
+  border-color: rgb(253 84 48 / 0.55);
   color: #fff;
 }
 
@@ -100,7 +100,7 @@
 }
 
 .desktopLinks .activeLink {
-  border-bottom-color: var(--xtri-cyan);
+  border-bottom-color: var(--xtri-accent);
   color: #fff;
 }
 
@@ -160,8 +160,8 @@
 }
 
 .mobileMenu .mobileActive {
-  background: rgb(36 190 254 / 0.14);
-  color: var(--xtri-cyan);
+  background: rgb(253 84 48 / 0.14);
+  color: var(--xtri-accent);
   font-weight: 750;
 }
 

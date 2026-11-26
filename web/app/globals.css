@@ -12,6 +12,7 @@
 :root {
   --font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-display: var(--font-big-shoulders), 'Big Shoulders Display', Impact, 'Arial Narrow', sans-serif;
+  --font-numeric: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
 }
 
@@ -46,7 +47,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 [tabindex]:focus-visible {
-  outline: 3px solid var(--xtri-cyan-strong);
+  outline: 3px solid var(--xtri-strong);
   outline-offset: 3px;
 }
 
