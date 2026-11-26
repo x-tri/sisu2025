@@ -1,6 +1,6 @@
 .container {
-    background-color: #1a1b1e;
-    border: 1px solid #333;
+    background-color: #1d1d1f;
+    border: 1px solid #1d1d1f;
     border-radius: 12px;
     margin-top: 1rem;
     padding: 20px;
@@ -8,7 +8,7 @@
 }
 
 .container .title {
-    color: #d1d5db;
+    color: #e0d3c6;
     font-size: 0.8rem;
     font-weight: 600;
     letter-spacing: 0.06em;
@@ -32,11 +32,11 @@
 }
 
 .equal {
-    color: #d1d5db;
+    color: #e0d3c6;
 }
 
 .explanation {
-    color: #e5e7eb;
+    color: #e0d3c6;
     font-size: 0.9rem;
     line-height: 1.5;
     margin: 0.75rem auto 1rem;
@@ -59,13 +59,13 @@
 }
 
 .comparison dt {
-    color: #9ca3af;
+    color: #5c544d;
     font-size: 0.75rem;
     margin-bottom: 0.25rem;
 }
 
 .comparison dd {
-    color: #f9fafb;
+    color: #efe4da;
     font-size: 1rem;
     font-weight: 700;
     margin: 0;
@@ -73,7 +73,7 @@
 
 .disclaimer {
     border-top: 1px solid #303136;
-    color: #9ca3af;
+    color: #5c544d;
     font-size: 0.75rem;
     line-height: 1.45;
     margin: 1rem 0 0;
@@ -81,7 +81,7 @@
 }
 
 .noScore {
-    color: #9ca3af;
+    color: #5c544d;
     font-size: 0.9rem;
     line-height: 1.5;
     margin: 0;

@@ -1,7 +1,7 @@
 .panel {
     margin: 1rem 0;
     padding: 1rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid #e0d3c6;
     border-left-width: 4px;
     border-radius: 0.75rem;
     background: rgba(255, 255, 255, 0.78);
@@ -29,15 +29,15 @@
 
 .headingRow h5 {
     margin: 0;
-    color: #111827;
+    color: #1d1d1f;
     font-size: 0.95rem;
 }
 
 .statusBadge {
     padding: 0.3rem 0.55rem;
     border-radius: 999px;
-    background: #f3f4f6;
-    color: #374151;
+    background: #efe4da;
+    color: #1d1d1f;
     font-size: 0.72rem;
     font-weight: 700;
     text-align: center;
@@ -46,7 +46,7 @@
 .description,
 .notice {
     margin-top: 0.65rem;
-    color: #4b5563;
+    color: #5c544d;
     font-size: 0.82rem;
     line-height: 1.5;
 }
@@ -63,7 +63,7 @@
 }
 
 .metadata dt {
-    color: #6b7280;
+    color: #5c544d;
     font-size: 0.68rem;
     font-weight: 700;
     letter-spacing: 0.04em;
@@ -72,7 +72,7 @@
 
 .metadata dd {
     margin-top: 0.2rem;
-    color: #111827;
+    color: #1d1d1f;
     font-size: 0.8rem;
     overflow-wrap: anywhere;
 }
@@ -85,7 +85,7 @@
 
 .notice {
     padding-top: 0.75rem;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid #e0d3c6;
 }
 
 @media (max-width: 620px) {

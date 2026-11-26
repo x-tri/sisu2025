@@ -52,8 +52,8 @@
   min-height: 44px;
   padding: 0 var(--space-5);
   border-radius: var(--radius-full);
-  background: var(--xtri-cyan-strong);
-  color: #fff;
+  background: var(--xtri-orange);
+  color: var(--xtri-navy);
   font-weight: 700;
   font-size: 0.9375rem;
   text-decoration: none;
@@ -61,7 +61,7 @@
 
 .headerCta:hover,
 .cta:hover {
-  background: var(--xtri-cyan-deep);
+  background: var(--xtri-orange-hover);
 }
 
 .main {
@@ -122,7 +122,7 @@
 
 .heroMeta {
   margin-top: var(--space-3);
-  color: #c4d2e6;
+  color: #e0d3c6;
   font-size: 0.9375rem;
   line-height: 1.6;
 }
@@ -141,7 +141,7 @@
 }
 
 .stat dt {
-  color: #c4d2e6;
+  color: #e0d3c6;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -161,11 +161,11 @@
 }
 
 .heroActions .cta {
-  background: var(--xtri-orange-text);
+  background: var(--xtri-orange);
 }
 
 .heroActions .cta:hover {
-  background: #9a2c13;
+  background: var(--xtri-orange-hover);
 }
 
 .card {

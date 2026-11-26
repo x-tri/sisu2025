@@ -10,7 +10,7 @@
 }
 
 .dialog {
-  background: #fff;
+  background: var(--xtri-surface);
   border: 1px solid var(--xtri-border);
   border-radius: 1rem;
   box-shadow: 0 28px 70px rgb(7 20 39 / 0.24);
@@ -167,8 +167,8 @@
 }
 
 .save {
-  background: var(--xtri-cyan-strong);
-  color: #fff;
+  background: var(--xtri-orange);
+  color: var(--xtri-navy);
 }
 
 .save:hover {

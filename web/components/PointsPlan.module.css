@@ -116,9 +116,9 @@
 
 .steps li > span {
   align-items: center;
-  background: var(--xtri-cyan-strong);
+  background: var(--xtri-orange);
   border-radius: 999px;
-  color: #fff;
+  color: var(--xtri-navy);
   display: inline-flex;
   flex: 0 0 24px;
   font-size: 0.74rem;
@@ -146,7 +146,7 @@
 }
 
 .metrics {
-  background: #fff;
+  background: var(--xtri-surface);
   border: 1px solid var(--xtri-border);
   border-radius: 1rem;
   container-type: inline-size;
@@ -220,7 +220,7 @@
 }
 
 .subjectTable {
-  background: #fff;
+  background: var(--xtri-surface);
   border: 1px solid var(--xtri-border);
   border-radius: 1rem;
   min-width: 0;
@@ -376,7 +376,7 @@
 
 .targetHeading > span {
   align-items: center;
-  background: #fff;
+  background: var(--xtri-surface);
   border: 1px solid color-mix(in srgb, var(--xtri-cyan) 50%, #fff);
   border-radius: 999px;
   color: var(--xtri-cyan-text);
@@ -424,7 +424,7 @@
 }
 
 .targetInput input {
-  background: #fff;
+  background: var(--xtri-surface);
   border: 2px dashed var(--xtri-cyan-strong);
   border-radius: 0.75rem;
   color: var(--xtri-navy);
@@ -453,7 +453,7 @@
 }
 
 .targetResult {
-  background: #fff;
+  background: var(--xtri-surface);
   border-radius: 0.75rem;
   color: var(--xtri-ink-soft);
   font-size: 0.78rem;
@@ -469,10 +469,10 @@
 
 .editScoresButton {
   align-items: center;
-  background: var(--xtri-cyan-strong);
+  background: var(--xtri-orange);
   border: 0;
   border-radius: 0.75rem;
-  color: #fff;
+  color: var(--xtri-navy);
   display: inline-flex;
   font-size: 0.84rem;
   font-weight: 750;
@@ -505,7 +505,7 @@
 
 .trustStrip {
   align-items: center;
-  background: #fff;
+  background: var(--xtri-surface);
   border: 1px solid var(--xtri-border);
   border-radius: 1rem;
   display: grid;

@@ -9,7 +9,7 @@
   overflow: hidden;
   border: 1px solid #dce5ed;
   border-radius: 1rem;
-  background: #fff;
+  background: var(--xtri-surface);
   box-shadow: 0 3px 12px rgb(7 20 39 / 0.035);
   color: var(--xtri-ink);
   text-align: left;

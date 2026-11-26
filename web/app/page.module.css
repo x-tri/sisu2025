@@ -27,11 +27,8 @@
   isolation: isolate;
   overflow: hidden;
   padding: 1.75rem 0 3.5rem;
-  background:
-    radial-gradient(circle at 9% 10%, rgb(36 190 254 / 0.16), transparent 29rem),
-    radial-gradient(circle at 92% 90%, rgb(36 190 254 / 0.09), transparent 28rem),
-    linear-gradient(135deg, #071427 0%, #0a1d33 54%, #08263b 100%);
-  color: #fff;
+  background: var(--xtri-surface-app);
+  color: var(--xtri-ink);
 }
 
 .filtersSection::before {
@@ -41,11 +38,9 @@
   right: -10rem;
   width: 38rem;
   height: 38rem;
-  border: 1px solid rgb(36 190 254 / 0.1);
+  border: 1px solid var(--xtri-border);
   border-radius: 50%;
-  box-shadow:
-    0 0 0 5rem rgb(36 190 254 / 0.025),
-    0 0 0 10rem rgb(36 190 254 / 0.018);
+  box-shadow: 0 0 0 5rem rgb(224 211 198 / 0.25);
   content: '';
 }
 
@@ -56,7 +51,7 @@
   left: 0;
   width: 100%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgb(36 190 254 / 0.45), transparent);
+  background: linear-gradient(90deg, transparent, var(--xtri-border), transparent);
   content: '';
 }
 
@@ -77,32 +72,34 @@
   align-items: center;
   gap: 0.45rem;
   margin: 0 0 1.25rem;
-  color: var(--xtri-cyan);
+  color: var(--xtri-ink-soft);
+  font-family: var(--font-mono);
   font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0.13em;
+  font-weight: 500;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .filtersTitle {
   max-width: 14ch;
   margin: 0;
-  color: #fff;
+  color: var(--xtri-navy);
   font-family: var(--font-display);
-  font-size: clamp(2.6rem, 4.6vw, 4.25rem);
-  font-weight: 700;
-  letter-spacing: -0.055em;
-  line-height: 1.04;
+  font-size: clamp(2.9rem, 5.2vw, 4.75rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 0.96;
+  text-transform: uppercase;
 }
 
 .filtersTitle span {
-  color: var(--xtri-cyan);
+  color: var(--xtri-orange-text);
 }
 
 .filtersDescription {
   max-width: 35rem;
   margin: 1.5rem 0 0;
-  color: #b8c9da;
+  color: var(--xtri-ink-soft);
   font-size: 1.02rem;
   line-height: 1.75;
 }
@@ -112,7 +109,7 @@
   gap: 0;
   margin-top: 2.25rem;
   padding-top: 1.6rem;
-  border-top: 1px solid rgb(255 255 255 / 0.1);
+  border-top: 1px solid var(--xtri-border);
 }
 
 .heroStats > div {
@@ -123,11 +120,11 @@
 
 .heroStats > div + div {
   padding-left: 1.5rem;
-  border-left: 1px solid rgb(255 255 255 / 0.1);
+  border-left: 1px solid var(--xtri-border);
 }
 
 .heroStats strong {
-  color: #fff;
+  color: var(--xtri-navy);
   font-family: var(--font-display);
   font-size: 1.45rem;
   font-variant-numeric: tabular-nums;
@@ -135,7 +132,7 @@
 }
 
 .heroStats span {
-  color: #8fa6ba;
+  color: var(--xtri-ink-soft);
   font-size: 0.68rem;
   white-space: nowrap;
 }
@@ -144,10 +141,10 @@
   position: relative;
   min-width: 0;
   padding: 2rem;
-  border: 1px solid rgb(255 255 255 / 0.7);
-  border-radius: 1.4rem;
-  background: #fff;
-  box-shadow: 0 24px 70px rgb(0 0 0 / 0.24), 0 2px 0 rgb(36 190 254 / 0.18);
+  border: 1px solid var(--xtri-border);
+  border-radius: 2rem;
+  background: var(--xtri-surface);
+  box-shadow: var(--xtri-card-shadow);
   color: var(--xtri-navy);
 }
 
@@ -158,7 +155,7 @@
   width: 4rem;
   height: 3px;
   border-radius: 0 0 999px 999px;
-  background: var(--xtri-cyan);
+  background: var(--xtri-orange);
   content: '';
 }
 
@@ -212,7 +209,7 @@
 }
 
 .heroScoreField label {
-  color: #3e5367;
+  color: #5c544d;
   font-size: 0.67rem;
   font-weight: 800;
   letter-spacing: 0.055em;
@@ -224,11 +221,11 @@
   min-width: 0;
   min-height: 3rem;
   padding: 0.65rem 0.25rem;
-  border: 1px solid #cbd8e4;
+  border: 1px solid #e0d3c6;
   border-radius: 0.7rem;
   outline: 0;
   appearance: textfield;
-  background: #f8fafc;
+  background: #efe4da;
   color: var(--xtri-navy);
   font-family: var(--font-display);
   font-size: 0.95rem;
@@ -245,12 +242,12 @@
 }
 
 .heroScoreField input::placeholder {
-  color: #9aa8b5;
+  color: #5c544d;
 }
 
 .heroScoreField input:focus {
   border-color: var(--xtri-cyan-strong);
-  background: #fff;
+  background: var(--xtri-surface);
   box-shadow: 0 0 0 3px rgb(36 190 254 / 0.14);
 }
 
@@ -300,8 +297,8 @@
   padding: 0.65rem 1rem;
   border: 0;
   border-radius: 0.7rem;
-  background: var(--xtri-cyan-strong);
-  color: #fff;
+  background: var(--xtri-orange);
+  color: var(--xtri-navy);
   font-size: 0.74rem;
   font-weight: 800;
   white-space: nowrap;
@@ -336,7 +333,7 @@
   align-items: flex-start;
   gap: 0.4rem;
   margin: 0.85rem 0 0;
-  color: #5a6d80;
+  color: #5c544d;
   font-size: 0.68rem;
   line-height: 1.5;
 }
@@ -383,10 +380,10 @@
   width: 100%;
   min-height: 3.4rem;
   padding: 0.85rem 2.7rem 0.85rem 3rem;
-  border: 1px solid #cbd8e4;
+  border: 1px solid #e0d3c6;
   border-radius: 0.8rem;
   outline: 0;
-  background: #f8fafc;
+  background: #efe4da;
   color: var(--xtri-navy);
   font-size: 0.88rem;
   transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
@@ -398,7 +395,7 @@
 
 .searchControl > input:focus {
   border-color: var(--xtri-cyan-strong);
-  background: #fff;
+  background: var(--xtri-surface);
   box-shadow: 0 0 0 4px rgb(36 190 254 / 0.13);
 }
 
@@ -427,7 +424,7 @@
   overflow: hidden;
   border: 1px solid #d7e2ec;
   border-radius: 0.8rem;
-  background: #fff;
+  background: var(--xtri-surface);
   box-shadow: 0 18px 40px rgb(7 20 39 / 0.18);
 }
 
@@ -502,7 +499,7 @@
 .filterField > label {
   display: block;
   margin-bottom: 0.4rem;
-  color: #3e5367;
+  color: #5c544d;
   font-size: 0.69rem;
   font-weight: 700;
 }
@@ -520,7 +517,7 @@
   border-radius: 0.65rem;
   outline: 0;
   appearance: none;
-  background: #fff;
+  background: var(--xtri-surface);
   color: #344b5f;
   font-size: 0.75rem;
   text-overflow: ellipsis;
@@ -652,7 +649,7 @@
 .catalogState,
 .tabEmptyState {
   border: 1px solid #dfe7ee;
-  background: #fff;
+  background: var(--xtri-surface);
   color: var(--xtri-muted);
   text-align: center;
 }
@@ -723,7 +720,7 @@
   padding: 0.55rem 0.9rem;
   border: 1px solid #d4e0e9;
   border-radius: 999px;
-  background: #fff;
+  background: var(--xtri-surface);
   color: #4d6578;
   font-size: 0.72rem;
   font-weight: 700;
@@ -758,7 +755,7 @@
   padding: 0.7rem 1.4rem;
   border: 1px solid var(--xtri-cyan-border);
   border-radius: 999px;
-  background: #fff;
+  background: var(--xtri-surface);
   color: var(--xtri-cyan-deep);
   font-size: 0.82rem;
   font-weight: 800;
@@ -781,7 +778,7 @@
   padding: 3.5rem 1.5rem;
   border: 1px dashed #cbd9e4;
   border-radius: 1rem;
-  background: #fff;
+  background: var(--xtri-surface);
   color: var(--xtri-muted);
   text-align: center;
 }
@@ -822,7 +819,7 @@
   padding: 0.5rem 0.95rem;
   border: 1px solid var(--xtri-cyan-border);
   border-radius: 999px;
-  background: #fff;
+  background: var(--xtri-surface);
   color: var(--xtri-cyan-deep);
   font-size: 0.78rem;
   font-weight: 800;
@@ -853,7 +850,7 @@
   padding: 0.5rem 1rem;
   border: 1px solid var(--xtri-cyan-border);
   border-radius: 999px;
-  background: #fff;
+  background: var(--xtri-surface);
   color: var(--xtri-cyan-deep);
   font-size: 0.78rem;
   font-weight: 800;
@@ -912,7 +909,7 @@
   padding: 0.6rem 0.85rem;
   border: 1px solid #e2ebf2;
   border-radius: 0.7rem;
-  background: #fff;
+  background: var(--xtri-surface);
   color: inherit;
   text-decoration: none;
   transition: border-color 140ms ease, box-shadow 140ms ease;
@@ -1010,7 +1007,7 @@
   padding: 1.75rem;
   border: 1px solid #dce6ee;
   border-radius: 1.1rem;
-  background: #fff;
+  background: var(--xtri-surface);
   box-shadow: 0 8px 28px rgb(7 20 39 / 0.045);
 }
 
@@ -1070,7 +1067,7 @@
 .contextControl > label {
   display: block;
   margin-bottom: 0.45rem;
-  color: #3e5367;
+  color: #5c544d;
   font-size: 0.7rem;
   font-weight: 750;
 }
@@ -1120,7 +1117,7 @@
 }
 
 .detailTabs .activeDetailTab {
-  background: #fff;
+  background: var(--xtri-surface);
   color: var(--xtri-cyan-deep);
   box-shadow: 0 2px 8px rgb(7 20 39 / 0.08);
 }
@@ -1168,7 +1165,7 @@
   padding: 2rem;
   border: 1px solid var(--xtri-cyan-border);
   border-radius: 1.5rem;
-  background: #fff;
+  background: var(--xtri-surface);
   box-shadow: 0 18px 45px rgb(7 20 39 / 0.06);
 }
 
@@ -1195,7 +1192,7 @@
 
 .medicineCard p {
   margin: 0.9rem 0 1.5rem;
-  color: #c4d2e6;
+  color: #e0d3c6;
   font-size: 0.95rem;
   line-height: 1.65;
 }

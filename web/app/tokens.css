@@ -5,26 +5,26 @@
 
 :root {
   /* Identidade XTRI */
-  --xtri-cyan: #24befe;
-  --xtri-cyan-strong: #006b96;
-  --xtri-cyan-deep: #004f70;
-  --xtri-cyan-text: #005d82;
-  --xtri-cyan-soft: #eaf8ff;
-  --xtri-cyan-border: #b9e6f8;
+  --xtri-cyan: #fd5430;
+  --xtri-cyan-strong: #071a52;
+  --xtri-cyan-deep: #071a52;
+  --xtri-cyan-text: #071a52;
+  --xtri-cyan-soft: #fbf6f1;
+  --xtri-cyan-border: #e0d3c6;
   --xtri-muted: var(--xtri-ink-muted);
-  --xtri-surface-app: #f5f8fc;
+  --xtri-surface-app: #efe4da;
   --xtri-orange: #fd5430;
-  --xtri-orange-text: #b83518;
-  --xtri-orange-soft: #fff1ec;
-  --xtri-navy: #071427;
-  --xtri-navy-soft: #10233d;
-  --xtri-ink: #122038;
-  --xtri-ink-soft: #34435a;
-  --xtri-ink-muted: #657187;
-  --xtri-surface: #ffffff;
-  --xtri-surface-soft: #f5f8fc;
-  --xtri-border: #dce4ef;
-  --xtri-border-strong: #bdc9d9;
+  --xtri-orange-text: #d8400f;
+  --xtri-orange-soft: #fbf6f1;
+  --xtri-navy: #071a52;
+  --xtri-navy-soft: #0d2569;
+  --xtri-ink: #1d1d1f;
+  --xtri-ink-soft: #5c544d;
+  --xtri-ink-muted: #5c544d;
+  --xtri-surface: #fbf6f1;
+  --xtri-surface-soft: #efe4da;
+  --xtri-border: #e0d3c6;
+  --xtri-border-strong: #cdbdad;
 
   /* ----------------------------------------
      Cores Primárias
@@ -70,9 +70,9 @@
   /* ----------------------------------------
      Cores de Fundo
      ---------------------------------------- */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f5f8fc;
-  --bg-tertiary: #f8fafc;
+  --bg-primary: #fbf6f1;
+  --bg-secondary: #efe4da;
+  --bg-tertiary: #efe4da;
   --bg-dark: var(--xtri-navy);
   --bg-dark-hover: var(--xtri-navy-soft);
   
@@ -81,9 +81,9 @@
      ---------------------------------------- */
   --text-primary: var(--xtri-ink);
   --text-secondary: var(--xtri-ink-soft);
-  --text-tertiary: var(--gray-500);
+  --text-tertiary: #5c544d;
   --text-inverse: #ffffff;
-  --text-muted: var(--gray-400);
+  --text-muted: #5c544d;
   
   /* ----------------------------------------
      Espaçamentos (Sistema 4px base)
@@ -111,23 +111,25 @@
   --radius-2xl: 1.5rem;   /* 24px */
   --radius-3xl: 2rem;     /* 32px */
   --radius-full: 9999px;
+  --xtri-orange-hover: #f0431f;
+  --xtri-card-shadow: 0 12px 32px rgba(70, 45, 20, 0.10);
   
   /* ----------------------------------------
      Sombras
      ---------------------------------------- */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 12px 32px rgba(70, 45, 20, 0.10);
+  --shadow-md: 0 12px 32px rgba(70, 45, 20, 0.10);
+  --shadow-lg: 0 12px 32px rgba(70, 45, 20, 0.10);
+  --shadow-xl: 0 12px 32px rgba(70, 45, 20, 0.10);
   --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.06);
-  --shadow-colored: 0 4px 14px rgba(36, 190, 254, 0.2);
+  --shadow-colored: 0 12px 32px rgba(70, 45, 20, 0.10);
   
   /* ----------------------------------------
      Tipografia
      ---------------------------------------- */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Space Grotesk Variable', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Big Shoulders Display', Impact, 'Arial Narrow', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
   
   /* Tamanhos */
