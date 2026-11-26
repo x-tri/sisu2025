@@ -39,6 +39,7 @@ export default function PlatformOffer({ position, variant = 'card' }: PlatformOf
           onClick={() => trackOfferClick(position)}
         >
           {OFFER_CTA} <ArrowRight size={18} aria-hidden="true" />
+          <span className={styles.srOnly}> (abre em nova aba)</span>
         </a>
       </div>
     </section>

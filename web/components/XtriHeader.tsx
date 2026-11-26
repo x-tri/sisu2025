@@ -68,6 +68,7 @@ export default function XtriHeader({
             onClick={() => trackOfferClick('header')}
           >
             {OFFER_HEADER_LABEL}
+            <span className={styles.srOnly}> (abre em nova aba)</span>
           </a>
           <button
             type="button"
