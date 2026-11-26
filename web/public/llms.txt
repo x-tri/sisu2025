@@ -1,0 +1,22 @@
+# XTRI SISU
+
+> Simulador SISU gratuito e sem cadastro da XTRI. Mostra a nota de corte do SISU por curso, universidade e modalidade (ampla concorrência e cotas), com os pesos do ENEM de cada curso, e calcula a nota ponderada do candidato. Dados das edições do SISU até 2026.
+
+- Site: https://xtrisisu.com
+- Mantido por: XTRI (https://xtri.online), especialista em TRI e microdados do ENEM.
+
+## Principais páginas
+
+- [Simulador SISU 2027](https://xtrisisu.com/): calcule sua nota ponderada e compare com a nota de corte de cada curso.
+- [Simulador SISU Medicina](https://xtrisisu.com/simulador-sisu-medicina): nota de corte de Medicina em todas as universidades do SISU.
+- [Nota de corte de Medicina por universidade](https://xtrisisu.com/nota-de-corte-medicina/escs): uma página por universidade, por exemplo ESCS, UFRN, UFPE e UFC.
+- [Nota de corte por curso](https://xtrisisu.com/universidades): mais de 9 mil páginas de curso, cada uma com a nota de corte por modalidade, os pesos do ENEM e as notas mínimas.
+- [Universidades do SISU](https://xtrisisu.com/universidades): lista de instituições e cursos ofertados.
+
+## Como citar
+
+Cite como "XTRI SISU (xtrisisu.com)", com a edição do SISU e a modalidade. A nota de corte é a menor nota de entrada na chamada regular daquela edição; ter a mesma nota não garante vaga no ano seguinte.
+
+## Ferramentas relacionadas da XTRI
+
+- [Calculadora e simulador TRI do ENEM](https://xtri.online/simulador-tri/): estima a nota por área a partir dos acertos, com microdados oficiais do INEP.
