@@ -24,6 +24,7 @@ import { useModality } from '../context/ModalityContext';
 import { calculateWeightedScore, type CourseWeights, type Scores, validateScores } from '../lib/score-core';
 import { closestPassing, passableCourses } from '../lib/course-compare';
 import { getEffectiveCutoff, selectLatestReference } from '../lib/course-selection';
+import { BRAZILIAN_STATES } from '../lib/brazilian-states';
 import CourseDetailView from '../components/CourseDetail/CourseDetailView';
 import ApprovalRadarModal from '../components/CourseDetail/ApprovalRadarModal';
 import NearbyOffersPanel from '../components/CourseDetail/NearbyOffersPanel';
@@ -95,6 +96,8 @@ const HOME_FAQ: FaqItem[] = [
     answer: 'Sim. O simulador XTRI SISU é gratuito e não exige cadastro nem login.',
   },
 ];
+
+const INITIAL_STATES: string[] = BRAZILIAN_STATES.map(state => state.code).sort();
 
 async function fetchJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   const requestController = new AbortController();
@@ -416,7 +419,7 @@ export default function Home() {
     course: '',
   });
   const [options, setOptions] = useState({
-    states: [] as string[],
+    states: INITIAL_STATES,
     cities: [] as string[],
     institutions: [] as string[],
     courses: [] as Course[],
@@ -488,13 +491,8 @@ export default function Home() {
     const controller = new AbortController();
     setFilterError('');
 
-    Promise.all([
-      fetchJson<string[]>('/api/filters?type=states', controller.signal),
-      fetchJson<CourseCoverageResponse>('/api/courses/coverage', controller.signal),
-    ])
-      .then(([statesData, coverage]) => {
-        const states = Array.isArray(statesData) ? statesData : [];
-        setOptions(previous => ({ ...previous, states }));
+    fetchJson<CourseCoverageResponse>('/api/courses/coverage', controller.signal)
+      .then(coverage => {
         setSystemStats({
           totalCourses: coverage.coverage.courses.rows,
           totalUniversities: coverage.coverage.courses.institutions,
@@ -556,9 +554,11 @@ export default function Home() {
   useEffect(() => {
     if (!filters.state) {
       setOptions(previous => ({ ...previous, cities: [], institutions: [], courses: [] }));
+      setLoadingFilters(previous => ({ ...previous, cities: false }));
       return;
     }
     const controller = new AbortController();
+    setOptions(previous => ({ ...previous, cities: [], institutions: [], courses: [] }));
     setLoadingFilters(previous => ({ ...previous, cities: true }));
     const params = new URLSearchParams({ type: 'cities', state: filters.state });
     fetchJson<string[]>('/api/filters?' + params.toString(), controller.signal)
@@ -580,9 +580,11 @@ export default function Home() {
   useEffect(() => {
     if (!filters.city) {
       setOptions(previous => ({ ...previous, institutions: [], courses: [] }));
+      setLoadingFilters(previous => ({ ...previous, institutions: false }));
       return;
     }
     const controller = new AbortController();
+    setOptions(previous => ({ ...previous, institutions: [], courses: [] }));
     setLoadingFilters(previous => ({ ...previous, institutions: true }));
     const params = new URLSearchParams({
       type: 'universities',
@@ -608,9 +610,11 @@ export default function Home() {
   useEffect(() => {
     if (!filters.institution) {
       setOptions(previous => ({ ...previous, courses: [] }));
+      setLoadingFilters(previous => ({ ...previous, courses: false }));
       return;
     }
     const controller = new AbortController();
+    setOptions(previous => ({ ...previous, courses: [] }));
     setLoadingFilters(previous => ({ ...previous, courses: true }));
     const params = new URLSearchParams({
       type: 'courses',
@@ -1176,7 +1180,8 @@ export default function Home() {
                     id="city-filter"
                     aria-label="Cidade"
                     value={filters.city}
-                    disabled={!filters.state}
+                    disabled={!filters.state || loadingFilters.cities}
+                    aria-busy={loadingFilters.cities}
                     onChange={event => {
                       setFilters(previous => ({
                         ...previous,
@@ -1202,7 +1207,8 @@ export default function Home() {
                     id="institution-filter"
                     aria-label="Instituição"
                     value={filters.institution}
-                    disabled={!filters.city}
+                    disabled={!filters.city || loadingFilters.institutions}
+                    aria-busy={loadingFilters.institutions}
                     onChange={event => {
                       setFilters(previous => ({
                         ...previous,
@@ -1230,6 +1236,7 @@ export default function Home() {
                     aria-label="Curso"
                     value={filters.course}
                     disabled={!filters.institution || loadingFilters.courses}
+                    aria-busy={loadingFilters.courses}
                     onChange={event => selectCourseFromDropdown(event.target.value)}
                   >
                     <option value="">

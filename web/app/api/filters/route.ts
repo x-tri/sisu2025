@@ -4,6 +4,11 @@ import { supabase } from '@/lib/supabase'
 export const dynamic = 'force-dynamic'
 
 const CACHE_HEADERS = { 'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=86400' }
+const NO_STORE = { 'Cache-Control': 'no-store' }
+
+function listResponse(list: unknown[]) {
+    return NextResponse.json(list, { headers: list.length > 0 ? CACHE_HEADERS : NO_STORE })
+}
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
@@ -30,7 +35,7 @@ export async function GET(request: NextRequest) {
 
         if (type === 'states') {
             const states = Array.from(new Set(courses.map(course => course.state).filter(Boolean))).sort()
-            return NextResponse.json(states, { headers: CACHE_HEADERS })
+            return listResponse(states)
         }
 
         if (type === 'cities') {
@@ -40,7 +45,7 @@ export async function GET(request: NextRequest) {
                     .map(course => course.city)
                     .filter((city): city is string => Boolean(city))
             )).sort((left, right) => left.localeCompare(right, 'pt-BR'))
-            return NextResponse.json(cities, { headers: CACHE_HEADERS })
+            return listResponse(cities)
         }
 
         if (type === 'universities') {
@@ -50,7 +55,7 @@ export async function GET(request: NextRequest) {
                     .map(course => course.university)
                     .filter((institution): institution is string => Boolean(institution))
             )).sort((left, right) => left.localeCompare(right, 'pt-BR'))
-            return NextResponse.json(universities, { headers: CACHE_HEADERS })
+            return listResponse(universities)
         }
 
         if (type === 'courses') {
@@ -70,7 +75,7 @@ export async function GET(request: NextRequest) {
                 }))
                 .sort((left, right) => left.name.localeCompare(right.name, 'pt-BR'))
 
-            return NextResponse.json(matchingCourses, { headers: CACHE_HEADERS })
+            return listResponse(matchingCourses)
         }
 
         return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
@@ -79,7 +84,7 @@ export async function GET(request: NextRequest) {
         console.error('Filter API Error:', error)
         return NextResponse.json(
             { error: 'Não foi possível carregar os filtros neste momento.' },
-            { status: 502 }
+            { status: 502, headers: NO_STORE }
         )
     }
 }
