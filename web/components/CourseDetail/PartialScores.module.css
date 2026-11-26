@@ -6,7 +6,7 @@
 .title {
     font-size: 1rem;
     font-weight: 600;
-    color: #111827;
+    color: #1d1d1f;
     margin-bottom: 0.75rem;
 }
 
@@ -19,7 +19,7 @@
 .item {
     display: flex;
     flex-direction: column;
-    background-color: #f3f4f6;
+    background-color: #efe4da;
     padding: 0.5rem 0.75rem;
     border-radius: 6px;
     min-width: 80px;
@@ -27,12 +27,12 @@
 
 .day {
     font-size: 0.875rem;
-    color: #374151;
+    color: #1d1d1f;
     margin-bottom: 0.25rem;
 }
 
 .score {
     font-size: 1rem;
     font-weight: 600;
-    color: #111827;
+    color: #1d1d1f;
 }

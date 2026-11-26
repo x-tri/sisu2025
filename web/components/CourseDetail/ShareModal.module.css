@@ -35,13 +35,13 @@
     align-items: center;
     gap: 10px;
     color: var(--xtri-navy);
-    font-family: var(--font-space-grotesk), sans-serif;
+    font-family: var(--font-display);
     font-size: 1.15rem;
     font-weight: 700;
 }
 
 .title svg {
-    color: var(--xtri-cyan-strong);
+    color: var(--xtri-strong);
 }
 
 .closeButton {
@@ -60,9 +60,9 @@
 }
 
 .closeButton:hover {
-    border-color: var(--xtri-cyan-border);
-    background: var(--xtri-cyan-soft);
-    color: var(--xtri-cyan-deep);
+    border-color: var(--xtri-accent-border);
+    background: var(--xtri-accent-soft);
+    color: var(--xtri-strong-deep);
 }
 
 .content {
@@ -92,12 +92,12 @@
 }
 
 .tab:hover {
-    color: var(--xtri-cyan-deep);
+    color: var(--xtri-strong-deep);
 }
 
 .activeTab {
     background: var(--xtri-surface);
-    color: var(--xtri-cyan-deep);
+    color: var(--xtri-strong-deep);
     box-shadow: 0 2px 8px rgba(7, 20, 39, 0.08);
 }
 
@@ -117,8 +117,8 @@
 }
 
 .textArea:focus {
-    border-color: var(--xtri-cyan);
-    outline: 3px solid var(--xtri-cyan-soft);
+    border-color: var(--xtri-accent);
+    outline: 3px solid var(--xtri-accent-soft);
 }
 
 .copyButton {
@@ -131,8 +131,8 @@
     padding: 12px;
     border: 0;
     border-radius: 12px;
-    background: var(--xtri-cyan-strong);
-    color: #fff;
+    background: var(--xtri-orange);
+    color: var(--xtri-navy);
     cursor: pointer;
     font-weight: 700;
     transition: background 0.2s, transform 0.2s;
@@ -140,7 +140,7 @@
 
 .copyButton:hover {
     transform: translateY(-1px);
-    background: var(--xtri-cyan-deep);
+    background: var(--xtri-strong-deep);
 }
 
 .storyWrapper {
@@ -162,7 +162,7 @@
     padding: clamp(18px, 7vw, 30px);
     overflow: hidden;
     border-radius: 18px;
-    background: linear-gradient(145deg, var(--xtri-navy) 0%, #073f59 58%, var(--xtri-cyan-deep) 100%);
+    background: linear-gradient(145deg, var(--xtri-navy) 0%, #073f59 58%, var(--xtri-strong-deep) 100%);
     box-shadow: 0 16px 36px rgba(7, 20, 39, 0.2);
     text-align: center;
 }
@@ -194,7 +194,7 @@
     position: relative;
     margin-bottom: 40px;
     color: #fff;
-    font-family: var(--font-space-grotesk), sans-serif;
+    font-family: var(--font-display);
     font-size: 1.5rem;
     font-weight: 800;
     letter-spacing: 2px;
@@ -217,7 +217,8 @@
     position: relative;
     margin-bottom: 10px;
     color: #fff;
-    font-family: var(--font-space-grotesk), sans-serif;
+    font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
     font-size: 4rem;
     font-weight: 800;
     letter-spacing: -0.05em;
@@ -243,7 +244,7 @@
     position: relative;
     margin-bottom: 5px;
     color: #fff;
-    font-family: var(--font-space-grotesk), sans-serif;
+    font-family: var(--font-display);
     font-size: 1.2rem;
     font-weight: 700;
     line-height: 1.4;

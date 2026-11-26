@@ -1,10 +1,27 @@
 import type { Metadata } from 'next'
+import localFont from 'next/font/local'
 import './globals.css'
 
 import { serializeJsonLd } from '@/lib/course-seo'
 
 import { ScoreProvider } from '../context/ScoreContext'
 import { ModalityProvider } from '../context/ModalityContext'
+
+const bigShoulders = localFont({
+  src: [
+    { path: '../assets/fonts/BigShouldersDisplay-ExtraBold.ttf', weight: '800' },
+    { path: '../assets/fonts/BigShouldersDisplay-Black.ttf', weight: '900' },
+  ],
+  variable: '--font-big-shoulders',
+  display: 'swap',
+})
+
+const jetbrainsMono = localFont({
+  src: '../assets/fonts/JetBrainsMono-Medium.ttf',
+  weight: '500',
+  variable: '--font-jetbrains-mono',
+  display: 'swap',
+})
 
 const SITE_URL = 'https://xtrisisu.com'
 const SITE_TITLE = 'Simulador SISU 2027 grátis: nota de corte e calculadora com pesos'
@@ -64,7 +81,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={`${bigShoulders.variable} ${jetbrainsMono.variable}`}>
       <body>
         <script
           type="application/ld+json"

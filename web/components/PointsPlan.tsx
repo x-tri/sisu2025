@@ -424,7 +424,6 @@ export default function PointsPlan({
         </button>
         <button
           type="button"
-          aria-label={detailsOpen ? 'Ocultar informações por ano' : 'Ver informações por ano'}
           aria-expanded={detailsOpen}
           onClick={onToggleDetails}
         >

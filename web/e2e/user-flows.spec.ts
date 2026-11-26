@@ -41,11 +41,11 @@ test('mantém os destinos do ecossistema XTRI acessíveis sem abrir menus', asyn
     'href',
     'https://xtri.online',
   );
-  await expect(page.getByRole('link', { name: 'Ranking ENEM para escolas' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: 'Para escolas Ranking ENEM' })).toHaveAttribute(
     'href',
     'https://rankingenem.com',
   );
-  await expect(page.getByRole('link', { name: 'Instagram @xandaoxtri' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: 'Acompanhe conteúdos @xandaoxtri' })).toHaveAttribute(
     'href',
     'https://instagram.com/xandaoxtri',
   );
@@ -357,7 +357,7 @@ test('navega pelas abas do detalhe com as setas', async ({ page }) => {
   await installApiMocks(page);
   await page.goto('/');
   await selectVerifiedL1Course(page);
-  await page.getByRole('button', { name: 'Ver informações por ano' }).click();
+  await page.getByRole('button', { name: 'Ver histórico e método' }).click();
 
   const detailTablist = page.getByRole('tablist', { name: 'Detalhes da oferta' });
   const yearsTab = detailTablist.getByRole('tab', { name: 'Informações por ano' });

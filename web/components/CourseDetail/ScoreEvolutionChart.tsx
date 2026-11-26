@@ -12,6 +12,7 @@ import {
     ResponsiveContainer
 } from 'recharts';
 import styles from './ScoreEvolutionChart.module.css';
+import { CHART_COLORS } from '../../lib/chartPalette';
 
 interface PartialScore {
     day: number;
@@ -86,7 +87,7 @@ export default function ScoreEvolutionChart({
                                 className={styles.tooltipDot}
                                 style={{ backgroundColor: entry.color }}
                             />
-                            <span style={{ color: entry.color }}>{entry.name}: </span>
+                            <span>{entry.name}: </span>
                             <span className={styles.tooltipValue}>
                                 {entry.value?.toFixed(2).replace('.', ',')}
                             </span>
@@ -115,22 +116,22 @@ export default function ScoreEvolutionChart({
                         bottom: 5,
                     }}
                 >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
                     <XAxis
                         dataKey="day"
-                        stroke="#666"
-                        tick={{ fill: '#666', fontSize: 12 }}
+                        stroke={CHART_COLORS.textMuted}
+                        tick={{ fill: CHART_COLORS.textMuted, fontSize: 12 }}
                         tickLine={false}
                         axisLine={false}
                     />
                     <YAxis
                         domain={['auto', 'auto']}
-                        stroke="#666"
-                        tick={{ fill: '#666', fontSize: 12 }}
+                        stroke={CHART_COLORS.textMuted}
+                        tick={{ fill: CHART_COLORS.textMuted, fontSize: 12 }}
                         tickLine={false}
                         axisLine={false}
                         width={50}
-                        label={{ value: 'Nota', angle: -90, position: 'insideLeft', fill: '#666' }}
+                        label={{ value: 'Nota', angle: -90, position: 'insideLeft', fill: CHART_COLORS.textMuted }}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{ paddingTop: '10px' }} />
@@ -140,38 +141,38 @@ export default function ScoreEvolutionChart({
                         <Line
                             type="monotone"
                             dataKey="2024"
-                            stroke="#666"
+                            stroke={CHART_COLORS.gray}
                             strokeWidth={2}
                             strokeDasharray="5 5"
-                            dot={{ r: 3, fill: '#666' }}
+                            dot={{ r: 3, fill: CHART_COLORS.gray }}
                             activeDot={{ r: 6 }}
                             name="2024 (Ref)"
                             connectNulls
                         />
                     )}
 
-                    {/* 2025 - Blue/Recent */}
+                    {/* 2025 - Navy/Recent */}
                     {data2025 && (
                         <Line
                             type="monotone"
                             dataKey="2025"
-                            stroke="#3b82f6"
+                            stroke={CHART_COLORS.reference}
                             strokeWidth={2}
-                            dot={{ r: 4, fill: '#3b82f6' }}
+                            dot={{ r: 4, fill: CHART_COLORS.reference }}
                             activeDot={{ r: 6 }}
                             name="2025"
                             connectNulls
                         />
                     )}
 
-                    {/* 2026 - Green/Live (Bright) */}
+                    {/* 2026 - Orange/Live (highlight) */}
                     {data2026 && (
                         <Line
                             type="monotone"
                             dataKey="2026"
-                            stroke="#10b981"
+                            stroke={CHART_COLORS.highlight}
                             strokeWidth={3}
-                            dot={{ r: 5, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}
+                            dot={{ r: 5, fill: CHART_COLORS.highlight, strokeWidth: 2, stroke: CHART_COLORS.panel }}
                             activeDot={{ r: 8 }}
                             name="2026 (Atual)"
                             connectNulls

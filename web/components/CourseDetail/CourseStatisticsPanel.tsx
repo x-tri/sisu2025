@@ -15,6 +15,7 @@ import {
     YAxis,
 } from 'recharts';
 import styles from './CourseStatisticsPanel.module.css';
+import { CHART_COLORS, SERIES_COLORS } from '../../lib/chartPalette';
 
 interface AvailableModality {
     id: string;
@@ -75,8 +76,6 @@ interface PartialChartRow {
     day: number;
     [seriesKey: string]: number | null;
 }
-
-const SERIES_COLORS = ['#435eff', '#f97316', '#7c3aed', '#ec4899', '#a16207'];
 
 function formatScore(value: number): string {
     return value.toLocaleString('pt-BR', {
@@ -293,7 +292,7 @@ export default function CourseStatisticsPanel({
                                     <div className={styles.partialChart}>
                                         <ResponsiveContainer width="100%" height="100%">
                                             <LineChart data={partialChartData} margin={{ top: 12, right: 18, left: 2, bottom: 0 }}>
-                                                <CartesianGrid stroke="#eceef2" vertical={false} />
+                                                <CartesianGrid stroke={CHART_COLORS.grid} vertical={false} />
                                                 <XAxis dataKey="day" tickFormatter={day => `${day}º dia`} tick={{ fontSize: 11 }} />
                                                 <YAxis
                                                     domain={['dataMin - 8', 'dataMax + 8']}
@@ -360,7 +359,7 @@ export default function CourseStatisticsPanel({
                                     >
                                         <ResponsiveContainer width="100%" height="100%">
                                             <BarChart data={approvedChartData} margin={{ top: 12, right: 20, left: 4, bottom: 0 }}>
-                                                <CartesianGrid stroke="#eceef2" vertical={false} />
+                                                <CartesianGrid stroke={CHART_COLORS.grid} vertical={false} />
                                                 <XAxis dataKey="edition" tick={{ fontSize: 11 }} />
                                                 <YAxis
                                                     domain={['dataMin - 10', 'dataMax + 10']}
@@ -370,10 +369,10 @@ export default function CourseStatisticsPanel({
                                                 />
                                                 <Tooltip formatter={scoreTooltip} />
                                                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                                                <Bar dataKey="menor" name="Menor nota" fill="#a78bfa" isAnimationActive={false} />
-                                                <Bar dataKey="media" name="Média" fill="#435eff" isAnimationActive={false} />
-                                                <Bar dataKey="mediana" name="Mediana" fill="#f97316" isAnimationActive={false} />
-                                                <Bar dataKey="maior" name="Maior nota" fill="#ec4899" isAnimationActive={false} />
+                                                <Bar dataKey="menor" name="Menor nota" fill={CHART_COLORS.purple} isAnimationActive={false} />
+                                                <Bar dataKey="media" name="Média" fill={CHART_COLORS.reference} isAnimationActive={false} />
+                                                <Bar dataKey="mediana" name="Mediana" fill={CHART_COLORS.highlight} isAnimationActive={false} />
+                                                <Bar dataKey="maior" name="Maior nota" fill={CHART_COLORS.green} isAnimationActive={false} />
                                             </BarChart>
                                         </ResponsiveContainer>
                                     </div>
@@ -414,7 +413,7 @@ export default function CourseStatisticsPanel({
                                     >
                                         <ResponsiveContainer width="100%" height="100%">
                                             <LineChart data={cutoffChartData} margin={{ top: 12, right: 20, left: 4, bottom: 0 }}>
-                                                <CartesianGrid stroke="#eceef2" vertical={false} />
+                                                <CartesianGrid stroke={CHART_COLORS.grid} vertical={false} />
                                                 <XAxis dataKey="edition" tick={{ fontSize: 11 }} />
                                                 <YAxis
                                                     domain={['dataMin - 10', 'dataMax + 10']}
@@ -428,7 +427,7 @@ export default function CourseStatisticsPanel({
                                                     type="monotone"
                                                     dataKey="cutoff"
                                                     name="1ª edição"
-                                                    stroke="#435eff"
+                                                    stroke={CHART_COLORS.reference}
                                                     strokeWidth={2}
                                                     dot={{ r: 4 }}
                                                     activeDot={{ r: 6 }}
@@ -438,7 +437,7 @@ export default function CourseStatisticsPanel({
                                                         dataKey="cutoff"
                                                         position="top"
                                                         formatter={scoreTooltip}
-                                                        style={{ fill: '#435eff', fontSize: 10 }}
+                                                        style={{ fill: CHART_COLORS.reference, fontSize: 10 }}
                                                     />
                                                 </Line>
                                             </LineChart>
