@@ -1,6 +1,6 @@
 export const OFFER_BADGE = 'PLATAFORMA XTRI · ENEM 2027'
 export const OFFER_TITLE = '17 simulados autorais do Xandão, com correção TRI'
-export const OFFER_PRICE = '12x de R$ 59,90'
+export const OFFER_PRICE = 'R$ 59,90 por mês'
 export const OFFER_SUBTITLE = 'Treine com a mesma nota que o ENEM usa e saiba o que estudar para subir.'
 export const OFFER_CTA = 'Quero os simulados'
 export const OFFER_HEADER_LABEL = 'Plataforma'
