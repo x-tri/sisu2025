@@ -31,6 +31,7 @@ import NearbyOffersPanel from '../components/CourseDetail/NearbyOffersPanel';
 import CourseStatisticsPanel from '../components/CourseDetail/CourseStatisticsPanel';
 import ShareModal from '../components/CourseDetail/ShareModal';
 import CourseResultCard from '../components/CourseResultCard';
+import PlatformOffer from '../components/PlatformOffer';
 import PointsPlan from '../components/PointsPlan';
 import XtriHeader from '../components/XtriHeader';
 import ScoreModal, { type ScoreDraft } from '../components/ScoreModal';
@@ -1257,6 +1258,7 @@ export default function Home() {
               </div>
             </div>
             </div>
+            <PlatformOffer position="home_topo" variant="strip" />
           </div>
           </section>
         )}

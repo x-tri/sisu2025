@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, permanentRedirect } from 'next/navigation'
 
+import PlatformOffer from '@/components/PlatformOffer'
 import SeoShell, { type Crumb } from '@/components/seo/SeoShell'
 import styles from '@/components/seo/SeoShell.module.css'
 import { getBrazilianStateName } from '@/lib/brazilian-states'
@@ -167,6 +168,8 @@ export default async function CourseReferencePage({ params }: PageProps): Promis
           </Link>
         </div>
       </section>
+
+      <PlatformOffer position="curso" />
 
       {editionReferences.length > 0 ? (
         <section className={styles.card} aria-labelledby="modalidades">

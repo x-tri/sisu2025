@@ -2,6 +2,7 @@
 
 import { Compass, ExternalLink, LineChart, Menu, Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { OFFER_HEADER_LABEL, offerUrl, trackOfferClick } from '@/lib/offer';
 import styles from './XtriHeader.module.css';
 
 interface XtriHeaderProps {
@@ -59,6 +60,15 @@ export default function XtriHeader({
         </div>
 
         <div className={styles.actions}>
+          <a
+            className={styles.platformLink}
+            href={offerUrl('header')}
+            target="_blank"
+            rel="noopener"
+            onClick={() => trackOfferClick('header')}
+          >
+            {OFFER_HEADER_LABEL}
+          </a>
           <button
             type="button"
             className={styles.menuButton}

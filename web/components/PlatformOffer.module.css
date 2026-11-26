@@ -1,0 +1,112 @@
+.offer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.5rem 2rem;
+  min-height: 9.5rem;
+  padding: 1.5rem 1.75rem;
+  border: 1px solid rgb(253 84 48 / 0.6);
+  border-left: 6px solid var(--xtri-orange);
+  border-radius: 1rem;
+  background: var(--xtri-navy-soft);
+  color: #fff;
+}
+
+.card {
+  margin-top: var(--space-5, 1.25rem);
+}
+
+.strip {
+  grid-column: 1 / -1;
+  min-height: 6.75rem;
+  padding-block: 1rem;
+}
+
+.copy {
+  min-width: 0;
+}
+
+.badge {
+  margin: 0 0 0.4rem;
+  color: #ff9a82;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.title {
+  margin: 0;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+  font-weight: 700;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.subtitle {
+  margin: 0.45rem 0 0;
+  color: #d3deec;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.action {
+  display: grid;
+  justify-items: stretch;
+  gap: 0.6rem;
+  text-align: center;
+}
+
+.price {
+  margin: 0;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0.7rem 1.4rem;
+  border-radius: 0.75rem;
+  background: var(--xtri-orange);
+  color: var(--xtri-navy);
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.button:hover {
+  background: #ff7a5c;
+}
+
+.button:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  .offer {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 17rem;
+    padding: 1.25rem 1rem;
+  }
+
+  .strip {
+    min-height: 17rem;
+    padding-block: 1.25rem;
+  }
+
+  .action {
+    text-align: left;
+  }
+
+  .button {
+    white-space: normal;
+  }
+}
