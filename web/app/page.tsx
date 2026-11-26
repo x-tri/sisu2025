@@ -1704,11 +1704,11 @@ export default function Home() {
               </p>
             </div>
             <nav className={styles.ecosystemLinks} aria-label="Ecossistema XTRI">
-              <a href={MEDICINE_HUB_PATH} aria-label="Nota de corte de Medicina no SISU">
+              <a href={MEDICINE_HUB_PATH}>
                 <span>Simulador SISU</span>
                 <strong>Medicina</strong>
               </a>
-              <a href="/universidades" aria-label="Notas de corte por universidade">
+              <a href="/universidades">
                 <span>Notas de corte</span>
                 <strong>Por universidade</strong>
               </a>
@@ -1716,7 +1716,6 @@ export default function Home() {
                 href="https://xtri.online"
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Conheça a XTRI"
               >
                 <span>Conheça a XTRI</span>
                 <strong>xtri.online <ExternalLink size={14} aria-hidden="true" /></strong>
@@ -1725,7 +1724,6 @@ export default function Home() {
                 href="https://rankingenem.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Ranking ENEM para escolas"
               >
                 <span>Para escolas</span>
                 <strong>Ranking ENEM <ExternalLink size={14} aria-hidden="true" /></strong>
@@ -1734,7 +1732,6 @@ export default function Home() {
                 href="https://instagram.com/xandaoxtri"
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Instagram @xandaoxtri"
               >
                 <span>Acompanhe conteúdos</span>
                 <strong>@xandaoxtri <ExternalLink size={14} aria-hidden="true" /></strong>

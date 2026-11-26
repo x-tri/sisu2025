@@ -390,7 +390,7 @@
 }
 
 .searchControl > input::placeholder {
-  color: #8a9aaa;
+  color: #5c544d;
 }
 
 .searchControl > input:focus {
@@ -538,7 +538,7 @@
   position: absolute;
   top: 50%;
   right: 0.75rem;
-  color: #708496;
+  color: #5c544d;
   pointer-events: none;
   transform: translateY(-50%);
 }
@@ -561,7 +561,7 @@
   border-radius: 0.9rem;
   background: rgb(255 255 255 / 0.98);
   box-shadow: 0 10px 30px rgb(7 20 39 / 0.07);
-  color: #536a7c;
+  color: #5c544d;
   font-size: 0.75rem;
   line-height: 1.6;
 }
@@ -603,7 +603,7 @@
   border: 0;
   border-radius: 50%;
   background: transparent;
-  color: #7b8d9c;
+  color: #5c544d;
 }
 
 .noticeClose:hover {
@@ -1055,7 +1055,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  color: #61778a;
+  color: #5c544d;
   font-size: 0.68rem;
 }
 
@@ -1107,7 +1107,7 @@
   border: 0;
   border-radius: 0.6rem;
   background: transparent;
-  color: #536a7c;
+  color: #5c544d;
   font-size: 0.78rem;
   font-weight: 750;
 }
