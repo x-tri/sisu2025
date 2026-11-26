@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
+import PlatformOffer from '@/components/PlatformOffer'
 import SeoShell, { type Crumb } from '@/components/seo/SeoShell'
 import styles from '@/components/seo/SeoShell.module.css'
 import { loadUniversity } from '@/lib/course-page-data'
@@ -64,6 +65,8 @@ export default async function UniversityPage({ params }: PageProps): Promise<JSX
           </div>
         </dl>
       </section>
+
+      <PlatformOffer position="universidade" />
 
       <section className={styles.card} aria-labelledby="cursos">
         <h2 id="cursos">Cursos de {shortName(university)} no SISU</h2>

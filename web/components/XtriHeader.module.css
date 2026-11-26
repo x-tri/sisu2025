@@ -208,3 +208,37 @@
     padding: 0 0.75rem;
   }
 }
+
+.platformLink {
+  align-items: center;
+  border: 1px solid var(--xtri-orange);
+  border-radius: 0.55rem;
+  color: #ffb4a3;
+  display: inline-flex;
+  font-size: 0.84rem;
+  font-weight: 700;
+  min-height: 44px;
+  padding: 0 0.85rem;
+}
+
+.platformLink:hover {
+  background: rgb(253 84 48 / 0.14);
+  color: #fff;
+}
+
+.platformLink:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
